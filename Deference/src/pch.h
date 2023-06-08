@@ -2,18 +2,22 @@
 
 //C++ stuff
 #include <string>
+#include <string_view>
 #include <sstream>
 #include <vector>
 #include <memory>
 #include <array>
+#include <numbers>
+static constexpr auto PI = std::numbers::pi;
 #include <optional>
 
 //Windows defines
-#define _USE_MATH_DEFINES
+//#define _USE_MATH_DEFINES
 #define NOMINMAX
 
 //Windows stuff
 #include <Windows.h>
+#include <dxcapi.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <d3dx12.h>

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Input.h"
+#include "Debug/Exception.h"
 
 Input::Input()
 	:m_LPressed(false), m_RPressed(false)

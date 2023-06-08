@@ -4,12 +4,17 @@
 #include <comdef.h>
 #include <ShObjIdl.h>
 #include <shlobj.h>
+#include "Debug/Exception.h"
+
 
 //extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 Window::Window(const std::string& name, unsigned int width, unsigned int height)
 	:m_Inst(GetModuleHandle(nullptr)), m_Name(name), m_Width(width), m_Height(height)
 {
+	//SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+	HR CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
 	WNDCLASSEX wc{};
 	HINSTANCE hInst = m_Inst;
 	wc.cbSize = sizeof(wc);
@@ -36,10 +41,10 @@ Window::Window(const std::string& name, unsigned int width, unsigned int height)
 	BR m_Handle;
 
 	//ImGui_ImplWin32_Init(m_Handle);
+	m_Graphics = MakeUnique<Graphics>(m_Handle, m_Width, m_Height);
 	ShowWindow(m_Handle, SW_SHOW);
 	m_Input.SetCursor(false);
 	GetClipCursor(&m_OrigClipRect);
-	m_Graphics = MakeUnique<Graphics>(m_Handle, m_Width, m_Height);
 }
 
 Window::~Window()
@@ -75,7 +80,7 @@ std::wstring Window::OpenDialogBoxW()
 		 COINIT_DISABLE_OLE1DDE);
 	 if (SUCCEEDED(hr))
 	 {
-		 IFileOpenDialog* pFileOpen;
+		 IFileOpenDialog* pFileOpen = nullptr;
 
 		 // Create the FileOpenDialog object.
 		 hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
@@ -206,7 +211,7 @@ LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 		m_Width = LOWORD(lParam);
 		m_Height = HIWORD(lParam);
-		//m_Graphics->OnWindowResize(m_Width, m_Height);
+		m_Graphics->OnWindowResize(std::max(1u, m_Width), std::max(1u, m_Height));
 		//ImGui::GetIO().DisplaySize = ImVec2((float)m_Width, (float)m_Height);
 		break;
 	case WM_KEYDOWN:

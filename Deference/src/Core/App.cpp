@@ -1,6 +1,5 @@
 ﻿#include "pch.h"
 #include "App.h"
-
 #include <thread>
 
 App::App(const std::string& name, UINT32 width, UINT32 height)
@@ -22,7 +21,8 @@ INT App::Run()
 
 	std::thread renderer([&]() {
 		auto& g = m_Wnd.GetGraphics();
-		g.Render();
+		while(running)
+			g.Render();
 	});
 
 	while (!(ret = m_Wnd.Update())) {
@@ -30,6 +30,9 @@ INT App::Run()
 		float deltaTime = currentTime - prevTime;
 		prevTime = currentTime;
 	}
+
+	running = false;
+	renderer.join();
 
 	return *ret;
 }

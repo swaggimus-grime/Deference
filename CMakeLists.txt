@@ -1,7 +1,11 @@
 ﻿# CMakeList.txt : Top-level CMake project file, do global configuration
 # and include sub-projects here.
 #
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.18)
+set(CMAKE_CXX_STANDARD 20)
+
+set(CMAKE_BUILD_TYPE "Debug")
+set(WIN32 true)
 
 project ("Deference")
 
@@ -13,8 +17,6 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
         message(FATAL_ERROR "Failed to turn on GIT_SUBMODULE")
     endif()
 endif()
-
-message(STATUS "Working directory: ${PROJECT_SOURCE_DIR}")
 
 function(add_git_submodule dir)
     message(STATUS "Submodule update ${dir}")

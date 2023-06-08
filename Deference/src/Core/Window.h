@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 #include "Input.h"
+#include "Graphics/Graphics.h"
 
 class Window {
 public:
