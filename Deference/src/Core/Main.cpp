@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "App.h"
 
 int WINAPI WinMain(HINSTANCE hInstance,

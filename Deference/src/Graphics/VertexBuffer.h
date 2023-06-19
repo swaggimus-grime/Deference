@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include "Debug/Exception.h"
+#include "util.h"
 
 enum class VERTEX_ATTRIBUTES
 {
@@ -72,12 +73,28 @@ inline void operator|=(VERTEX_ATTRIBUTES& a, VERTEX_ATTRIBUTES b)
 							return *reinterpret_cast<Map<attr>::type*>(m_Data.data() + idx * m_Stride + m_Offsets[attr]); \
 						} \
 
+class InputLayout
+{
+public:
+	friend class VertexStream;
+
+	InputLayout(const VERTEX_ATTRIBUTES& attributes);
+	inline D3D12_INPUT_LAYOUT_DESC Layout() const { return m_Layout; }
+
+private:
+	std::vector<D3D12_INPUT_ELEMENT_DESC> m_Elements;
+	D3D12_INPUT_LAYOUT_DESC m_Layout;
+	const VERTEX_ATTRIBUTES m_Attributes;
+	UINT m_Stride;
+	std::unordered_map<VERTEX_ATTRIBUTES, UINT> m_Offsets;
+};
+
 class VertexStream
 {
 public:
 	using enum VERTEX_ATTRIBUTES;
 
-	VertexStream(const VERTEX_ATTRIBUTES& attributes, UINT numVertices);
+	VertexStream(const InputLayout& layout, UINT numVertices);
 
 	GET_ATTRIB(Pos, POS)
 	GET_ATTRIB(Tex, TEX)
@@ -90,16 +107,11 @@ public:
 	inline UINT Size() const { return m_Stride * m_NumVertices; }
 	inline UINT Stride() const { return m_Stride; }
 
-	inline const D3D12_INPUT_ELEMENT_DESC* Elements() const { return m_Elements.data(); }
-	inline UINT NumElements() const { return m_Elements.size(); }
-
 private:
 	std::vector<CHAR> m_Data;
 	UINT m_NumVertices;
 	UINT m_Stride;
 	std::unordered_map<VERTEX_ATTRIBUTES, UINT> m_Offsets;
-	const VERTEX_ATTRIBUTES m_Attributes;
-	std::vector<D3D12_INPUT_ELEMENT_DESC> m_Elements;
 };
 
 class VertexBuffer
@@ -107,7 +119,6 @@ class VertexBuffer
 public:
 	VertexBuffer(Graphics& g, const VertexStream& stream);
 	void Bind(Graphics& g) const;
-	const D3D12_INPUT_LAYOUT_DESC& Layout() const { return m_Layout; }
 	inline auto* Res() const { return m_Buffer.Get(); }
 	inline UINT NumVertices() const { return m_View.SizeInBytes / Stride(); }
 	inline UINT Stride() const { return m_View.StrideInBytes; }
@@ -115,16 +126,4 @@ public:
 private:
 	ComPtr<ID3D12Resource> m_Buffer;
 	D3D12_VERTEX_BUFFER_VIEW m_View;
-	D3D12_INPUT_LAYOUT_DESC m_Layout;
-};
-
-class IndexBuffer
-{
-public:
-	IndexBuffer(Graphics& g, UINT numIndices, const UINT16* data);
-	void Bind(Graphics& g) const;
-
-private:
-	ComPtr<ID3D12Resource> m_Buffer;
-	D3D12_INDEX_BUFFER_VIEW m_View;
 };

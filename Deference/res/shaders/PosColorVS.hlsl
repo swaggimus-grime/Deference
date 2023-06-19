@@ -1,11 +1,11 @@
 #include "ModelVertex.hlsli"
 #include "Transform.hlsli"
 
-VSOut main(float3 pos : POSITION/*, float2 tex : TEXCOORD, float3 norm : NORMAL*/)
+VSOut main(float3 pos : POSITION, float4 color : COLOR)
 {
     VSOut output;
-    output.pos = float4(pos, 1.f);
-    //output.tex = tex;
-    //output.norm = norm;
+    output.pos = mul(float4(pos, 1.f), transform.view);
+    output.pos = mul(output.pos, transform.proj);
+    output.color = color;
     return output;
 }

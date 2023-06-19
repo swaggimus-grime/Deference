@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "RootSig.h"
 
 RootSig::RootSig(Graphics& g, const RootParams& params)

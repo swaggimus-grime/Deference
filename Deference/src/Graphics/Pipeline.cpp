@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "Pipeline.h"
 #include "RootSig.h"
 #include "Shader.h"

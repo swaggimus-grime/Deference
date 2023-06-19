@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "Shader.h"
 #include <d3dcompiler.h>
 
@@ -9,7 +8,7 @@ Shader::Shader(const std::wstring& path, const std::string& type)
         nullptr,
         D3D_COMPILE_STANDARD_FILE_INCLUDE,
         "main",
-        (type + "_5_0").c_str(),
+        (type + "_5_1").c_str(),
         D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
         0,
         &m_ByteCode,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util.h"
 #include <bitset>
 #include <queue>
 
@@ -17,6 +18,7 @@ public:
 	inline BOOL RawDeltaEnabled() const { return m_RawDeltaEnabled; }
 	inline BOOL IsMouseLPressed() const { return m_LPressed; }
 	inline XMFLOAT2 GetMousePos() const { return m_MousePos; }
+
 private:
 	friend class Window;
 	void OnKeyPressed(unsigned int key);

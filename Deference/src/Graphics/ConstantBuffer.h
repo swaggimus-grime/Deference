@@ -1,14 +1,13 @@
-//#pragma once
-//
-//template<class T>
-//class ConstantBuffer
-//{
-//public:
-//	ConstantBuffer();
-//	void Update();
-//	void Bind();
-//
-//private:
-//	ComPtr<ID3D12DescriptorHeap> m_CBDescHeap;
-//	ComPtr<ID3D12Resource> m_CB;
-//};
+#pragma once
+
+#include "ShaderAccessible.h"
+#include <d3d12.h>
+
+class Graphics;
+
+class ConstantBuffer : public ShaderAccessible
+{
+public:
+	ConstantBuffer(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle, ComPtr<ID3D12Resource> res, SIZE_T size);
+
+};

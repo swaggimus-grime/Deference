@@ -1,6 +1,9 @@
-cbuffer Transform : register(b0)
+struct Transform
 {
-    matrix model;
-    matrix modelView;
-    matrix mvp;
+    matrix view;
+    matrix proj;
+    matrix viewI;
+    matrix projI;
 };
+
+ConstantBuffer<Transform> transform : register(b0);

@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "Exception.h"
 #include <exception>
 #include <format>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Windows.h>
 #include <source_location>
 
 struct HRWrapper
