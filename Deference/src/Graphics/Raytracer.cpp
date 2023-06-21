@@ -13,15 +13,59 @@ Raytracer::Raytracer(Graphics& g)
     HR g.Device().CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options, sizeof(options));
     BR(options.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0);
 
-    auto bottomAS = CreateBottomLevelAS(g, g.Scene().m_VBs, g.Scene().m_IBs);
-    m_Instances = { { bottomAS.pResult, XMMatrixIdentity() } };
+    std::vector<ComPtr<ID3D12Resource>> bottomASs;
+    for (UINT i = 0; i < g.Scene().m_VBs.size(); i++)
+        bottomASs.push_back(std::move(CreateBottomLevelAS(g, { g.Scene().m_VBs[i] }, { g.Scene().m_IBs[i] }).pResult));
+    
+
+    // #DXR Extra: Per-Instance Data
+    // 3 instances of the triangle + a plane
+    m_Instances = {
+        {bottomASs[0], DirectX::XMMatrixIdentity()},
+        {bottomASs[0], DirectX::XMMatrixTranslation(.6f, 0, 0)},
+        {bottomASs[0], DirectX::XMMatrixTranslation(-.6f, 0, 0)},
+        // #DXR Extra: Per-Instance Data
+        {bottomASs[1], DirectX::XMMatrixTranslation(0, 0, 0)}
+    };
+    
     CreateTopLevelAS(g, m_Instances);
 
     g.Flush();
     HR g.CL().Reset(&g.CA(), g.GetPipeline());
-    m_BottomLevelAS = bottomAS;
 
     g.CL().Close();
+
+    DirectX::XMVECTOR bufferData[] = {
+        // A
+        DirectX::XMVECTOR{1.0f, 0.0f, 0.0f, 1.0f},
+        DirectX::XMVECTOR{1.0f, 0.4f, 0.0f, 1.0f},
+        DirectX::XMVECTOR{1.f, 0.7f, 0.0f, 1.0f},
+
+        // B
+        DirectX::XMVECTOR{0.0f, 1.0f, 0.0f, 1.0f},
+        DirectX::XMVECTOR{0.0f, 1.0f, 0.4f, 1.0f},
+        DirectX::XMVECTOR{0.0f, 1.0f, 0.7f, 1.0f},
+
+        // C
+        DirectX::XMVECTOR{0.0f, 0.0f, 1.0f, 1.0f},
+        DirectX::XMVECTOR{0.4f, 0.0f, 1.0f, 1.0f},
+        DirectX::XMVECTOR{0.7f, 0.0f, 1.0f, 1.0f},
+    };
+
+    m_PerInstCBuffs.resize(3);
+    int i(0);
+    for (auto& cb : m_PerInstCBuffs)
+    {
+        const uint32_t bufferSize = sizeof(DirectX::XMVECTOR) * 3;
+        cb = nv_helpers_dx12::CreateBuffer(&g.Device(), bufferSize, D3D12_RESOURCE_FLAG_NONE,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nv_helpers_dx12::kUploadHeapProps);
+        uint8_t* pData;
+        ThrowIfFailed(cb->Map(0, nullptr, reinterpret_cast<void**>(&pData)));
+        memcpy(pData, &bufferData[i * 3], bufferSize);
+        cb->Unmap(0, nullptr);
+        ++i;
+    }
 
     {
         nv_helpers_dx12::RayTracingPipelineGenerator pipeline(&g.Device());
@@ -34,7 +78,8 @@ Raytracer::Raytracer(Graphics& g)
         m_RayGenLib = nv_helpers_dx12::CompileShaderLibrary(L"shaders\\RayGen.hlsl");
         m_MissLib = nv_helpers_dx12::CompileShaderLibrary(L"shaders\\Miss.hlsl");
         m_HitLib = nv_helpers_dx12::CompileShaderLibrary(L"shaders\\Hit.hlsl");
-
+        m_ShadowLib = nv_helpers_dx12::CompileShaderLibrary(L"shaders\\ShadowRay.hlsl");
+        
         // In a way similar to DLLs, each library is associated with a number of
         // exported symbols. This
         // has to be done explicitly in the lines below. Note that a single library
@@ -42,16 +87,36 @@ Raytracer::Raytracer(Graphics& g)
         // using the [shader("xxx")] syntax
         pipeline.AddLibrary(m_RayGenLib.Get(), { L"RayGen" });
         pipeline.AddLibrary(m_MissLib.Get(), { L"Miss" });
-        pipeline.AddLibrary(m_HitLib.Get(), { L"ClosestHit" });
+        pipeline.AddLibrary(m_HitLib.Get(), { L"ClosestHit", L"PlaneClosestHit" });
+        pipeline.AddLibrary(m_ShadowLib.Get(), { L"ShadowClosestHit", L"ShadowMiss" });
 
         // To be used, each DX12 shader needs a root signature defining which
         // parameters and buffers will be accessed.
         {
             nv_helpers_dx12::RootSignatureGenerator rsc;
-            rsc.AddHeapRangesParameter({
-                { 0, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0 },
-                { 0, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1 },
-                { 0, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2 }
+            rsc.AddHeapRangesParameter(
+                {
+                    {
+                        0 /*u0*/,
+                        1 /*1 descriptor */,
+                        0 /*use the implicit register space 0*/,
+                        D3D12_DESCRIPTOR_RANGE_TYPE_UAV /* UAV representing the output buffer*/,
+                        0 /*heap slot where the UAV is defined*/
+                    },
+                    {
+                        0 /*t0*/,
+                        1,
+                        0,
+                        D3D12_DESCRIPTOR_RANGE_TYPE_SRV /*Top-level acceleration structure*/,
+                        1
+                    },
+                    {
+                        0 /*b0*/,
+                        1,
+                        0,
+                        D3D12_DESCRIPTOR_RANGE_TYPE_CBV /*Camera parameters*/,
+                        2
+                    }
                 });
             m_RayGenSig = rsc.Generate(&g.Device(), true);
         }
@@ -61,9 +126,21 @@ Raytracer::Raytracer(Graphics& g)
         }
         {
             nv_helpers_dx12::RootSignatureGenerator rsc;
-            rsc.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV);
-            rsc.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 1);
+            rsc.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0);
+
+            // #DXR Extra - Another ray type
+            // Add a single range pointing to the TLAS in the heap
+            rsc.AddHeapRangesParameter({
+                {
+                    2 /*t2*/,
+                    1,
+                    0,
+                    D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+                    1 /*2nd slot of the heap*/
+                },
+                });
             m_HitSig = rsc.Generate(&g.Device(), true);
+            m_ShadowSig = m_HitSig;
         }
 
         // 3 different shaders can be invoked to obtain an intersection: an
@@ -84,6 +161,11 @@ Raytracer::Raytracer(Graphics& g)
         // Hit group for the triangles, with a shader simply interpolating vertex
         // colors
         pipeline.AddHitGroup(L"HitGroup", L"ClosestHit");
+        // #DXR Extra: Per-Instance Data
+        pipeline.AddHitGroup(L"PlaneHitGroup", L"PlaneClosestHit");
+        // #DXR Extra - Another ray type
+        // Hit group for all geometry when hit by a shadow ray
+        pipeline.AddHitGroup(L"ShadowHitGroup", L"ShadowClosestHit");
 
         // The following section associates the root signature to each shader. Note
         // that we can explicitly show that some shaders share the same root signature
@@ -91,8 +173,12 @@ Raytracer::Raytracer(Graphics& g)
         // to as hit groups, meaning that the underlying intersection, any-hit and
         // closest-hit shaders share the same root signature.
         pipeline.AddRootSignatureAssociation(m_RayGenSig.Get(), { L"RayGen" });
-        pipeline.AddRootSignatureAssociation(m_MissSig.Get(), { L"Miss" });
-        pipeline.AddRootSignatureAssociation(m_HitSig.Get(), { L"HitGroup" });
+        // #DXR Extra - Another ray type (Adds "ShadowMiss")
+        pipeline.AddRootSignatureAssociation(m_MissSig.Get(), { L"Miss", L"ShadowMiss" });
+        // #DXR Extra: Per-Instance Data
+        pipeline.AddRootSignatureAssociation(m_HitSig.Get(), { L"HitGroup", L"PlaneHitGroup" });
+        // #DXR Extra - Another ray type
+        pipeline.AddRootSignatureAssociation(m_ShadowSig.Get(), { L"ShadowHitGroup" });
 
         // The payload size defines the maximum size of the data carried by the rays,
         // ie. the the data
@@ -112,7 +198,7 @@ Raytracer::Raytracer(Graphics& g)
         // then requires a trace depth of 1. Note that this recursion depth should be
         // kept to a minimum for best performance. Path tracing algorithms can be
         // easily flattened into a simple loop in the ray generation.
-        pipeline.SetMaxRecursionDepth(1);
+        pipeline.SetMaxRecursionDepth(2);
 
         // Compile the pipeline for execution on the GPU
         m_DXRState = pipeline.Generate();
@@ -124,7 +210,7 @@ Raytracer::Raytracer(Graphics& g)
     {
         m_Heap = MakeUnique<Heap<ShaderAccessible>>(g, 3, true);
         m_Output = m_Heap->AddResource<UnorderedAccess>(g);
-        m_Heap->AddResource<TopLevelAS>(g, m_topLevelASBuffers.pResult);
+        m_Heap->AddResource<TopLevelAS>(g, m_TopLevelASBuffers.pResult);
         m_Heap->AddResource<ConstantBuffer>(g, g.GetCamera().Res(), sizeof(Camera::CamData));
     }
     {
@@ -149,12 +235,26 @@ Raytracer::Raytracer(Graphics& g)
         // The miss and hit shaders do not access any external resources: instead they
         // communicate their results through the ray payload
         m_SbtHelper.AddMissProgram(L"Miss", {});
+        m_SbtHelper.AddMissProgram(L"ShadowMiss", {});
 
-        // Adding the triangle hit shader
-        m_SbtHelper.AddHitGroup(L"HitGroup",
-            {
-                reinterpret_cast<void*>(g.Scene().m_VBs[1]->Res()->GetGPUVirtualAddress()), reinterpret_cast<void*>(g.Scene().m_IBs[1]->Res()->GetGPUVirtualAddress())
-            });
+        for (int i = 0; i < 3; ++i)
+        {
+            m_SbtHelper.AddHitGroup(
+                L"HitGroup",
+                { 
+                  reinterpret_cast<void*>(m_PerInstCBuffs[i]->GetGPUVirtualAddress())
+                }
+            );
+
+            // #DXR Extra - Another ray type
+            m_SbtHelper.AddHitGroup(L"ShadowHitGroup", {});
+        }
+
+        // #DXR Extra - Another ray type
+        m_SbtHelper.AddHitGroup(L"PlaneHitGroup", { heapPointer });
+
+        // #DXR Extra - Another ray type
+        m_SbtHelper.AddHitGroup(L"ShadowHitGroup", {});
 
         // Compute the size of the SBT given the number of shaders and their
         // parameters
@@ -182,18 +282,27 @@ void Raytracer::Render(Graphics& g, Shared<RenderTarget> bb)
     m_Output->Transition(g, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     D3D12_DISPATCH_RAYS_DESC desc = {};
-    uint32_t rayGenerationSectionSizeInBytes =
+    const uint32_t rayGenerationSectionSizeInBytes =
         m_SbtHelper.GetRayGenSectionSize();
     desc.RayGenerationShaderRecord.StartAddress =
         m_SbtStorage->GetGPUVirtualAddress();
     desc.RayGenerationShaderRecord.SizeInBytes =
         rayGenerationSectionSizeInBytes;
-    uint32_t missSectionSizeInBytes = m_SbtHelper.GetMissSectionSize();
+
+    // The miss shaders are in the second SBT section, right after the ray
+    // generation shader. We have one miss shader for the camera rays and one
+    // for the shadow rays, so this section has a size of 2*m_sbtEntrySize. We
+    // also indicate the stride between the two miss shaders, which is the size
+    // of a SBT entry
+    const uint32_t missSectionSizeInBytes = m_SbtHelper.GetMissSectionSize();
     desc.MissShaderTable.StartAddress =
         m_SbtStorage->GetGPUVirtualAddress() + rayGenerationSectionSizeInBytes;
     desc.MissShaderTable.SizeInBytes = missSectionSizeInBytes;
     desc.MissShaderTable.StrideInBytes = m_SbtHelper.GetMissEntrySize();
-    uint32_t hitGroupsSectionSize = m_SbtHelper.GetHitGroupSectionSize();
+
+    // The hit groups section start after the miss shaders. In this sample we
+    // have one 1 hit group for the triangle
+    const uint32_t hitGroupsSectionSize = m_SbtHelper.GetHitGroupSectionSize();
     desc.HitGroupTable.StartAddress = m_SbtStorage->GetGPUVirtualAddress() +
         rayGenerationSectionSizeInBytes +
         missSectionSizeInBytes;
@@ -215,15 +324,15 @@ void Raytracer::Render(Graphics& g, Shared<RenderTarget> bb)
 }
 
 Raytracer::AccelerationStructureBuffers Raytracer::CreateBottomLevelAS(Graphics& g, const std::vector<Shared<VertexBuffer>>& vVertexBuffers,
-    const std::vector<Shared<IndexBuffer>>& vIndexBuffers)
+    const std::vector<Shared<IndexBuffer>>& indexBuffers) const
 {
     nv_helpers_dx12::BottomLevelASGenerator bottomLevelAS;
 
-    for (size_t i = 0; i < vVertexBuffers.size(); i++) {
-        if (i < vIndexBuffers.size() && vIndexBuffers[i]->NumIndices() > 0)
-            bottomLevelAS.AddVertexBuffer(vVertexBuffers[i]->Res(), 0, vVertexBuffers[i]->NumVertices(), vVertexBuffers[i]->Stride(), vIndexBuffers[i]->Res(), 0, vIndexBuffers[i]->NumIndices(), nullptr, 0, true);
-        else
-            bottomLevelAS.AddVertexBuffer(vVertexBuffers[i]->Res(), 0, vVertexBuffers[i]->NumVertices(), vVertexBuffers[i]->Stride(), 0, 0);
+    // Adding all vertex buffers and not transforming their position.
+    for (UINT i = 0; i < vVertexBuffers.size(); i++)
+    {
+        bottomLevelAS.AddVertexBuffer(vVertexBuffers[i]->Res(), 0, vVertexBuffers[i]->NumVertices(),
+            vVertexBuffers[i]->Stride(), indexBuffers[i]->Res(), 0, indexBuffers[i]->NumIndices(), nullptr, 0, true);
     }
 
     // The AS build requires some scratch space to store temporary information.
@@ -262,10 +371,11 @@ Raytracer::AccelerationStructureBuffers Raytracer::CreateBottomLevelAS(Graphics&
 void Raytracer::CreateTopLevelAS(Graphics& g, const std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>>& instances)
 {
     // Gather all the instances into the builder helper
-    for (size_t i = 0; i < instances.size(); i++) {
-        m_topLevelASGenerator.AddInstance(instances[i].first.Get(),
-            instances[i].second, static_cast<UINT>(i),
-            static_cast<UINT>(0));
+    // #DXR Extra: Per-Instance Data
+    for (size_t i = 0; i < instances.size(); i++)
+    {
+        m_TopLevelASGenerator.AddInstance(instances[i].first.Get(), instances[i].second,
+            static_cast<UINT>(i), static_cast<UINT>(2 * i));
     }
 
     // As for the bottom-level AS, the building the AS requires some scratch space
@@ -276,16 +386,16 @@ void Raytracer::CreateTopLevelAS(Graphics& g, const std::vector<std::pair<ComPtr
     // corresponding memory
     UINT64 scratchSize, resultSize, instanceDescsSize;
 
-    m_topLevelASGenerator.ComputeASBufferSizes(&g.Device(), true, &scratchSize,
+    m_TopLevelASGenerator.ComputeASBufferSizes(&g.Device(), true, &scratchSize,
         &resultSize, &instanceDescsSize);
 
     // Create the scratch and result buffers. Since the build is all done on GPU,
     // those can be allocated on the default heap
-    m_topLevelASBuffers.pScratch = nv_helpers_dx12::CreateBuffer(
+    m_TopLevelASBuffers.pScratch = nv_helpers_dx12::CreateBuffer(
         &g.Device(), scratchSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
         D3D12_RESOURCE_STATE_COMMON,
         nv_helpers_dx12::kDefaultHeapProps);
-    m_topLevelASBuffers.pResult = nv_helpers_dx12::CreateBuffer(
+    m_TopLevelASBuffers.pResult = nv_helpers_dx12::CreateBuffer(
         &g.Device(), resultSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
         D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,
         nv_helpers_dx12::kDefaultHeapProps);
@@ -293,7 +403,7 @@ void Raytracer::CreateTopLevelAS(Graphics& g, const std::vector<std::pair<ComPtr
     // The buffer describing the instances: ID, shader binding information,
     // matrices ... Those will be copied into the buffer by the helper through
     // mapping, so the buffer has to be allocated on the upload heap.
-    m_topLevelASBuffers.pInstanceDesc = nv_helpers_dx12::CreateBuffer(
+    m_TopLevelASBuffers.pInstanceDesc = nv_helpers_dx12::CreateBuffer(
         &g.Device(), instanceDescsSize, D3D12_RESOURCE_FLAG_NONE,
         D3D12_RESOURCE_STATE_GENERIC_READ, nv_helpers_dx12::kUploadHeapProps);
 
@@ -301,8 +411,8 @@ void Raytracer::CreateTopLevelAS(Graphics& g, const std::vector<std::pair<ComPtr
     // can build the acceleration structure. Note that in the case of the update
     // we also pass the existing AS as the 'previous' AS, so that it can be
     // refitted in place.
-    m_topLevelASGenerator.Generate(&g.CL(),
-        m_topLevelASBuffers.pScratch.Get(),
-        m_topLevelASBuffers.pResult.Get(),
-        m_topLevelASBuffers.pInstanceDesc.Get());
+    m_TopLevelASGenerator.Generate(&g.CL(),
+        m_TopLevelASBuffers.pScratch.Get(),
+        m_TopLevelASBuffers.pResult.Get(),
+        m_TopLevelASBuffers.pInstanceDesc.Get());
 }

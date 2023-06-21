@@ -106,37 +106,50 @@ Graphics::Graphics(HWND hWnd, UINT width, UINT height)
     Shared<InputLayout> vLayout = MakeShared<InputLayout>(POS | COLOR);
 
     {
-        VertexStream stream(*vLayout, 4);
-        stream.Pos(0) = {std::sqrtf(8.f / 9.f), 0.f, -1.f / 3.f};
-        stream.Pos(1) = { -std::sqrtf(2.f / 9.f), std::sqrtf(2.f / 3.f), -1.f / 3.f };
-        stream.Pos(2) = { -std::sqrtf(2.f / 9.f), -std::sqrtf(2.f / 3.f), -1.f / 3.f };
-        stream.Pos(3) = { 0.f, 0.f, 1.f };
+        const float aspect = static_cast<FLOAT>(m_Width) / m_Height;
+        VertexStream stream(*vLayout, 3);
+        stream.Pos(0) = { 0.0f, 0.25f * aspect, 0.0f };
+        stream.Pos(1) = { 0.25f, -0.25f * aspect, 0.0f };
+        stream.Pos(2) = { -0.25f, -0.25f * aspect, 0.0f };
         stream.Color(0) = { 1.f, 0.f, 0.f, 1.f };
         stream.Color(1) = { 0.f, 1.f, 0.f, 1.f };
         stream.Color(2) = { 0.f, 0.f, 1.f, 1.f };
-        stream.Color(3) = { 1.f, 0.f, 1.f, 1.f };
         
         const UINT32 indices[] = { 0, 1, 2, 0, 3, 1, 0, 2, 3, 1, 3, 2 };
         m_Scene.AddObject(MakeShared<VertexBuffer>(*this, stream), MakeShared<IndexBuffer>(*this, std::size(indices), indices), vLayout);
     }
+    //{
+    //    struct Vertex
+    //    {
+    //        XMFLOAT4 pos;
+    //        XMFLOAT4 n;
+    //        XMFLOAT4 color;
+    //    };
+    //    std::vector< Vertex > vertices; std::vector< UINT32 > indices;
+    //    nv_helpers_dx12::GenerateMengerSponge(3, 0.75, vertices, indices);
+    //    VertexStream stream(*vLayout, vertices.size());
+    //    for (size_t i = 0; i < vertices.size(); i++) {
+    //        const Vertex& v = vertices[i];
+    //        stream.Pos(i) = XMFLOAT3(v.pos.x, v.pos.y, v.pos.z);
+    //        //stream.Norm(i) = XMFLOAT3(v.n.x, v.n.y, v.n.z);
+    //        stream.Color(i) = { v.color.x, v.color.y, v.color.z, v.color.w };
+    //    }
+    //    
+    //    m_Scene.AddObject(MakeShared<VertexBuffer>(*this, stream), MakeShared<IndexBuffer>(*this, indices.size(), indices.data()), vLayout);
+    //}
     {
-        struct Vertex
-        {
-            XMFLOAT4 pos;
-            XMFLOAT4 n;
-            XMFLOAT4 color;
-        };
-        std::vector< Vertex > vertices; std::vector< UINT32 > indices;
-        nv_helpers_dx12::GenerateMengerSponge(3, 0.75, vertices, indices);
-        VertexStream stream(*vLayout, vertices.size());
-        for (size_t i = 0; i < vertices.size(); i++) {
-            const Vertex& v = vertices[i];
-            stream.Pos(i) = XMFLOAT3(v.pos.x, v.pos.y, v.pos.z);
-            //stream.Norm(i) = XMFLOAT3(v.n.x, v.n.y, v.n.z);
-            stream.Color(i) = { v.color.x, v.color.y, v.color.z, v.color.w };
-        }
-        
-        m_Scene.AddObject(MakeShared<VertexBuffer>(*this, stream), MakeShared<IndexBuffer>(*this, indices.size(), indices.data()), vLayout);
+        VertexStream stream(*vLayout, 4);
+        stream.Pos(0) = { -1.5f, -.8f, 01.5f };
+        stream.Pos(1) = { -1.5f, -.8f, -1.5f };
+        stream.Pos(2) = { 01.5f, -.8f, 01.5f };
+        stream.Pos(3) = {01.5f,  -.8f, -1.5f };
+        stream.Color(0) = { 1.0f, 1.0f, 1.0f, 1.0f };
+        stream.Color(1) = { 1.0f, 1.0f, 1.0f, 1.0f };
+        stream.Color(2) = { 1.0f, 1.0f, 1.0f, 1.0f };
+        stream.Color(3) = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+        const UINT32 indices[] = { 2, 1, 0, 2, 3, 1};
+        m_Scene.AddObject(MakeShared<VertexBuffer>(*this, stream), MakeShared<IndexBuffer>(*this, std::size(indices), indices), vLayout);
     }
 
     VertexShader vs(L"shaders\\PosColorVS.hlsl");

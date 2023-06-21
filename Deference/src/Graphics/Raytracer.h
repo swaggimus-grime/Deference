@@ -17,7 +17,7 @@ private:
 	};
 
 	AccelerationStructureBuffers CreateBottomLevelAS(Graphics& g, const std::vector<Shared<VertexBuffer>>& vVertexBuffers,
-		const std::vector<Shared<IndexBuffer>>& vIndexBuffers = {});
+		const std::vector<Shared<IndexBuffer>>& indexBuffers) const;
 
 	void CreateTopLevelAS(Graphics& g,
 		const std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>>& instances // pair of bottom level AS and matrix of the instance
@@ -25,16 +25,19 @@ private:
 
 private:
 	nv_helpers_dx12::ShaderBindingTableGenerator m_SbtHelper;
-	nv_helpers_dx12::TopLevelASGenerator m_topLevelASGenerator;
-	AccelerationStructureBuffers m_topLevelASBuffers;
-	AccelerationStructureBuffers m_BottomLevelAS;
+	nv_helpers_dx12::TopLevelASGenerator m_TopLevelASGenerator;
+	AccelerationStructureBuffers m_TopLevelASBuffers;
 	std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>> m_Instances;
 	ComPtr<ID3D12RootSignature> m_RayGenSig;
 	ComPtr<ID3D12RootSignature> m_HitSig;
 	ComPtr<ID3D12RootSignature> m_MissSig;
+	ComPtr<ID3D12RootSignature> m_ShadowSig;
 	ComPtr<IDxcBlob> m_RayGenLib;
 	ComPtr<IDxcBlob> m_HitLib;
 	ComPtr<IDxcBlob> m_MissLib;
+	ComPtr<IDxcBlob> m_ShadowLib;
+
+	std::vector<ComPtr<ID3D12Resource>> m_PerInstCBuffs;
 
 	ComPtr<ID3D12Resource> m_SbtStorage;
 	// Ray tracing pipeline state

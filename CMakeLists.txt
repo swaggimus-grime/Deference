@@ -29,8 +29,10 @@ function(add_git_submodule dir)
 endfunction(add_git_submodule)
 
 add_git_submodule("tools/DirectXTex")
+add_git_submodule("tools/DirectXTK12")
 
 add_subdirectory("tools/DirectXTex")
-add_subdirectory ("Deference")
+add_subdirectory("tools/DirectXTK12")
+add_subdirectory("Deference")
 
-install(TARGETS Deference DirectXTex DESTINATION bin)
+install(TARGETS Deference DirectXTex DirectXTK12 DESTINATION bin)
