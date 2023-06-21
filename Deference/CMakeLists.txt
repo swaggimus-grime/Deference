@@ -2,16 +2,13 @@
 # project specific logic here.
 #
 
-set(DXTEX_DIR ../tools/DirectXTex)
-set(DXTK_DIR ../tools/DirectXTK12)
-
 # Add source to this project's executable.
 file(GLOB_RECURSE SRC CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "src/*.h")
 
 include_directories(
     ${DXTEX_DIR}/DirectXTex
-    ${DXTK_DIR}/Inc
+    ${ASSIMP_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Core
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Debug
@@ -36,7 +33,7 @@ if (CMAKE_VERSION VERSION_GREATER 3.16 AND KDV_BUILD_USING_PCH)
 endif()
 
 set_property(TARGET Deference PROPERTY CXX_STANDARD 20)
-target_link_libraries(Deference "d3d12.lib" "d3dcompiler.lib" "dxgi.lib" "dxguid.lib" "dxcompiler.lib" DirectXTex DirectXTK12)  
+target_link_libraries(Deference "d3d12.lib" "d3dcompiler.lib" "dxgi.lib" "dxguid.lib" "dxcompiler.lib" DirectXTex assimp)  
 
 set_property(TARGET Deference PROPERTY WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/Deference)
 get_target_property(test_dir Deference WORKING_DIRECTORY)

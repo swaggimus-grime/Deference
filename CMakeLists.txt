@@ -28,11 +28,14 @@ function(add_git_submodule dir)
     endif()
 endfunction(add_git_submodule)
 
-add_git_submodule("tools/DirectXTex")
-add_git_submodule("tools/DirectXTK12")
+set(DXTEX_DIR ${PROJECT_SOURCE_DIR}/tools/DirectXTex)
+set(ASSIMP_DIR ${PROJECT_SOURCE_DIR}/tools/assimp)
 
-add_subdirectory("tools/DirectXTex")
-add_subdirectory("tools/DirectXTK12")
+add_git_submodule(${DXTEX_DIR})
+add_git_submodule(${ASSIMP_DIR})
+
+add_subdirectory(${DXTEX_DIR})
+add_subdirectory(${ASSIMP_DIR})
 add_subdirectory("Deference")
 
-install(TARGETS Deference DirectXTex DirectXTK12 DESTINATION bin)
+install(TARGETS Deference DirectXTex assimp DESTINATION bin)
