@@ -3,6 +3,7 @@
 #include "util.h"
 #include <bitset>
 #include <queue>
+#include <optional>
 
 class Input {
 public:

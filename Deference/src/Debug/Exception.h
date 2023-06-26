@@ -3,6 +3,12 @@
 #include <Windows.h>
 #include <source_location>
 
+class DefException : public std::runtime_error
+{
+public:
+	DefException(const std::string& msg, std::source_location loc = std::source_location::current());
+};
+
 struct HRWrapper
 {
 	HRWrapper(HRESULT hr, std::source_location loc = std::source_location::current());

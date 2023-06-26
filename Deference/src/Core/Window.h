@@ -16,7 +16,6 @@ public:
 	inline Input& GetInput() { return m_Input; }
 	inline UINT GetWidth() const { return m_Width; }
 	inline UINT GetHeight() const { return m_Height; }
-	inline Graphics& GetGraphics() const { return *m_Graphics; }
 	static std::string OpenDialogBox();
 	static std::wstring OpenDialogBoxW();
 	static std::string FolderDialogBox();
@@ -35,7 +34,6 @@ private:
 	Input m_Input;
 	UINT m_Width;
 	UINT m_Height;
-	Unique<Graphics> m_Graphics;
 
 	RECT m_OrigClipRect;
 };

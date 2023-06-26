@@ -1,1 +1,7 @@
 
+[submodule "tools/DirectXTex"]
+	path = tools/DirectXTex
+	url = https://github.com/microsoft/DirectXTex.git
+[submodule "tools/assimp"]
+	path = tools/assimp
+	url = https://github.com/assimp/assimp.git

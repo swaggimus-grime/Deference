@@ -1,8 +1,25 @@
 #pragma once
 
 #include <memory>
+#include <vector>
+#include <string>
+#include <concepts>
+#include <type_traits>
 #include <wrl.h>
 #include <DirectXMath.h>
+
+static std::vector<std::string> ParseTokens(const std::string& s, const char del)
+{
+    std::vector<std::string> tokens;
+    std::stringstream ss(s);
+    while (ss.good()) {
+        std::string sub;
+        std::getline(ss, sub, del);
+        tokens.push_back(std::move(sub));
+    }
+
+    return tokens;
+}
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -26,3 +43,6 @@ static constexpr Shared<T> MakeShared(Args&& ... args)
 
 template<typename U, typename T>
 concept Derived = std::is_base_of<U, T>::value;
+
+template<typename U, typename T>
+concept SameClass = std::is_same<U, T>::value;

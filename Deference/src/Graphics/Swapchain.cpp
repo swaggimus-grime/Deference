@@ -38,13 +38,12 @@ Swapchain::Swapchain(Graphics& g, HWND hWnd, UINT numBuffs)
     HR factory4->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
     HR sc1.As(&m_SC);
 
-    m_RTs = MakeUnique<Heap<RenderTarget>>(g, m_NumBuffs);
-
+    m_RTs = MakeUnique<Heap<RenderTarget>>(g, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, m_NumBuffs);
     for (int i = 0; i < m_NumBuffs; ++i)
     {
         ComPtr<ID3D12Resource> bb;
         HR m_SC->GetBuffer(i, IID_PPV_ARGS(&bb));
-        m_RTs->AddResource<RenderTarget>(g, std::move(bb));
+        m_RTs->AddResource<RenderTarget>(g, D3D12_RESOURCE_STATE_PRESENT, std::move(bb));
     }
 }
 

@@ -5,15 +5,9 @@ struct STriVertex {
     float4 color;
 };
 
-// #DXR Extra: Per-Instance Data
-cbuffer Colors : register(b0)
-{
-    float3 A;
-    float3 B;
-    float3 C;
-}
-
 StructuredBuffer<STriVertex> BTriVertex : register(t0);
+
+Texture2D<float4> lambertTex : register(t1);
 
 // #DXR Extra - Another ray type
 // Raytracing acceleration structure, accessed as a SRV
@@ -24,8 +18,13 @@ void ClosestHit(inout HitInfo payload, Attributes attrib) {
     float3 barycentrics =
         float3(1.f - attrib.bary.x - attrib.bary.y, attrib.bary.x, attrib.bary.y);
 
+    uint2 launchIndex = DispatchRaysIndex().xy;
+    float2 dims = float2(DispatchRaysDimensions().xy);
+    float2 d = (((launchIndex.xy + 0.5f) / dims.xy) * 2.f - 1.f);
+    
     // #DXR Extra: Per-Instance Data
-    float3 hitColor = A * barycentrics.x + B * barycentrics.y + C * barycentrics.z;
+    uint2 pixIdx = DispatchRaysIndex();
+    float3 hitColor = lambertTex[launchIndex].rgb;
 
     payload.colorAndDistance = float4(hitColor, RayTCurrent());
 }

@@ -1,16 +1,13 @@
 #include "Graphics.h"
 #include <ranges>
 #include "Debug/Exception.h"
-#include "Shader.h"
-#include "VertexBuffer.h"
-#include "IndexBuffer.h"
-#include "Texture.h"
-#include "Camera.h"
-#include "SceneData.h"
+#include "Shader/Shader.h"
+#include "Bindable/VertexBuffer.h"
+#include "Bindable/IndexBuffer.h"
+#include "Resource/Texture.h"
+#include "Entity/Camera.h"
 #include "Swapchain.h"
 #include "DXR/DXRHelper.h"
-#include "Rasterizer.h"
-#include "Raytracer.h"
 
 D3D_ROOT_SIGNATURE_VERSION Graphics::ROOT_SIG_VERSION = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
@@ -77,6 +74,10 @@ Graphics::Graphics(HWND hWnd, UINT width, UINT height)
 
     HR D3D12CreateDevice(adapter4.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
 
+    D3D12_FEATURE_DATA_D3D12_OPTIONS5 options = {};
+    HR m_Device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options, sizeof(options));
+    BR(options.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0);
+
     D3D12_COMMAND_QUEUE_DESC cqd = {};
     cqd.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     cqd.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
@@ -100,74 +101,10 @@ Graphics::Graphics(HWND hWnd, UINT width, UINT height)
     if (FAILED(m_Device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof(featureData))))
         ROOT_SIG_VERSION = D3D_ROOT_SIGNATURE_VERSION_1_0;
 
-    m_Camera = MakeUnique<Camera>(*this);
+    m_CmdList->Close();
 
-    using enum VERTEX_ATTRIBUTES;
-    Shared<InputLayout> vLayout = MakeShared<InputLayout>(POS | COLOR);
-
-    {
-        const float aspect = static_cast<FLOAT>(m_Width) / m_Height;
-        VertexStream stream(*vLayout, 3);
-        stream.Pos(0) = { 0.0f, 0.25f * aspect, 0.0f };
-        stream.Pos(1) = { 0.25f, -0.25f * aspect, 0.0f };
-        stream.Pos(2) = { -0.25f, -0.25f * aspect, 0.0f };
-        stream.Color(0) = { 1.f, 0.f, 0.f, 1.f };
-        stream.Color(1) = { 0.f, 1.f, 0.f, 1.f };
-        stream.Color(2) = { 0.f, 0.f, 1.f, 1.f };
-        
-        const UINT32 indices[] = { 0, 1, 2, 0, 3, 1, 0, 2, 3, 1, 3, 2 };
-        m_Scene.AddObject(MakeShared<VertexBuffer>(*this, stream), MakeShared<IndexBuffer>(*this, std::size(indices), indices), vLayout);
-    }
-    //{
-    //    struct Vertex
-    //    {
-    //        XMFLOAT4 pos;
-    //        XMFLOAT4 n;
-    //        XMFLOAT4 color;
-    //    };
-    //    std::vector< Vertex > vertices; std::vector< UINT32 > indices;
-    //    nv_helpers_dx12::GenerateMengerSponge(3, 0.75, vertices, indices);
-    //    VertexStream stream(*vLayout, vertices.size());
-    //    for (size_t i = 0; i < vertices.size(); i++) {
-    //        const Vertex& v = vertices[i];
-    //        stream.Pos(i) = XMFLOAT3(v.pos.x, v.pos.y, v.pos.z);
-    //        //stream.Norm(i) = XMFLOAT3(v.n.x, v.n.y, v.n.z);
-    //        stream.Color(i) = { v.color.x, v.color.y, v.color.z, v.color.w };
-    //    }
-    //    
-    //    m_Scene.AddObject(MakeShared<VertexBuffer>(*this, stream), MakeShared<IndexBuffer>(*this, indices.size(), indices.data()), vLayout);
-    //}
-    {
-        VertexStream stream(*vLayout, 4);
-        stream.Pos(0) = { -1.5f, -.8f, 01.5f };
-        stream.Pos(1) = { -1.5f, -.8f, -1.5f };
-        stream.Pos(2) = { 01.5f, -.8f, 01.5f };
-        stream.Pos(3) = {01.5f,  -.8f, -1.5f };
-        stream.Color(0) = { 1.0f, 1.0f, 1.0f, 1.0f };
-        stream.Color(1) = { 1.0f, 1.0f, 1.0f, 1.0f };
-        stream.Color(2) = { 1.0f, 1.0f, 1.0f, 1.0f };
-        stream.Color(3) = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-        const UINT32 indices[] = { 2, 1, 0, 2, 3, 1};
-        m_Scene.AddObject(MakeShared<VertexBuffer>(*this, stream), MakeShared<IndexBuffer>(*this, std::size(indices), indices), vLayout);
-    }
-
-    VertexShader vs(L"shaders\\PosColorVS.hlsl");
-    PixelShader ps(L"shaders\\PosColorPS.hlsl");
-
-    {
-        RootParams params;
-        params.AddInline(D3D12_ROOT_PARAMETER_TYPE_CBV, D3D12_SHADER_VISIBILITY_VERTEX);
-        m_Sig = MakeUnique<RootSig>(*this, std::move(params));
-    }
-
-    m_Pipeline = MakeUnique<Pipeline>(*this, *m_Sig.get(), vs, ps, m_Scene.m_Layouts[0]->Layout());
-
-    m_Rasterizer = MakeShared<Rasterizer>(*this);
     HR m_Alloc->Reset();
-    HR m_CmdList->Reset(m_Alloc.Get(), m_Pipeline->State());
-    m_Raytracer = MakeShared<Raytracer>(*this);
-    m_Ctx = m_Rasterizer;
+    HR m_CmdList->Reset(m_Alloc.Get(), nullptr);
 }
 
 Graphics::~Graphics()
@@ -176,11 +113,6 @@ Graphics::~Graphics()
     HR m_Fence->SetEventOnCompletion(m_FenceValue, m_FenceEvent);
     if (::WaitForSingleObject(m_FenceEvent, 3000) == WAIT_FAILED)
         HR GetLastError();
-}
-
-ID3D12PipelineState* Graphics::GetPipeline() const
-{
-    return m_Pipeline->State();
 }
 
 void Graphics::Flush()
@@ -193,6 +125,9 @@ void Graphics::Flush()
 
     m_Fence->SetEventOnCompletion(m_FenceValue, m_FenceEvent);
     WaitForSingleObject(m_FenceEvent, INFINITE);
+
+    HR m_Alloc->Reset();
+    m_CmdList->Reset(m_Alloc.Get(), nullptr);
 }
 
 void Graphics::OnWindowResize(UINT width, UINT height)
@@ -215,37 +150,29 @@ void Graphics::OnWindowResize(UINT width, UINT height)
     }*/
 }
 
-void Graphics::Render()
+void Graphics::BeginFrame()
+{    
+    m_CurrentBB = m_SC->CurrentBB();
+    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    m_CurrentBB->Clear(*this);
+    m_CmdList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+}
+
+void Graphics::EndFrame()
 {
-    HR m_Alloc->Reset();
-    HR m_CmdList->Reset(m_Alloc.Get(), m_Pipeline->State());
-    D3D12_VIEWPORT vp;
-    D3D12_RECT sr;
-
-    // Fill out the Viewport
-    vp.TopLeftX = 0;
-    vp.TopLeftY = 0;
-    vp.Width = m_Width;
-    vp.Height = m_Height;
-    vp.MinDepth = 0.0f;
-    vp.MaxDepth = 1.0f;
-
-    // Fill out a scissor rect
-    sr.left = 0;
-    sr.top = 0;
-    sr.right = m_Width;
-    sr.bottom = m_Height;
-
-    m_Sig->Bind(*this);
-    m_CmdList->RSSetViewports(1, &vp); // set the viewports
-    m_CmdList->RSSetScissorRects(1, &sr); // set the scissor rects
-
-    auto bb = m_SC->CurrentBB();
-
-    m_Ctx->Render(*this, bb);
-    
+    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_PRESENT);
     Flush();
     m_SC->Present();
+}
+
+void Graphics::CopyToCurrentBB(Shared<RenderTarget> src)
+{
+    src->Transition(*this, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_COPY_DEST);
+    m_CmdList->CopyResource(m_CurrentBB->Res(), src->Res());
+
+    src->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void Graphics::CreateBuffer(ComPtr<ID3D12Resource>& buffer, SIZE_T size, const void* data, D3D12_RESOURCE_STATES state)

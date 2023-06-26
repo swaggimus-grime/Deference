@@ -40,15 +40,15 @@ Window::Window(const std::string& name, unsigned int width, unsigned int height)
 	BR m_Handle;
 
 	//ImGui_ImplWin32_Init(m_Handle);
-	m_Graphics = MakeUnique<Graphics>(m_Handle, m_Width, m_Height);
 	ShowWindow(m_Handle, SW_SHOW);
 	m_Input.SetCursor(false);
 	GetClipCursor(&m_OrigClipRect);
+
+	
 }
 
 Window::~Window()
 {
-	m_Graphics.release();
 	UnregisterClass(m_Name.c_str(), m_Inst);
 	//ImGui_ImplWin32_Shutdown();
 	DestroyWindow(m_Handle);
@@ -210,7 +210,7 @@ LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 		m_Width = LOWORD(lParam);
 		m_Height = HIWORD(lParam);
-		m_Graphics->OnWindowResize(std::max(1u, m_Width), std::max(1u, m_Height));
+		//m_Graphics->OnWindowResize(std::max(1u, m_Width), std::max(1u, m_Height));
 		//ImGui::GetIO().DisplaySize = ImVec2((float)m_Width, (float)m_Height);
 		break;
 	case WM_KEYDOWN:

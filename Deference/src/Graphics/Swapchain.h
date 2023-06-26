@@ -2,8 +2,8 @@
 
 #include <dxgi1_6.h>
 #include <wrl.h>
-#include "Heap.h"
-#include "RenderTarget.h"
+#include "Resource/Heap.h"
+#include "Resource/RenderTarget.h"
 
 class Swapchain
 {
@@ -12,7 +12,7 @@ public:
 	void Present();
 	inline UINT NumBuffs() const { return m_NumBuffs; }
 	inline IDXGISwapChain4* Handle() const { return m_SC.Get(); }
-	inline auto CurrentBB() const
+	inline Shared<RenderTarget> CurrentBB() const
 	{
 		UINT currentIdx = m_SC->GetCurrentBackBufferIndex();
 		return (*m_RTs)[currentIdx];
