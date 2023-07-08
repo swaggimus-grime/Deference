@@ -2,8 +2,8 @@
 
 #include <dxgi1_6.h>
 #include <wrl.h>
-#include "Resource/Heap.h"
-#include "Resource/RenderTarget.h"
+#include "Bindable/Heap/Heap.h"
+#include "Bindable/Heap/RenderTarget.h"
 
 class Swapchain
 {
@@ -15,11 +15,12 @@ public:
 	inline Shared<RenderTarget> CurrentBB() const
 	{
 		UINT currentIdx = m_SC->GetCurrentBackBufferIndex();
-		return (*m_RTs)[currentIdx];
+		return m_BackBuffs[currentIdx];
 	}
 
 private:
-	Unique<Heap<RenderTarget>> m_RTs;
+	std::vector<Shared<RenderTarget>> m_BackBuffs;
+	Unique<RenderTargetHeap> m_RTs;
 	ComPtr<IDXGISwapChain4> m_SC;
 	UINT m_NumBuffs;
 	bool m_AllowTearing;

@@ -1,9 +1,14 @@
-struct Transform
+//struct CamData
+//{
+//    matrix view;
+//    matrix proj;
+//};
+
+struct ModelTransform
 {
-    matrix view;
-    matrix proj;
-    matrix viewI;
-    matrix projI;
+    matrix mvp;
+    float3x3 normMat;
 };
 
-ConstantBuffer<Transform> transform : register(b0);
+ConstantBuffer<ModelTransform> modelTransform : register(b0);
+//ConstantBuffer<ModelData> modelData : register(b1);

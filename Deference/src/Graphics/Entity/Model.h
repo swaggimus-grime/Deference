@@ -2,13 +2,11 @@
 
 #include <string>
 #include "util.h"
-#include "Drawable.h"
-#include "Resource/Heap.h"
+#include "Bindable/Heap/Heap.h"
 #include <assimp/material.h>
 #include <assimp/mesh.h>
-#include "Resource/Texture.h"
-#include "Bindable/VertexBuffer.h"
-#include "Bindable/IndexBuffer.h"
+#include "Bindable/Heap/Texture.h"
+#include "Drawable.h"
 
 class Graphics;
 class InputLayout;
@@ -18,35 +16,14 @@ class Model : public DrawableCollection
 {
 public:
 	Model(Graphics& g, const std::string& filePath);
-	inline auto& operator[](UINT idx) const { return m_Meshes[idx]; }
-	inline UINT NumMeshes() const { return m_Meshes.size(); }
 
 private:
-	class Material : public Bindable
-	{
-	public:
-		friend class Model;
-		Material(Graphics& g, const aiMaterial* mat, const std::string& dir);
-		virtual void Bind(Graphics& g) override;
+	friend class Mesh;
 
-	private:
-		Unique<Heap<Texture2D>> m_TextureHeap;
-	};
-
-private:
 	class Mesh : public Drawable
 	{
 	public:
 		friend class Model;
-		Mesh(Graphics& g, const aiMesh* mesh, Shared<Material> mat, const InputLayout& layout);
-
-	private:
-		Shared<VertexBuffer> m_VB;
-		Shared<IndexBuffer> m_IB;
+		Mesh(Graphics& g, Model* parent, UINT& diffIdx, const aiMesh* mesh, const aiMaterial* mat, const std::string& dir);
 	};
-
-
-private:
-	std::vector<Mesh> m_Meshes;
-	std::vector<Shared<Material>> m_Materials;
 };

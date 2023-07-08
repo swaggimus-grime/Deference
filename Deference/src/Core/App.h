@@ -3,9 +3,8 @@
 #include "Window.h"
 #include "Graphics.h"
 #include "Graphics/Entity/Camera.h"
-#include "Graphics/Frame/LambertianGraph.h"
+#include "Graphics/Frame/GeometryGraph.h"
 #include "Graphics/Entity/Model.h"
-#include "Graphics/Bindable/VertexBuffer.h"
 
 class App {
 public:
@@ -19,6 +18,6 @@ private:
 	Window m_Wnd;
 	Graphics m_Gfx;
 	Shared<Camera> m_Cam;
-	Unique<LambertianGraph> m_Graph;
-	Model m_Cup;
+	Unique<GeometryGraph> m_Graph;
+	Unique<Model> m_Cup; 
 };

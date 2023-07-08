@@ -1,0 +1,11 @@
+Model Information:
+* title:	Temple USD Workflow Test
+* source:	https://sketchfab.com/3d-models/temple-usd-workflow-test-2c97d4844469420da1b46bd91e44f426
+* author:	re1monsen (https://sketchfab.com/re1monsen)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Temple USD Workflow Test" (https://sketchfab.com/3d-models/temple-usd-workflow-test-2c97d4844469420da1b46bd91e44f426) by re1monsen (https://sketchfab.com/re1monsen) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

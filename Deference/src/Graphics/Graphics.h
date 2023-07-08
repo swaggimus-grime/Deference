@@ -11,6 +11,7 @@ class Pipeline;
 class RootSig;
 class RenderTarget;
 class Swapchain;
+class Camera;
 
 class Graphics {
 public:
@@ -40,6 +41,9 @@ public:
 
 	static D3D_ROOT_SIGNATURE_VERSION ROOT_SIG_VERSION;
 
+	inline void SetCamera(Shared<Camera> cam) { m_Cam = std::move(cam); }
+	inline auto GetCamera() const { return m_Cam; }
+
 private:
 	UINT m_Width;
 	UINT m_Height;
@@ -57,4 +61,6 @@ private:
 	UINT64 m_FenceValue = 0;
 
 	Shared<RenderTarget> m_CurrentBB;
+
+	Shared<Camera> m_Cam;
 };

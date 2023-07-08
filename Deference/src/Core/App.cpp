@@ -3,16 +3,23 @@
 
 App::App(const std::string& name, UINT32 width, UINT32 height)
 	:m_Wnd(name, width, height), 
-	m_Gfx(m_Wnd.GetHandle(), width, height),
-	m_Cup(m_Gfx, "models\\cup\\cup._obj")
+	m_Gfx(m_Wnd.GetHandle(), width, height)
 {
 	m_Cam = MakeShared<Camera>(m_Gfx);
+	m_Cup = MakeUnique<Model>(m_Gfx, "models\\temple\\scene.gltf");
 
-	SceneData scene;
-	scene.m_Camera = m_Cam;
-	scene.AddDrawableCollection(m_Cup);
+	m_Graph = MakeUnique<GeometryGraph>();
+	m_Graph->AddGeometry(*m_Cup);
 
-	m_Graph = MakeUnique<LambertianGraph>(m_Gfx, std::move(scene));
+	{
+		auto pass = MakeShared<GeometryPass>(m_Gfx, m_Cam);
+		m_Graph->AddPass(m_Gfx, pass);
+	}
+	/*{
+		auto pass = MakeShared<DiffusePass>(m_Gfx);
+		m_Graph->AddPass(m_Gfx, pass);
+	}*/
+	
 	m_Gfx.Flush();
 }
 
@@ -31,10 +38,9 @@ INT App::Run()
 	std::thread renderer([&]() {
 		auto& g = m_Gfx;
 		while (running) {
-			m_Cam->Update();
 			g.BeginFrame();
 			m_Graph->Run(g);
-			g.CopyToCurrentBB(m_Graph->RT());
+			g.CopyToCurrentBB(m_Graph->Run(g));
 			g.EndFrame();
 		}
 	});

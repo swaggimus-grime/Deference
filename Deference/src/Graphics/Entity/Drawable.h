@@ -1,42 +1,35 @@
 #pragma once
 
-#include "Step.h"
-#include "Bindable/VertexBuffer.h"
-#include "Bindable/IndexBuffer.h"
-
-typedef std::pair<ComPtr<ID3D12Resource>, XMMATRIX> DXRInstance;
-
-struct AccelerationStructureBuffers
-{
-	ComPtr<ID3D12Resource> pScratch;
-	ComPtr<ID3D12Resource> pResult;
-	ComPtr<ID3D12Resource> pInstanceDesc;
-};
+class Transform;
 
 class Drawable
 {
 public:
-	inline auto& GetInstance() const { return m_Instance; }
-	inline auto& GetSteps() const { return m_Steps; }
-
-protected:
-	void CreateBottomLevelAS(Graphics& g, const std::vector<Shared<VertexBuffer>>& vVertexBuffers,
-		const std::vector<Shared<IndexBuffer>>& indexBuffers);
-	void AddStep(const Step& step);
+	inline UINT DiffuseIndex() const { return m_DiffuseIndex; }
+	inline auto& GetCBVHeap() const { return *m_CBVHeap; }
+	inline auto& GetTextureHeap() const { return *m_TextureHeap; }
+	inline auto& BLAS() const { return m_BLAS; }
+	void Rasterize(Graphics& g);
 
 private:
-	DXRInstance m_Instance;
-	std::vector<Step> m_Steps;
+	void Update(Graphics& g);
+
+protected:
+	Shared<VertexBuffer> m_VB;
+	Shared<IndexBuffer> m_IB;
+	std::vector<Shared<Bindable>> m_Bindables;
+	Unique<SucHeap> m_CBVHeap;
+	Unique<SucHeap> m_TextureHeap;
+	Shared<Transform> m_Transform;
+	ComPtr<ID3D12Resource> m_BLAS;
+	UINT m_DiffuseIndex;
 };
 
 class DrawableCollection
 {
 public:
-	inline auto& GetInstances() const { return m_Instances; }
-	inline auto& GetSteps() const { return m_Steps; }
-	void AddDrawable(const Drawable& d);
-	
-private:
-	std::vector<DXRInstance> m_Instances;
-	std::vector<Step> m_Steps;
+	inline auto& Drawables() const { return m_Drawables; }
+
+protected:
+	std::vector<Shared<Drawable>> m_Drawables;
 };

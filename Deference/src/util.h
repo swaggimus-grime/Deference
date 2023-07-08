@@ -8,6 +8,8 @@
 #include <wrl.h>
 #include <DirectXMath.h>
 
+#define ALIGN(v, powerOf2Alignment) (((v) + (powerOf2Alignment)-1) & ~((powerOf2Alignment)-1))
+
 static std::vector<std::string> ParseTokens(const std::string& s, const char del)
 {
     std::vector<std::string> tokens;
@@ -46,3 +48,6 @@ concept Derived = std::is_base_of<U, T>::value;
 
 template<typename U, typename T>
 concept SameClass = std::is_same<U, T>::value;
+
+template<typename T>
+concept IsEnum = std::is_enum_v<T>;

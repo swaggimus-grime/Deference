@@ -1,31 +1,36 @@
 #pragma once
 
-#include "util.h"
-#include <unordered_map>
-#include <string>
-#include <optional>
+#include "Bindable/Heap/Heap.h"
 
 class Graphics;
-class Target;
-class Step;
+class GeometryGraph;
+class RenderTargetHeap;
 
 class Pass
 {
 public:
-	Pass(const std::string& name);
+	virtual void Run(Graphics& g, GeometryGraph* parent) = 0;
 
-	inline std::string Name() const { return m_Name; }
-	virtual void Run(Graphics& g) = 0;
-	Shared<Target>& GetTarget(const std::string& name);
-	virtual void OnAdd(Graphics& g) = 0;
+	inline auto& GetInTargets() { return m_InTargets; }
+	inline auto& GetOutTargets() { return m_OutTargets; }
+	inline Shared<RenderTarget> GetOutTarget(const std::string& name) const 
+	{ 
+		auto it = std::find_if(m_OutTargets.begin(), m_OutTargets.end(), 
+			[&](const auto& pair)
+			{
+				return pair.first == name;
+			}
+		);
+		return it->second;
+	}
 
-	void AddStep(const Step& step);
+	virtual void OnAdd(Graphics& g, GeometryGraph* parent);
 
 protected:
-	void AddTarget(const std::string& name);
-	std::vector<Step> m_Steps;
+	inline void AddOutTarget(const std::string& name) { m_OutTargets.push_back({ std::move(name), nullptr }); }
 
-private:
-	std::unordered_map<std::string, Shared<Target>> m_Targets;
-	std::string m_Name;
+protected:
+	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_InTargets;
+	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_OutTargets;
+	Unique<RenderTargetHeap> m_RTs;
 };

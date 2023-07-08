@@ -1,13 +1,8 @@
 #include "Graphics.h"
 #include <ranges>
 #include "Debug/Exception.h"
-#include "Shader/Shader.h"
-#include "Bindable/VertexBuffer.h"
-#include "Bindable/IndexBuffer.h"
-#include "Resource/Texture.h"
 #include "Entity/Camera.h"
 #include "Swapchain.h"
-#include "DXR/DXRHelper.h"
 
 D3D_ROOT_SIGNATURE_VERSION Graphics::ROOT_SIG_VERSION = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
@@ -151,11 +146,10 @@ void Graphics::OnWindowResize(UINT width, UINT height)
 }
 
 void Graphics::BeginFrame()
-{    
+{   
     m_CurrentBB = m_SC->CurrentBB();
     m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
     m_CurrentBB->Clear(*this);
-    m_CmdList->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void Graphics::EndFrame()

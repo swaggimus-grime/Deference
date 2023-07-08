@@ -1,11 +1,6 @@
 #include "BindablePass.h"
 
-BindablePass::BindablePass(const std::string& name)
-	:Pass(std::move(name))
-{
-}
-
-void BindablePass::Run(Graphics& g)
+void BindablePass::Bind(Graphics& g)
 {
 	for (auto& b : m_Bindables)
 		b->Bind(g);

@@ -4,12 +4,9 @@
 
 class BindablePass : public Pass
 {
-public:
-	BindablePass(const std::string& name);
-	virtual void Run(Graphics& g) override;
-
 protected:
 	void AddBindable(Shared<Bindable> bindable);
+	void Bind(Graphics& g);
 
 private:
 	std::vector<Shared<Bindable>> m_Bindables;

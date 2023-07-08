@@ -4,35 +4,15 @@ Camera::Camera(Graphics& g, const XMFLOAT3& pos)
 	:m_Pos(pos), m_Proj(XMMatrixPerspectiveLH(1.f, 9 / 16.f, 0.5f, 400.0f)), m_MoveSpeed(1.f), m_LookSpeed(0.006f),
 	m_Pitch(0.f), m_Yaw(0.f)
 {	
-	g.CreateBuffer(m_Res, sizeof(CamData), D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-	
 }
 
-void Camera::Bind(Graphics& g)
-{
-	g.CL().SetGraphicsRootConstantBufferView(0, m_Res->GetGPUVirtualAddress());
-}
-
-void Camera::Update() const
+XMMATRIX Camera::View() const
 {
 	const auto look = XMVector3Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
 		XMMatrixRotationRollPitchYaw(m_Pitch, m_Yaw, 0.0f)
 	);
-
 	const auto pos = XMLoadFloat3(&m_Pos);	
-	CamData camData;
-	camData.view = XMMatrixLookAtLH(pos, pos + look, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-	camData.proj = m_Proj;
-	XMVECTOR det;
-	camData.viewI = XMMatrixInverse(&det, camData.view);
-	camData.projI = XMMatrixInverse(&det, camData.proj);
-	camData.view = XMMatrixTranspose(camData.view);
-	camData.proj = XMMatrixTranspose(camData.proj);
-
-	uint8_t* data;
-	HR m_Res->Map(0, nullptr, reinterpret_cast<void**>(&data));
-	std::memcpy(data, &camData, sizeof(camData));
-	m_Res->Unmap(0, nullptr);
+	return XMMatrixLookAtLH(pos, pos + look, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 }
 
 void Camera::Rotate(float dx, float dy)
