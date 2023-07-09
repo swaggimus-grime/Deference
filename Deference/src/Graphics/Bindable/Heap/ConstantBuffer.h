@@ -8,8 +8,11 @@
 template<typename Params>
 class ConstantBuffer : public Resource
 {
+public:
+    virtual void Update(Graphics& g) {}
+
 protected:
-    void Update(Params* pData)
+    void UpdateStruct(Params* pData)
     {
         uint8_t* data;
         HR m_Res->Map(0, nullptr, reinterpret_cast<void**>(&data));

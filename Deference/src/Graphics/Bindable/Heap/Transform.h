@@ -13,7 +13,7 @@ class Transform : public ConstantBuffer<TransformParams>
 {
 public:
 	Transform(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle);
-	void Update(Graphics& g);
+	virtual void Update(Graphics& g) override;
 
 private:
 	XMMATRIX m_Model = XMMatrixIdentity();

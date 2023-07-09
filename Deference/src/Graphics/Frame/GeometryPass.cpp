@@ -6,8 +6,8 @@
 #include "GeometryGraph.h"
 #include "Bindable/Heap/Sampler.h"
 
-GeometryPass::GeometryPass(Graphics& g, Shared<Camera> cam)
-	:m_Cam(std::move(cam)), m_DepthHeap(g)
+GeometryPass::GeometryPass(Graphics& g)
+	:m_DepthHeap(g)
 {
 	m_Depth = m_DepthHeap.Add(g);
 
@@ -52,7 +52,7 @@ void GeometryPass::Run(Graphics& g, GeometryGraph* parent)
 	g.CL().SetGraphicsRootDescriptorTable(1, m_SamplerHeap->GPUStart());
 
 	g.CL().IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	g.SetCamera(m_Cam);
+	g.SetCamera(parent->GetCamera());
 
 	auto& drawables = parent->Drawables();
 	CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle = m_CBVHandle;

@@ -10,6 +10,8 @@ class Camera : public std::enable_shared_from_this<Camera>
 public:
 	Camera(Graphics& g, const XMFLOAT3& pos = {0.f, 0.f, -1.f});
 
+	inline XMFLOAT3 Pos() const { return m_Pos; }
+
 	XMMATRIX View() const;
 	inline XMMATRIX Proj() const { return m_Proj; }
 

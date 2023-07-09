@@ -29,7 +29,7 @@ Shared<RenderTarget> GeometryGraph::Run(Graphics& g)
 	for (auto& p : m_Passes)
 		p->Run(g, this);
 
-	return m_Passes[m_Passes.size() - 1]->GetOutTarget("Albedo");
+	return m_Passes[m_Passes.size() - 1]->GetOutTarget("Diffuse");
 }
 
 void GeometryGraph::ConnectWithPreviousTarget(Shared<Pass> pass)

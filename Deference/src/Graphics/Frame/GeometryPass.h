@@ -13,7 +13,7 @@ class DrawableCollection;
 class GeometryPass : public BindablePass
 {
 public:
-	GeometryPass(Graphics& g, Shared<Camera> cam);
+	GeometryPass(Graphics& g);
 	virtual void OnAdd(Graphics& g, GeometryGraph* parent) override;
 	virtual void Run(Graphics& g, GeometryGraph* parent) override;
 

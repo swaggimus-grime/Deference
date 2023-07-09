@@ -2,9 +2,11 @@
 #include "Bindable/Heap/AccelStruct.h"
 #include "Bindable/Heap/UnorderedAccess.h"
 #include "Bindable/Pipeline/DiffusePipeline.h"
+#include "Bindable/Heap/PointLight.h"
+#include "Entity/Camera.h"
 
 DiffusePass::DiffusePass(Graphics& g)
-	:m_SucHeap(g, 5)
+	:m_Heap(g, 6)
 {
 	AddOutTarget("Diffuse");
 }
@@ -15,13 +17,14 @@ void DiffusePass::OnAdd(Graphics& g, GeometryGraph* parent)
 
 	auto& ins = GetInTargets();
 	for (auto& in : ins)
-		m_SucHeap.Add<RTV>(g, in.second);
+		m_Heap.Add<RTV>(g, in.second);
 
 	auto& drawables = parent->Drawables();
-	m_SucHeap.Add<TLAS>(g, drawables);
-	m_Output = m_SucHeap.Add<UnorderedAccess>(g);
+	m_Heap.Add<TLAS>(g, drawables);
+	m_Output = m_Heap.Add<UnorderedAccess>(g);
+	m_Light = m_Heap.Add<PointLight>(g);
 
-	m_Pipeline = MakeShared<DiffusePipeline>(g, m_SucHeap);
+	m_Pipeline = MakeShared<DiffusePipeline>(g);
 }
 
 void DiffusePass::Run(Graphics& g, GeometryGraph* parent)
@@ -29,8 +32,20 @@ void DiffusePass::Run(Graphics& g, GeometryGraph* parent)
 	auto diffuse = GetOutTarget("Diffuse");
 
 	m_Pipeline->Bind(g);
-	m_SucHeap.Bind(g);
-	m_Pipeline->Dispatch(g);
+	m_Heap.Bind(g);
+
+	UINT64* heapPtr = reinterpret_cast<UINT64*>(m_Heap.GPUStart().ptr);
+	m_Pipeline->ComputeShaderTableAndDispatch(g,
+		{
+			{DiffusePipeline::rayGenEP, {heapPtr}}
+		},
+		{
+			{DiffusePipeline::missEP, {}}
+		},
+		{
+			{DiffusePipeline::hitGroup, {}}
+		}
+	);
 
 	m_Output->Transition(g, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	diffuse->Transition(g, D3D12_RESOURCE_STATE_COPY_DEST);

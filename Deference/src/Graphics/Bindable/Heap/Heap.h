@@ -24,10 +24,13 @@ public:
 		dd.Flags = shaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		HR g.Device().CreateDescriptorHeap(&dd, IID_PPV_ARGS(&m_Heap));
 
-		m_Handle = m_Heap->GetCPUDescriptorHandleForHeapStart();
+		m_CPUStart = m_Heap->GetCPUDescriptorHandleForHeapStart();
+		m_Handle = m_CPUStart;
 	}
 
-	inline auto CPUStart() const { return m_Heap->GetCPUDescriptorHandleForHeapStart(); }
+	inline auto CPUStart() const { return m_CPUStart; }
+	inline UINT IncSize() const { return m_IncSize; }
+
 
 	virtual void Bind(Graphics& g) override
 	{
@@ -36,7 +39,6 @@ public:
 	}
 
 	inline auto* GetHeap() const { return m_Heap.Get(); }
-	inline UINT IncSize() const { return m_IncSize; }
 
 protected:
 	template<typename T, typename... Args>
@@ -63,6 +65,7 @@ protected:
 
 private:
 	std::vector<Shared<Resource>> m_Resources;
+	D3D12_CPU_DESCRIPTOR_HANDLE m_CPUStart;
 };
 
 class RenderTargetHeap : public Heap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV>

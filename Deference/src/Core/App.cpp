@@ -10,15 +10,16 @@ App::App(const std::string& name, UINT32 width, UINT32 height)
 
 	m_Graph = MakeUnique<GeometryGraph>();
 	m_Graph->AddGeometry(*m_Cup);
+	m_Graph->SetCamera(m_Cam);
 
 	{
-		auto pass = MakeShared<GeometryPass>(m_Gfx, m_Cam);
+		auto pass = MakeShared<GeometryPass>(m_Gfx);
 		m_Graph->AddPass(m_Gfx, pass);
 	}
-	/*{
+	{
 		auto pass = MakeShared<DiffusePass>(m_Gfx);
 		m_Graph->AddPass(m_Gfx, pass);
-	}*/
+	}
 	
 	m_Gfx.Flush();
 }
