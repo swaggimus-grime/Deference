@@ -1,7 +1,7 @@
 #include "Camera.h"
 
 Camera::Camera(Graphics& g, const XMFLOAT3& pos)
-	:m_Pos(pos), m_Proj(XMMatrixPerspectiveLH(1.f, 9 / 16.f, 0.5f, 400.0f)), m_MoveSpeed(1.f), m_LookSpeed(0.006f),
+	:m_Pos(pos), m_Proj(XMMatrixPerspectiveLH(1.f, 9 / 16.f, 0.5f, 400.0f)), m_MoveSpeed(10.f), m_LookSpeed(0.006f),
 	m_Pitch(0.f), m_Yaw(0.f)
 {	
 }

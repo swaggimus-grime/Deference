@@ -1,4 +1,3 @@
-#include "RaytracingPipeline.h"
 #define NOMINMAX
 
 #include "RaytracingPipeline.h"
@@ -12,7 +11,10 @@
 
 RaytracingPipeline::DXC RaytracingPipeline::s_DXC = {};
 
-void RaytracingPipeline::Create(Graphics& g, CD3DX12_STATE_OBJECT_DESC& desc)
+void RaytracingPipeline::Create(Graphics& g, CD3DX12_STATE_OBJECT_DESC& desc,
+	const std::vector<UINT>& rgNumArgsPerEntry,
+	const std::vector<UINT>& missNumArgsPerEntry,
+	const std::vector<UINT>& hitNumArgsPerEntry)
 {
 	{
 		m_GlobalSig = MakeShared<RootSig>(g, 0, nullptr);
@@ -23,6 +25,29 @@ void RaytracingPipeline::Create(Graphics& g, CD3DX12_STATE_OBJECT_DESC& desc)
 	const D3D12_STATE_OBJECT_DESC& descRef = *desc;
 	HR g.Device().CreateStateObject(&descRef, IID_PPV_ARGS(&m_State));
 	HR m_State->QueryInterface(IID_PPV_ARGS(&m_Props));
+
+	auto getEntrySize = [&](const std::vector<UINT>& entrySet)
+	{
+		UINT maxArgs = 0;
+		for (UINT numArgs : entrySet)
+			maxArgs = std::max(maxArgs, numArgs);
+
+		UINT entrySize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + 8 * maxArgs;
+		entrySize = ALIGN(entrySize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+		return entrySize;
+	};
+
+	m_RayGenSize = getEntrySize(rgNumArgsPerEntry);
+	m_MissSize = getEntrySize(missNumArgsPerEntry);
+	m_HitSize = getEntrySize(hitNumArgsPerEntry);
+	g.CreateBuffer(m_Table,
+		ALIGN(
+			m_RayGenSize * rgNumArgsPerEntry.size() +
+			m_MissSize * missNumArgsPerEntry.size() +
+			m_HitSize * hitNumArgsPerEntry.size(),
+			256
+		),
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
 }
 
 ComPtr<IDxcBlob> RaytracingPipeline::CreateLibrary(const std::wstring& path)
@@ -73,34 +98,11 @@ void RaytracingPipeline::Bind(Graphics& g)
 	g.CL().SetPipelineState1(m_State.Get());
 }
 
-void RaytracingPipeline::ComputeShaderTableAndDispatch(Graphics& g, 
-	const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& raygen,
-	const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& miss,
+void RaytracingPipeline::UpdateTable(Graphics& g, 
+	const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& raygen, 
+	const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& miss, 
 	const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& hit)
 {
-	auto getEntrySize = [&](decltype(raygen) entrySet)
-	{
-		SIZE_T maxArgs = 0;
-		for (const auto& e : entrySet)
-			maxArgs = std::max(maxArgs, e.second.size());
-
-		UINT entrySize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + 8 * maxArgs;
-		entrySize = ALIGN(entrySize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
-		return entrySize;
-	};
-
-	const UINT rgSize = getEntrySize(raygen);
-	const UINT missSize = getEntrySize(miss);
-	const UINT hitSize = getEntrySize(hit);
-	g.CreateBuffer(m_Table,
-		ALIGN(
-			rgSize * raygen.size() +
-			missSize * miss.size() +
-			hitSize * hit.size(),
-			256
-		),
-		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-
 	uint8_t* pData;
 	HR m_Table->Map(0, nullptr, reinterpret_cast<void**>(&pData));
 	auto copyData = [&](decltype(raygen) entrySet, UINT entrySize) {
@@ -118,30 +120,33 @@ void RaytracingPipeline::ComputeShaderTableAndDispatch(Graphics& g,
 		}
 	};
 
-	copyData(raygen, rgSize);
-	copyData(miss, missSize);
-	copyData(hit, hitSize);
+	copyData(raygen, m_RayGenSize);
+	copyData(miss, m_MissSize);
+	copyData(hit, m_HitSize);
 	m_Table->Unmap(0, nullptr);
 
-	D3D12_DISPATCH_RAYS_DESC dispatch = {};
-	dispatch.Width = g.Width();
-	dispatch.Height = g.Height();
-	dispatch.Depth = 1;
+	m_Dispatch = {};
+	m_Dispatch.Width = g.Width();
+	m_Dispatch.Height = g.Height();
+	m_Dispatch.Depth = 1;
 
 	// RayGen is the first entry in the shader-table
-	const auto rgSectionSize = rgSize * raygen.size();
-	dispatch.RayGenerationShaderRecord.StartAddress = m_Table->GetGPUVirtualAddress();
-	dispatch.RayGenerationShaderRecord.SizeInBytes = rgSectionSize;
+	const auto rgSectionSize = m_RayGenSize * raygen.size();
+	m_Dispatch.RayGenerationShaderRecord.StartAddress = m_Table->GetGPUVirtualAddress();
+	m_Dispatch.RayGenerationShaderRecord.SizeInBytes = rgSectionSize;
 
-	const auto missSectionSize = missSize * miss.size();
-	dispatch.MissShaderTable.StartAddress = m_Table->GetGPUVirtualAddress() + rgSectionSize;
-	dispatch.MissShaderTable.StrideInBytes = missSize;
-	dispatch.MissShaderTable.SizeInBytes = missSectionSize;
+	const auto missSectionSize = m_MissSize * miss.size();
+	m_Dispatch.MissShaderTable.StartAddress = m_Table->GetGPUVirtualAddress() + rgSectionSize;
+	m_Dispatch.MissShaderTable.StrideInBytes = m_MissSize;
+	m_Dispatch.MissShaderTable.SizeInBytes = missSectionSize;
 
-	const auto hitSectionSize = hitSize * hit.size();
-	dispatch.HitGroupTable.StartAddress = m_Table->GetGPUVirtualAddress() + rgSectionSize + missSectionSize;
-	dispatch.HitGroupTable.StrideInBytes = hitSize;
-	dispatch.HitGroupTable.SizeInBytes = hitSectionSize;
+	const auto hitSectionSize = m_HitSize * hit.size();
+	m_Dispatch.HitGroupTable.StartAddress = m_Table->GetGPUVirtualAddress() + rgSectionSize + missSectionSize;
+	m_Dispatch.HitGroupTable.StrideInBytes = m_HitSize;
+	m_Dispatch.HitGroupTable.SizeInBytes = hitSectionSize;
+}
 
-	g.CL().DispatchRays(&dispatch);
+void RaytracingPipeline::Dispatch(Graphics& g)
+{
+	g.CL().DispatchRays(&m_Dispatch);
 }

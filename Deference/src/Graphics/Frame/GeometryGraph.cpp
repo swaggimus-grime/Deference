@@ -19,8 +19,10 @@ void GeometryGraph::AddGeometry(DrawableCollection& d)
 
 void GeometryGraph::AddPass(Graphics& g, Shared<Pass> pass)
 {
-	ConnectWithPreviousTarget(pass);
+	ConnectTargets(pass);
 	pass->OnAdd(g, this);
+	for (auto& out : pass->GetOutTargets())
+		m_Targets.push_back(out);
 	m_Passes.push_back(std::move(pass));
 }
 
@@ -29,16 +31,20 @@ Shared<RenderTarget> GeometryGraph::Run(Graphics& g)
 	for (auto& p : m_Passes)
 		p->Run(g, this);
 
-	return m_Passes[m_Passes.size() - 1]->GetOutTarget("Diffuse");
+	return m_Passes[m_Passes.size() - 1]->GetOutTarget("AO");
 }
 
-void GeometryGraph::ConnectWithPreviousTarget(Shared<Pass> pass)
+void GeometryGraph::ConnectTargets(Shared<Pass> pass)
 {
 	if (m_Passes.empty())
 		return;
 
-	auto& prevPassOuts = m_Passes[m_Passes.size() - 1]->GetOutTargets();
-	auto& currentPassIns = pass->GetInTargets();
-	for (auto& out : prevPassOuts)
-		currentPassIns.push_back(out);
+	for (auto& in : pass->GetInTargets())
+		in.second = GetTarget(in.first);
+}
+
+Shared<RenderTarget> GeometryGraph::GetTarget(const std::string& name)
+{
+	auto it = std::find_if(m_Targets.begin(), m_Targets.end(), [&](const auto& p) { return name == p.first; });
+	return it->second;
 }

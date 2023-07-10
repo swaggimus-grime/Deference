@@ -50,7 +50,7 @@ DiffusePipeline::DiffusePipeline(Graphics& g)
 		sig->SetRootSignature(m_MissSig->Sig());
 
 		auto ass = so.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
-		ass->AddExport(anyEP);
+		ass->AddExport(missEP);
 		ass->SetSubobjectToAssociate(*sig);
 	}
 	{
@@ -68,6 +68,6 @@ DiffusePipeline::DiffusePipeline(Graphics& g)
 		config->Config(2);
 	}
 
-	Create(g, so);
+	Create(g, so, {1}, {}, {});
 }
 

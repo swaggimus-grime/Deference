@@ -21,10 +21,11 @@ public:
 	inline auto& Drawables() const { return m_Drawables; }
 
 private:
-	void ConnectWithPreviousTarget(Shared<Pass> pass);
-	
+	void ConnectTargets(Shared<Pass> pass);
+	Shared<RenderTarget> GetTarget(const std::string& name);
 private:
 	std::vector<Shared<Pass>> m_Passes;
+	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_Targets;
 	std::vector<Shared<Drawable>> m_Drawables;
 	Shared<Camera> m_Camera;
 };

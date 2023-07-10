@@ -8,12 +8,16 @@ class RaytracingPipeline : public Bindable
 {
 public:
 	virtual void Bind(Graphics& g) override;
-	void ComputeShaderTableAndDispatch(Graphics& g, 
+	void UpdateTable(Graphics& g,
 		const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& raygen,
 		const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& miss,
 		const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& hit);
+	void Dispatch(Graphics& g);
 protected:
-	void Create(Graphics& g, CD3DX12_STATE_OBJECT_DESC& desc);
+	void Create(Graphics& g, CD3DX12_STATE_OBJECT_DESC& desc, 
+		const std::vector<UINT>& rgNumArgsPerEntry, 
+		const std::vector<UINT>& missNumArgsPerEntry, 
+		const std::vector<UINT>& hitNumArgsPerEntry);
 	ComPtr<IDxcBlob> CreateLibrary(const std::wstring& path);
 
 private:
@@ -39,4 +43,9 @@ private:
 	ComPtr<ID3D12Resource> m_Table;
 
 	Shared<RootSig> m_GlobalSig;
+
+	D3D12_DISPATCH_RAYS_DESC m_Dispatch;
+	UINT m_RayGenSize;
+	UINT m_MissSize;
+	UINT m_HitSize;
 };

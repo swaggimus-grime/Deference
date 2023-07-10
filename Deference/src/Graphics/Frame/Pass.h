@@ -27,6 +27,7 @@ public:
 	virtual void OnAdd(Graphics& g, GeometryGraph* parent);
 
 protected:
+	inline void AddInTarget(const std::string& name) { m_InTargets.push_back({ std::move(name), nullptr }); }
 	inline void AddOutTarget(const std::string& name) { m_OutTargets.push_back({ std::move(name), nullptr }); }
 
 protected:

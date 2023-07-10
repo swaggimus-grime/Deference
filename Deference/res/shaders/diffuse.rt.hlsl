@@ -3,6 +3,8 @@ Texture2D<float4> norm : register(t1);
 Texture2D<float4> diff : register(t2);
 RWTexture2D<float4> output : register(u0);
 
+//#define M_1_PI  0.318309886183790671538
+
 RaytracingAccelerationStructure scene : register(t3);
 
 struct PointLight
@@ -49,6 +51,14 @@ void ShadowMiss(inout ShadowRayPayload rayData)
     rayData.hitVal = 1.f;
 }
 
+//float2 wsVectorToLatLong(float3 dir)
+//{
+//    float3 p = normalize(dir);
+//    float u = (1.f + atan2(p.x, -p.z) * M_1_PI) * 0.5f;
+//    float v = acos(p.y) * M_1_PI;
+//    return float2(u, v);
+//}
+
 float shadowRayVisibility(float3 origin, float3 direction, float minT, float maxT)
 {
 	// Setup our shadow ray
@@ -78,13 +88,11 @@ void DiffuseAndHardShadow()
     float4 diffuse = diff[launchIndex];
 
 	// If we don't hit any geometry, our difuse material contains our background color.
-    float3 shadeColor = diffuse.rgb;
+    float3 shadeColor = float3(0.0, 0.0, 0.0);
 
 	//// Our camera sees the background if worldPos.w is 0, only shoot an AO ray elsewhere
     if (wPos.w != 0.0f)
     {
-        shadeColor = float3(0.0, 0.0, 0.0);
-    
         for (int lightIndex = 0; lightIndex < 1; lightIndex++)
         {
             LightData l = GetLightData(wPos.xyz, pointLight.pos);

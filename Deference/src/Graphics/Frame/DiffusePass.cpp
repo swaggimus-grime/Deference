@@ -8,6 +8,10 @@
 DiffusePass::DiffusePass(Graphics& g)
 	:m_Heap(g, 6)
 {
+	AddInTarget("Position");
+	AddInTarget("Normal");
+	AddInTarget("Albedo");
+
 	AddOutTarget("Diffuse");
 }
 
@@ -18,24 +22,14 @@ void DiffusePass::OnAdd(Graphics& g, GeometryGraph* parent)
 	auto& ins = GetInTargets();
 	for (auto& in : ins)
 		m_Heap.Add<RTV>(g, in.second);
-
 	auto& drawables = parent->Drawables();
 	m_Heap.Add<TLAS>(g, drawables);
 	m_Output = m_Heap.Add<UnorderedAccess>(g);
 	m_Light = m_Heap.Add<PointLight>(g);
 
 	m_Pipeline = MakeShared<DiffusePipeline>(g);
-}
-
-void DiffusePass::Run(Graphics& g, GeometryGraph* parent)
-{
-	auto diffuse = GetOutTarget("Diffuse");
-
-	m_Pipeline->Bind(g);
-	m_Heap.Bind(g);
-
 	UINT64* heapPtr = reinterpret_cast<UINT64*>(m_Heap.GPUStart().ptr);
-	m_Pipeline->ComputeShaderTableAndDispatch(g,
+	m_Pipeline->UpdateTable(g,
 		{
 			{DiffusePipeline::rayGenEP, {heapPtr}}
 		},
@@ -46,6 +40,16 @@ void DiffusePass::Run(Graphics& g, GeometryGraph* parent)
 			{DiffusePipeline::hitGroup, {}}
 		}
 	);
+}
+
+void DiffusePass::Run(Graphics& g, GeometryGraph* parent)
+{
+	auto diffuse = GetOutTarget("Diffuse");
+
+	m_Pipeline->Bind(g);
+	m_Heap.Bind(g);
+
+	m_Pipeline->Dispatch(g);
 
 	m_Output->Transition(g, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	diffuse->Transition(g, D3D12_RESOURCE_STATE_COPY_DEST);

@@ -1,23 +1,12 @@
 #include "Texture.h"
-#include <DirectXTex/DirectXTex.h>
 
-Texture2D::Texture2D(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle, const std::wstring& path)
+Texture::Texture(const D3D12_CPU_DESCRIPTOR_HANDLE& handle)
     :Resource(handle, nullptr, D3D12_RESOURCE_STATE_COPY_DEST)
 {
-    DirectX::ScratchImage image;
-    HR DirectX::LoadFromWICFile(path.c_str(), DirectX::WIC_FLAGS_IGNORE_SRGB, nullptr, image);
-    if (image.GetMetadata().format != DXGI_FORMAT_R32G32B32A32_FLOAT) {
-        DirectX::ScratchImage converted;
-        DirectX::Convert(
-            *image.GetImage(0, 0, 0),
-            DXGI_FORMAT_R32G32B32A32_FLOAT,
-            DirectX::TEX_FILTER_DEFAULT,
-            DirectX::TEX_THRESHOLD_DEFAULT,
-            converted
-        );
-        image = std::move(converted);
-    }
+}
 
+void Texture::CreateResourceAndView(Graphics& g, DirectX::ScratchImage& image)
+{
     D3D12_RESOURCE_DESC rd = {};
     rd.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     rd.Alignment = 0; // may be 0, 4KB, 64KB, or 4MB. 0 will let runtime decide between 64KB and 4MB (4MB for multi-sampled textures)
@@ -66,8 +55,6 @@ Texture2D::Texture2D(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle, const std:
         UpdateSubresources(&g.CL(), m_Res.Get(), uptex.Get(), 0, 0, 1, &textureData);
         g.Flush();
     }
-    
-    Transition(g, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -75,4 +62,37 @@ Texture2D::Texture2D(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle, const std:
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     srvDesc.Texture2D.MipLevels = 1;
     g.Device().CreateShaderResourceView(m_Res.Get(), &srvDesc, m_Handle);
+}
+
+Texture2D::Texture2D(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle, const std::wstring& path)
+    :Texture(handle)
+{
+    DirectX::ScratchImage image;
+    HR DirectX::LoadFromWICFile(path.c_str(), DirectX::WIC_FLAGS_IGNORE_SRGB, nullptr, image);
+    if (image.GetMetadata().format != DXGI_FORMAT_R32G32B32A32_FLOAT) {
+        DirectX::ScratchImage converted;
+        DirectX::Convert(
+            *image.GetImage(0, 0, 0),
+            DXGI_FORMAT_R32G32B32A32_FLOAT,
+            DirectX::TEX_FILTER_DEFAULT,
+            DirectX::TEX_THRESHOLD_DEFAULT,
+            converted
+        );
+        image = std::move(converted);
+    }
+
+    CreateResourceAndView(g, image);
+    Transition(g, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+}
+
+EnvironmentMap::EnvironmentMap(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle, const std::wstring& path)
+    :Texture(handle)
+{
+    DirectX::TexMetadata meta;
+    HR DirectX::GetMetadataFromHDRFile(path.c_str(), meta);
+
+    DirectX::ScratchImage image;
+    HR DirectX::LoadFromHDRFile(path.c_str(), &meta, image);
+
+    CreateResourceAndView(g, image);
 }

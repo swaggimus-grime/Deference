@@ -24,7 +24,7 @@ protected:
         :Resource(handle, nullptr, D3D12_RESOURCE_STATE_GENERIC_READ),
         m_Size(ALIGN(sizeof(Params), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT))
     {
-        g.CreateBuffer(m_Res, m_Size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+        g.CreateBuffer(m_Res, m_Size, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
         D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
         desc.BufferLocation = m_Res->GetGPUVirtualAddress();

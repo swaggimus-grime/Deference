@@ -138,7 +138,9 @@ public:
 	template<typename T, typename... Args>
 	Shared<T> Add(Graphics& g, Args... args)
 	{
-		return AddToHeap<T>(g, std::forward<Args>(args)...);
+		auto r = AddToHeap<T>(g, std::forward<Args>(args)...);
+		m_GPUHandle.ptr += m_IncSize;
+		return r;
 	}
 
 	void CopyToHeap(Graphics& g, const SucHeap& other);

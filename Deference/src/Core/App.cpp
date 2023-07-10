@@ -20,6 +20,10 @@ App::App(const std::string& name, UINT32 width, UINT32 height)
 		auto pass = MakeShared<DiffusePass>(m_Gfx);
 		m_Graph->AddPass(m_Gfx, pass);
 	}
+	{
+		auto pass = MakeShared<AOPass>(m_Gfx);
+		m_Graph->AddPass(m_Gfx, pass);
+	}
 	
 	m_Gfx.Flush();
 }
