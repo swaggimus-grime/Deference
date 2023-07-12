@@ -17,8 +17,21 @@ public:
 	virtual void BindWithOther(Graphics& g, Target* ds) override;
 };
 
+class ReadbackRenderTarget : public RenderTarget
+{
+public:
+	ReadbackRenderTarget(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle);
+};
+
+class CopyTarget : public Resource
+{
+public:
+	CopyTarget(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle);
+};
+
 class RTV : public Resource
 {
 public:
 	RTV(Graphics& g, const D3D12_CPU_DESCRIPTOR_HANDLE& handle, Shared<RenderTarget> rt);
+
 };

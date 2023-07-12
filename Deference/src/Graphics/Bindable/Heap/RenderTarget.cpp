@@ -62,3 +62,32 @@ RTV::RTV(Graphics& g, const D3D12_CPU_DESCRIPTOR_HANDLE& handle, Shared<RenderTa
 
     g.Device().CreateShaderResourceView(rt->Res(), &desc, m_Handle);
 }
+
+ReadbackRenderTarget::ReadbackRenderTarget(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+    :RenderTarget(g, handle, D3D12_RESOURCE_STATE_COPY_DEST)
+{
+}
+
+CopyTarget::CopyTarget(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+    :Resource(handle)
+{
+    const auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    const D3D12_RESOURCE_DESC res = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM,
+        static_cast<UINT64>(g.Width()),
+        static_cast<UINT>(g.Height()),
+        1, 1, 1, 0);
+
+    D3D12_CLEAR_VALUE clearValue = {};
+    clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    XMFLOAT4 col = { 0.f, 0.f, 0.f, 1.f };
+    std::memcpy(clearValue.Color, &col, sizeof(XMFLOAT4));
+
+    HR g.Device().CreateCommittedResource(
+        &heap,
+        D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
+        &res,
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+        nullptr,
+        IID_PPV_ARGS(&m_Res)
+    );
+}

@@ -6,6 +6,7 @@ class Drawable
 {
 public:
 	inline UINT DiffuseIndex() const { return m_DiffuseIndex; }
+	inline UINT NormalIndex() const { return m_NormalIndex; }
 	inline auto& GetCBVHeap() const { return *m_CBVHeap; }
 	inline auto& GetTextureHeap() const { return *m_TextureHeap; }
 	inline auto& BLAS() const { return m_BLAS; }
@@ -23,6 +24,7 @@ protected:
 	Shared<Transform> m_Transform;
 	ComPtr<ID3D12Resource> m_BLAS;
 	UINT m_DiffuseIndex;
+	UINT m_NormalIndex;
 };
 
 class DrawableCollection

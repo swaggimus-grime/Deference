@@ -54,7 +54,7 @@ Shader::Shader(const std::wstring& path, const std::wstring& type)
     // IDxcCompiler3::Compile will always return an error buffer, but its length
     // will be zero if there are no warnings or errors.
     if (pErrors != nullptr && pErrors->GetStringLength() != 0)
-        wprintf(L"Warnings and Errors:\n%S\n", pErrors->GetStringPointer());
+        throw std::runtime_error(pErrors->GetStringPointer());
 
     pResults->GetResult(&m_ByteCode);
     m_BCStruct = {};

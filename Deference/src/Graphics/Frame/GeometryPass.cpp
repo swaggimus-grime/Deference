@@ -58,7 +58,8 @@ void GeometryPass::Run(Graphics& g, GeometryGraph* parent)
 	CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle = m_CBVHandle;
 	for (auto& d : drawables)
 	{
-		g.CL().SetGraphicsRoot32BitConstant(3, d->DiffuseIndex(), 0);
+		UINT idxes[] = { d->DiffuseIndex(), d->NormalIndex() };
+		g.CL().SetGraphicsRoot32BitConstants(3, 2, idxes, 0);
 		g.CL().SetGraphicsRootDescriptorTable(2, cbvHandle);
 		cbvHandle.ptr += m_TextureHeap->IncSize();
 

@@ -24,6 +24,17 @@ public:
 		return it->second;
 	}
 
+	inline Shared<RenderTarget> GetInTarget(const std::string& name) const
+	{
+		auto it = std::find_if(m_InTargets.begin(), m_InTargets.end(),
+			[&](const auto& pair)
+			{
+				return pair.first == name;
+			}
+		);
+		return it->second;
+	}
+
 	virtual void OnAdd(Graphics& g, GeometryGraph* parent);
 
 protected:
@@ -34,4 +45,5 @@ protected:
 	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_InTargets;
 	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_OutTargets;
 	Unique<RenderTargetHeap> m_RTs;
+
 };

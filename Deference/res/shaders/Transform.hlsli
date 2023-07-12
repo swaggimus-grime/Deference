@@ -8,6 +8,7 @@ struct ModelTransform
 {
     matrix mvp;
     float3x3 normMat;
+    matrix model;
 };
 
 ConstantBuffer<ModelTransform> modelTransform : register(b0);

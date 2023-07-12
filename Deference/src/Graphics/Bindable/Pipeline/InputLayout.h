@@ -46,12 +46,6 @@ template<> struct Map<VERTEX_ATTRIBUTES::BITAN> {
 	static constexpr DXGI_FORMAT format = DXGI_FORMAT_R32G32B32_FLOAT;
 };
 
-template<> struct Map<VERTEX_ATTRIBUTES::COLOR> {
-	using type = XMFLOAT4;
-	static constexpr auto name = "COLOR";
-	static constexpr DXGI_FORMAT format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-};
-
 inline VERTEX_ATTRIBUTES operator&(VERTEX_ATTRIBUTES a, VERTEX_ATTRIBUTES b)
 {
 	return static_cast<VERTEX_ATTRIBUTES>(static_cast<int>(a) & static_cast<int>(b));
@@ -69,7 +63,8 @@ inline void operator|=(VERTEX_ATTRIBUTES& a, VERTEX_ATTRIBUTES b)
 
 enum class INPUT_LAYOUT_CONFIG
 {
-	GEOMETRY_PIPELINE
+	GEOMETRY_PIPELINE,
+	SCREEN
 };
 
 class InputLayout
@@ -78,7 +73,7 @@ public:
 	friend class VertexStream;
 
 	InputLayout(const VERTEX_ATTRIBUTES& attributes);
-	InputLayout(INPUT_LAYOUT_CONFIG config = INPUT_LAYOUT_CONFIG::GEOMETRY_PIPELINE);
+	InputLayout(INPUT_LAYOUT_CONFIG config);
 	inline D3D12_INPUT_LAYOUT_DESC Layout() const { return m_Layout; }
 	inline UINT NumElements() const { return m_Elements.size(); }
 

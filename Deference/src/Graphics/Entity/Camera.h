@@ -11,6 +11,8 @@ public:
 	Camera(Graphics& g, const XMFLOAT3& pos = {0.f, 0.f, -1.f});
 
 	inline XMFLOAT3 Pos() const { return m_Pos; }
+	inline float Pitch() const { return m_Pitch; }
+	inline float Yaw() const { return m_Yaw; }
 
 	XMMATRIX View() const;
 	inline XMMATRIX Proj() const { return m_Proj; }

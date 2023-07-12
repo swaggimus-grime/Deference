@@ -12,6 +12,7 @@ void Drawable::Update(Graphics& g)
 void Drawable::Rasterize(Graphics& g)
 {
 	Update(g);
+
 	for (auto& b : m_Bindables)
 		b->Bind(g);
 	m_VB->Bind(g);

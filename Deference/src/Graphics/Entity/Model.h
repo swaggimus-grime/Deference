@@ -24,6 +24,6 @@ private:
 	{
 	public:
 		friend class Model;
-		Mesh(Graphics& g, Model* parent, UINT& diffIdx, const aiMesh* mesh, const aiMaterial* mat, const std::string& dir);
+		Mesh(Graphics& g, Model* parent, UINT& texIdx, const aiMesh* mesh, const aiMaterial* mat, const std::string& dir);
 	};
 };

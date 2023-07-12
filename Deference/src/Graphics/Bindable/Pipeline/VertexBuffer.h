@@ -23,7 +23,6 @@ public:
 	GET_ATTRIB(Norm, NORM)
 	GET_ATTRIB(Tan, TAN)
 	GET_ATTRIB(Bitan, BITAN)
-	GET_ATTRIB(Color, COLOR)
 
 	inline const void* Data() const { return m_Data.data(); }
 	inline UINT Size() const { return m_Stride * m_NumVertices; }
