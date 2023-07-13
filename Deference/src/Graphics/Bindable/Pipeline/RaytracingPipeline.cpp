@@ -99,9 +99,9 @@ void RaytracingPipeline::Bind(Graphics& g)
 }
 
 void RaytracingPipeline::UpdateTable(Graphics& g, 
-	const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& raygen, 
-	const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& miss, 
-	const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& hit)
+	const std::vector<std::pair<LPCWSTR, const std::vector<void*>&>>& raygen, 
+	const std::vector<std::pair<LPCWSTR, const std::vector<void*>&>>& miss, 
+	const std::vector<std::pair<LPCWSTR, const std::vector<void*>&>>& hit)
 {
 	uint8_t* pData;
 	HR m_Table->Map(0, nullptr, reinterpret_cast<void**>(&pData));
@@ -109,7 +109,7 @@ void RaytracingPipeline::UpdateTable(Graphics& g,
 		for (const auto& e : entrySet)
 		{
 			// Get the shader identifier, and check whether that identifier is known
-			void* id = m_Props->GetShaderIdentifier(e.first.c_str());
+			void* id = m_Props->GetShaderIdentifier(e.first);
 			BR id;
 			// Copy the shader identifier
 			std::memcpy(pData, id, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);

@@ -22,7 +22,7 @@ GeometryPass::GeometryPass(Graphics& g)
 
 void GeometryPass::OnAdd(Graphics& g, GeometryGraph* parent)
 {
-	BindablePass::OnAdd(g, parent);
+	Pass::OnAdd(g, parent);
 	AddBindable(MakeShared<Viewport>(g));
 	AddBindable(MakeShared<GeometryPipeline>(g));
 
@@ -44,7 +44,7 @@ void GeometryPass::Run(Graphics& g, GeometryGraph* parent)
 	}
 	m_Depth->Clear(g);
 
-	Bind(g);
+	BindBindables(g);
 
 	ID3D12DescriptorHeap* heaps[] = { m_TextureHeap->GetHeap(), m_SamplerHeap->GetHeap() };
 	g.CL().SetDescriptorHeaps(2, heaps);

@@ -40,10 +40,12 @@ public:
 protected:
 	inline void AddInTarget(const std::string& name) { m_InTargets.push_back({ std::move(name), nullptr }); }
 	inline void AddOutTarget(const std::string& name) { m_OutTargets.push_back({ std::move(name), nullptr }); }
+	inline void AddBindable(Shared<Bindable> b) { m_Bindables.push_back(std::move(b)); }
+	void BindBindables(Graphics& g);
 
 protected:
 	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_InTargets;
 	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_OutTargets;
 	Unique<RenderTargetHeap> m_RTs;
-
+	std::vector<Shared<Bindable>> m_Bindables;
 };

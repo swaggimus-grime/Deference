@@ -10,9 +10,9 @@ struct Accum
 
 ConstantBuffer<Accum> accumConstants : register(b0);
 
-float4 main(float4 pos : SV_Position) : SV_Target0
+float4 main(ScreenVertexOut v) : SV_Target0
 {
-	uint2 pixelPos = (uint2) pos.xy; // Where is this pixel on screen?
+	uint2 pixelPos = (uint2) v.pos.xy; // Where is this pixel on screen?
 	float4 curColor = gCurFrame[pixelPos]; // Pixel color this frame
 	float4 prevColor = gLastFrame[pixelPos]; // Pixel color last frame
 

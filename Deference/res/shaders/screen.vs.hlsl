@@ -1,6 +1,9 @@
 #include "Vertex.hlsli"
 
-float4 main(float3 pos : POSITION) : SV_Position
+ScreenVertexOut main(float3 pos : POSITION, float2 tex : TEXCOORD) 
 {
-    return float4(pos, 1.f);
+    ScreenVertexOut v;
+    v.pos = float4(pos, 1.f);
+    v.tex = tex;
+    return v;
 }

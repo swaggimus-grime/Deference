@@ -1,13 +1,13 @@
 #pragma once
 
-#include "BindablePass.h"
+#include "Pass.h"
 
 class AOPipeline;
 class AOConstants;
 class UnorderedAccess;
 class m_Light;
 
-class AOPass : public BindablePass
+class AOPass : public Pass
 {
 public:
 	AOPass(Graphics& g);

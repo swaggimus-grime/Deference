@@ -5,7 +5,7 @@
 
 struct AOConstantsParams
 {
-    float radius = 10.f;
+    float radius = 100.f;
     unsigned int frameCount = 0;
     float minT = 1.0e-4f;
 };

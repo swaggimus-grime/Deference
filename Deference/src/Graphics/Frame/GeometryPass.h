@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BindablePass.h"
+#include "Pass.h"
 #include "Bindable/Heap/Heap.h"
 #include "Bindable/Heap/RenderTarget.h"
 #include "Bindable/Heap/DepthStencil.h"
@@ -10,7 +10,7 @@ class IndexBuffer;
 class Material;
 class DrawableCollection;
 
-class GeometryPass : public BindablePass
+class GeometryPass : public Pass
 {
 public:
 	GeometryPass(Graphics& g);

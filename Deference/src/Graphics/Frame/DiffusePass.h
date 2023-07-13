@@ -1,12 +1,12 @@
 #pragma once
 
-#include "BindablePass.h"
+#include "Pass.h"
 
 class DiffusePipeline;
 class UnorderedAccess;
 class m_Light;
 
-class DiffusePass : public BindablePass
+class DiffusePass : public Pass
 {
 public:
 	DiffusePass(Graphics& g);

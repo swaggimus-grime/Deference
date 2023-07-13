@@ -9,9 +9,9 @@ class RaytracingPipeline : public Bindable
 public:
 	virtual void Bind(Graphics& g) override;
 	void UpdateTable(Graphics& g,
-		const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& raygen,
-		const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& miss,
-		const std::vector<std::pair<const std::wstring&, const std::vector<void*>&>>& hit);
+		const std::vector<std::pair<LPCWSTR, const std::vector<void*>&>>& raygen,
+		const std::vector<std::pair<LPCWSTR, const std::vector<void*>&>>& miss,
+		const std::vector<std::pair<LPCWSTR, const std::vector<void*>&>>& hit);
 	void Dispatch(Graphics& g);
 protected:
 	void Create(Graphics& g, CD3DX12_STATE_OBJECT_DESC& desc, 

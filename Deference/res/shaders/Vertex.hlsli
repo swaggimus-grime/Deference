@@ -11,6 +11,11 @@ struct VertexOut
 {
     float4 pos : SV_Position;
     float2 tex : TEXCOORD;
-    float3 norm : NORMAL;
     float3x3 TBN : TANGENT_SPACE;
+};
+
+struct ScreenVertexOut
+{
+    float4 pos : SV_Position;
+    float2 tex : TEXCOORD;
 };

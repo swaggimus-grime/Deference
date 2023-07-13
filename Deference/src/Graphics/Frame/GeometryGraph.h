@@ -1,6 +1,5 @@
 #pragma once
 
-#include "FrameGraph.h"
 #include "GeometryPass.h"
 
 class Drawable;

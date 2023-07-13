@@ -34,7 +34,7 @@ if (CMAKE_VERSION VERSION_GREATER 3.16 AND KDV_BUILD_USING_PCH)
   #set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
 endif()
 
-set_property(TARGET Deference PROPERTY CXX_STANDARD 20)
+set_property(TARGET Deference PROPERTY CXX_STANDARD 23)
 target_link_libraries(Deference PRIVATE "d3d12.lib" "d3dcompiler.lib" "dxgi.lib" "dxguid.lib" "dxcompiler.lib" assimp::assimp DirectXTex)  
 
 set_property(TARGET Deference PROPERTY WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/Deference)

@@ -2,7 +2,7 @@
 # and include sub-projects here.
 #
 cmake_minimum_required (VERSION 3.18)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 set(CMAKE_BUILD_TYPE "Debug")
 set(WIN32 true)

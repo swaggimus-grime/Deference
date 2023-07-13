@@ -1,0 +1,11 @@
+Model Information:
+* title:	That Pool |  例のプール
+* source:	https://sketchfab.com/3d-models/that-pool-c563bd34fda046f6943c7069caf664d9
+* author:	niarax (https://sketchfab.com/niarax)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "That Pool |  例のプール" (https://sketchfab.com/3d-models/that-pool-c563bd34fda046f6943c7069caf664d9) by niarax (https://sketchfab.com/niarax) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

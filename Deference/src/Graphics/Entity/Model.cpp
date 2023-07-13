@@ -60,30 +60,30 @@ Model::Mesh::Mesh(Graphics& g, Model* parent, UINT& texIdx, const aiMesh* mesh, 
         aiString texName;
         mat->GetTexture(type, 0, &texName);
         if (texName.length == NULL)
-            return;
+            return false;
         std::string texPath = std::string(texName.C_Str());
         texPath = dir + "\\" + texPath;
         texturePaths.push_back(std::move(texPath));
+        return true;
     };
 
-    getTexture(aiTextureType_BASE_COLOR);
-    getTexture(aiTextureType_NORMALS);
+    bool diff = getTexture(aiTextureType_BASE_COLOR);
+    if(!diff)
+        diff = getTexture(aiTextureType_DIFFUSE);
+    bool norm = getTexture(aiTextureType_NORMALS);
+    if (!norm)
+        norm = getTexture(aiTextureType_HEIGHT);
 
     m_CBVHeap = MakeUnique<SucHeap>(g, 1); // transform
     m_Transform = m_CBVHeap->Add<Transform>(g);
 
     if (texturePaths.size() > 0)
     {
-        m_DiffuseIndex = texIdx++;
-        m_NormalIndex = texIdx++;
         m_TextureHeap = MakeUnique<SucHeap>(g, texturePaths.size());
+        m_DiffuseIndex = diff ? texIdx++ : 9999;
+        m_NormalIndex = norm ? texIdx++ : 9999;
         for (const auto& path : texturePaths)
             m_TextureHeap->Add<Texture2D>(g, std::wstring(path.begin(), path.end()));
-    }
-    else
-    {
-        m_DiffuseIndex = 9999;
-        m_NormalIndex = 9999;
     }
 
     m_BLAS = TLAS::BLAS(g, { m_VB }, { m_IB });

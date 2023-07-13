@@ -6,3 +6,9 @@ void Pass::OnAdd(Graphics& g, GeometryGraph* parent)
 	for (auto& t : m_OutTargets)
 		t.second = m_RTs->Add(g);
 }
+
+void Pass::BindBindables(Graphics& g)
+{
+	for (auto& b : m_Bindables)
+		b->Bind(g);
+}

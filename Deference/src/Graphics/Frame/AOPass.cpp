@@ -17,7 +17,7 @@ AOPass::AOPass(Graphics& g)
 
 void AOPass::OnAdd(Graphics& g, GeometryGraph* parent)
 {
-	BindablePass::OnAdd(g, parent);
+	Pass::OnAdd(g, parent);
 
 	auto& ins = GetInTargets();
 	for (auto& in : ins)

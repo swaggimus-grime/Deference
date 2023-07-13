@@ -30,7 +30,7 @@ VERTEX_ATTRIBUTES InputLayout::MapConfigToAttribs(INPUT_LAYOUT_CONFIG config)
     case GEOMETRY_PIPELINE:
         return POS | TEX | NORM | TAN | BITAN;
     case SCREEN:
-        return POS;
+        return POS | TEX;
     default:
         return POS;
     }

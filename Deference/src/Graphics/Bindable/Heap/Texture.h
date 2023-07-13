@@ -7,7 +7,6 @@ class Texture : public Resource
 {
 protected:
 	Texture(const D3D12_CPU_DESCRIPTOR_HANDLE& handle);
-	void CreateResourceAndView(Graphics& g, DirectX::ScratchImage& image);
 };
 
 class Texture2D : public Texture

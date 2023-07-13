@@ -7,33 +7,19 @@
 #include "VecOps.h"
 
 AccumPass::AccumPass(Graphics& g)
-	:m_DepthHeap(g), m_NumPassedFrames(0), m_PrevFrameHeap(g, 1)
+	:ScreenPass(g), m_DepthHeap(g), m_NumPassedFrames(0), m_PrevFrameHeap(g, 1)
 {
 	m_Depth = m_DepthHeap.Add(g);
 	m_ResHeap = MakeUnique<CSUHeap>(g, 2);
 
 	AddInTarget("AO");
 	AddOutTarget("Accumulation");
-
-	{
-		InputLayout layout(INPUT_LAYOUT_CONFIG::SCREEN);
-		VertexStream stream(std::move(layout), 4);
-		stream.Pos(0) = { -1, -1, 0 };
-		stream.Pos(1) = { -1, 1, 0 };
-		stream.Pos(2) = { 1, 1, 0 };
-		stream.Pos(3) = { 1, -1, 0 };
-		m_VB = MakeShared<VertexBuffer>(g, std::move(stream));
-	}
-	{
-		std::vector<UINT> indices = { 0, 1, 2, 2, 3, 0 };
-		m_IB = MakeShared<IndexBuffer>(g, indices.size(), indices.data());
-	}
 }
 
 
 void AccumPass::OnAdd(Graphics& g, GeometryGraph* parent)
 {
-	BindablePass::OnAdd(g, parent);
+	Pass::OnAdd(g, parent);
 	AddBindable(MakeShared<Viewport>(g));
 	AddBindable(MakeShared<AccumPipeline>(g));
 
@@ -69,8 +55,7 @@ void AccumPass::Run(Graphics& g, GeometryGraph* parent)
 	accum->Clear(g);
 	m_Depth->Clear(g);
 
-	Bind(g);
-
+	BindBindables(g);
 	m_ResHeap->Bind(g);
 
 	auto currentAO = GetInTarget("AO");
@@ -82,12 +67,7 @@ void AccumPass::Run(Graphics& g, GeometryGraph* parent)
 	g.CL().SetGraphicsRootDescriptorTable(0, m_ResHeap->GPUStart());
 	g.CL().SetGraphicsRoot32BitConstant(1, m_NumPassedFrames++, 0);
 
-	g.CL().IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	m_VB->Bind(g);
-	m_IB->Bind(g);
-
-	g.CL().DrawIndexedInstanced(m_IB->NumIndices(), 1, 0, 0, 0);
+	Rasterize(g);
 
 	{
 		const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_PrevFrame->Res(),
