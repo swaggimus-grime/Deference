@@ -3,6 +3,7 @@
 #include "Debug/Exception.h"
 #include "Entity/Camera.h"
 #include "Swapchain.h"
+#include <imgui_impl_dx12.h>
 
 D3D_ROOT_SIGNATURE_VERSION Graphics::ROOT_SIG_VERSION = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
@@ -80,7 +81,7 @@ Graphics::Graphics(HWND hWnd, UINT width, UINT height)
     cqd.NodeMask = 0;
     HR m_Device->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_CQ));
 
-    m_SC = MakeUnique<Swapchain>(*this, hWnd, 2);
+    m_SC = MakeUnique<Swapchain>(*this, hWnd, s_NumInFlightFrames);
 
     HR m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_Alloc));
 
@@ -100,6 +101,8 @@ Graphics::Graphics(HWND hWnd, UINT width, UINT height)
 
     HR m_Alloc->Reset();
     HR m_CmdList->Reset(m_Alloc.Get(), nullptr);
+    
+    UI::InitGraphics(*this);
 }
 
 Graphics::~Graphics()

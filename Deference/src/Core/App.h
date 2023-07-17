@@ -15,8 +15,8 @@ public:
 	INT Run();
 
 private:
-	Window m_Wnd;
-	Graphics m_Gfx;
+	Unique<Window> m_Wnd;
+	Unique<Graphics> m_Gfx;
 	Shared<Camera> m_Cam;
 	Unique<GeometryGraph> m_Graph;
 	Unique<Model> m_Cup; 

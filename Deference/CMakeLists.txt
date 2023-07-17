@@ -3,18 +3,28 @@
 #
 
 # Add source to this project's executable.
-file(GLOB_RECURSE SRC CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE SRC CONFIGURE_DEPENDS 
+    "src/*.cpp" 
+    "${IMGUI_DIR}/imgui.cpp"
+    "${IMGUI_DIR}/backends/imgui_impl_dx12.cpp"
+    "${IMGUI_DIR}/backends/imgui_impl_win32.cpp"
+    "${IMGUI_DIR}/imgui_draw.cpp"
+    "${IMGUI_DIR}/imgui_demo.cpp"
+    "${IMGUI_DIR}/imgui_tables.cpp"
+    "${IMGUI_DIR}/imgui_widgets.cpp"
+)
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "src/*.h")
 
 include_directories(
     ${DXTEX_DIR}
     ${ASSIMP_DIR}/include
     ${ASSIMP_DIR}/build/include
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Core
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Debug
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Graphics
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/DXR
 )
 
 # Add source to this project's executable.

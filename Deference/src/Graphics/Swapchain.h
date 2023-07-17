@@ -18,6 +18,8 @@ public:
 		return m_BackBuffs[currentIdx];
 	}
 
+	static constexpr auto s_Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
 private:
 	std::vector<Shared<RenderTarget>> m_BackBuffs;
 	Unique<RenderTargetHeap> m_RTs;

@@ -24,7 +24,7 @@ Swapchain::Swapchain(Graphics& g, HWND hWnd, UINT numBuffs)
     SecureZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC1));
     scd.Width = g.Width();
     scd.Height = g.Height();
-    scd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    scd.Format = s_Format;
     scd.Stereo = FALSE;
     scd.SampleDesc = { 1, 0 };
     scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;

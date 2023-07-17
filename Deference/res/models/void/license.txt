@@ -1,0 +1,11 @@
+Model Information:
+* title:	Impressions of the Waning Void
+* source:	https://sketchfab.com/3d-models/impressions-of-the-waning-void-73e2f77e66ff43daab1fb72132e2cb10
+* author:	Neo_minigan (https://sketchfab.com/neominigan)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Impressions of the Waning Void" (https://sketchfab.com/3d-models/impressions-of-the-waning-void-73e2f77e66ff43daab1fb72132e2cb10) by Neo_minigan (https://sketchfab.com/neominigan) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

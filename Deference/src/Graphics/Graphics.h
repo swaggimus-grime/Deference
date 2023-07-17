@@ -44,12 +44,15 @@ public:
 	inline void SetCamera(Shared<Camera> cam) { m_Cam = std::move(cam); }
 	inline auto GetCamera() const { return m_Cam; }
 
+	static constexpr UINT s_NumInFlightFrames = 2;
+
 private:
 	UINT m_Width;
 	UINT m_Height;
 
 	ComPtr<ID3D12Device5> m_Device;
 	bool m_AllowTearing;
+
 	Unique<Swapchain> m_SC;
 	
 	ComPtr<ID3D12CommandQueue> m_CQ;

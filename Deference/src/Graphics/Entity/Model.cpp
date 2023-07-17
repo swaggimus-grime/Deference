@@ -16,6 +16,7 @@ Model::Model(Graphics& g, const std::string& filePath)
         aiProcess_Triangulate |
         aiProcess_JoinIdenticalVertices |
         aiProcess_PreTransformVertices |
+        aiProcess_FlipUVs |
         aiProcess_GenNormals |
         aiProcess_CalcTangentSpace);
     BR (scene && !(scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) && scene->mRootNode);
@@ -36,11 +37,27 @@ Model::Mesh::Mesh(Graphics& g, Model* parent, UINT& texIdx, const aiMesh* mesh, 
     InputLayout layout(INPUT_LAYOUT_CONFIG::GEOMETRY_PIPELINE);
     VertexStream stream(std::move(layout), mesh->mNumVertices);
     for (UINT vert = 0; vert < mesh->mNumVertices; vert++) {
-            stream.Pos(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mVertices[vert].x);
-            stream.Tex(vert) = *reinterpret_cast<XMFLOAT2*>(&mesh->mTextureCoords[0][vert].x);
-            stream.Norm(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mNormals[vert].x);
+        stream.Pos(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mVertices[vert].x);
+        for (UINT i = 0; i < 8; i++)
+        {
+            if (mesh->HasTextureCoords(i))
+            {
+                stream.Tex(vert) = *reinterpret_cast<XMFLOAT2*>(&mesh->mTextureCoords[i][vert].x);
+                break;
+            }
+        }
+
+        stream.Norm(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mNormals[vert].x);
+        if (mesh->HasTangentsAndBitangents())
+        {
             stream.Tan(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mTangents[vert].x);
             stream.Bitan(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mBitangents[vert].x);
+        }
+        else
+        {
+            stream.Tan(vert) = { 0, 0, 0 };
+            stream.Bitan(vert) = { 0, 0, 0 };
+        }
     }
     m_VB = MakeShared<VertexBuffer>(g, stream);
 

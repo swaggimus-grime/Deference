@@ -30,9 +30,11 @@ endfunction(add_git_submodule)
 
 set(DXTEX_DIR ${PROJECT_SOURCE_DIR}/tools/DirectXTex)
 set(ASSIMP_DIR ${PROJECT_SOURCE_DIR}/tools/assimp)
+set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/tools/imgui)
 
 #add_git_submodule(${DXTEX_DIR})
 #add_git_submodule(${ASSIMP_DIR})
+#add_git_submodule(${IMGUI_DIR})
 
 add_subdirectory(${DXTEX_DIR})
 add_subdirectory(${ASSIMP_DIR})
