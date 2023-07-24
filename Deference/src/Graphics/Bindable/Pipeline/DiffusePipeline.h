@@ -1,7 +1,6 @@
 #pragma once
 
 #include "RaytracingPipeline.h"
-#include "Bindable/Heap/Heap.h"
 
 class DiffusePipeline : public RaytracingPipeline
 {

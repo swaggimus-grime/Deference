@@ -1,13 +1,7 @@
 #include "DepthStencil.h"
 
-DepthStencil::DepthStencil(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle)
-    :Target(handle, nullptr, D3D12_RESOURCE_STATE_DEPTH_WRITE)
+DepthStencil::DepthStencil(Graphics& g)
 {
-    D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
-    desc.Format = DXGI_FORMAT_D32_FLOAT;
-    desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    desc.Flags = D3D12_DSV_FLAG_NONE;
-
     D3D12_CLEAR_VALUE clear = {};
     clear.Format = DXGI_FORMAT_D32_FLOAT;
     clear.DepthStencil.Depth = 1.0f;
@@ -19,11 +13,20 @@ DepthStencil::DepthStencil(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle)
         &heap,
         D3D12_HEAP_FLAG_NONE,
         &res,
-        m_State,
+        D3D12_RESOURCE_STATE_DEPTH_WRITE,
         &clear,
         IID_PPV_ARGS(&m_Res)
     );
-    
+}
+
+void DepthStencil::CreateView(Graphics& g, HCPU hcpu)
+{
+    m_Handle = hcpu;
+    D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
+    desc.Format = m_Res->GetDesc().Format;
+    desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    desc.Flags = D3D12_DSV_FLAG_NONE;
+
     g.Device().CreateDepthStencilView(m_Res.Get(), &desc, m_Handle);
 }
 
@@ -35,9 +38,4 @@ void DepthStencil::Clear(Graphics& g)
 void DepthStencil::Bind(Graphics& g)
 {
 	g.CL().OMSetRenderTargets(0, nullptr, false, &m_Handle);
-}
-
-void DepthStencil::BindWithOther(Graphics& g, Target* rt)
-{
-	rt->BindWithOther(g, this);
 }

@@ -2,28 +2,39 @@
 
 #include <string>
 #include "util.h"
-#include "Bindable/Heap/Heap.h"
 #include <assimp/material.h>
 #include <assimp/mesh.h>
 #include "Bindable/Heap/Texture.h"
-#include "Drawable.h"
 
 class Graphics;
 class InputLayout;
 class FrameGraph;
 
-class Model : public DrawableCollection
+struct TextureIndex
+{
+	INT m_Diffuse;
+	INT m_Specular;
+	INT m_Normal;
+};
+
+class Model
 {
 public:
 	Model(Graphics& g, const std::string& filePath);
+	inline const auto& GetBuffers() const { return m_Buffers; }
+	inline const auto& GetBLAS() const { return m_BLAS; }
+
+	inline const auto& GetTextureIndexes() const { return m_TextureIndexes; }
+	inline const auto& GetTextures() const { return m_Textures; }
+
+	inline XMMATRIX GetWorldTransform() const { return m_World; }
 
 private:
-	friend class Mesh;
+	XMMATRIX m_World;
 
-	class Mesh : public Drawable
-	{
-	public:
-		friend class Model;
-		Mesh(Graphics& g, Model* parent, UINT& texIdx, const aiMesh* mesh, const aiMaterial* mat, const std::string& dir);
-	};
+	std::vector<std::pair<Shared<VertexBuffer>, Shared<IndexBuffer>>> m_Buffers;
+	ComPtr<ID3D12Resource> m_BLAS;
+
+	std::vector<TextureIndex> m_TextureIndexes;
+	std::vector<Shared<Texture2D>> m_Textures;
 };

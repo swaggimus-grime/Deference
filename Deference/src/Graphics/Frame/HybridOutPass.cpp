@@ -1,12 +1,12 @@
 #include "HybridOutPass.h"
 #include "Bindable/Pipeline/HybridOutPipeline.h"
+#include <ranges>
 
 HybridOutPass::HybridOutPass(Graphics& g)
 	:ScreenPass(g), m_DepthHeap(g)
 {
-	m_Depth = m_DepthHeap.Add(g);
-
-	m_ResHeap = MakeUnique<CSUHeap>(g, 3);
+	m_Depth = MakeShared<DepthStencil>(g);
+	m_Depth->CreateView(g, m_DepthHeap.Next());
 
 	AddInTarget("Position");
 	AddInTarget("Diffuse");
@@ -18,49 +18,40 @@ HybridOutPass::HybridOutPass(Graphics& g)
 	AddBindable(MakeShared<HybridOutPipeline>(g));
 }
 
-void HybridOutPass::OnAdd(Graphics& g, GeometryGraph* parent)
+void HybridOutPass::OnAdd(Graphics& g, FrameGraph* parent)
 {
 	Pass::OnAdd(g, parent);
 
 	auto& ins = GetInTargets();
+	m_GPUHeap = MakeUnique<GPUShaderHeap>(g, ins.size());
+
 	for (auto& in : ins)
-		m_ResHeap->Add<RTV>(g, in.second);
+		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
 }
 
-void HybridOutPass::Run(Graphics& g, GeometryGraph* parent)
+void HybridOutPass::Run(Graphics& g, FrameGraph* parent)
 {
 	auto target = GetOutTarget("Hybrid");
-	target->BindWithOther(g, m_Depth.get());
+	target->BindWithDepth(g, m_Depth);
 	target->Clear(g);
 	m_Depth->Clear(g);
 
 	auto& inTargets = GetInTargets();
-	{
-		D3D12_RESOURCE_BARRIER barriers[3];
-		for (UINT i = 0; i < 3; i++)
-		{
-			barriers[i] = CD3DX12_RESOURCE_BARRIER::Transition(inTargets[i].second->Res(),
-				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		}
-		g.CL().ResourceBarrier(3, barriers);
-	}
-	
+	const auto& targets = 
+		std::views::iota(0u, (UINT)inTargets.size()) |
+		std::views::transform([&](UINT i) {
+			return inTargets.at(i).second;
+		}) |
+		std::ranges::to<std::vector>();
+	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	BindBindables(g);
-	m_ResHeap->Bind(g);
-	g.CL().SetGraphicsRootDescriptorTable(0, m_ResHeap->GPUStart());
+	m_GPUHeap->Bind(g);
+	g.CL().SetGraphicsRootDescriptorTable(0, m_GPUHeap->GPUStart());
 
 	Rasterize(g);
 
-	{
-		D3D12_RESOURCE_BARRIER barriers[3];
-		for (UINT i = 0; i < 3; i++)
-		{
-			barriers[i] = CD3DX12_RESOURCE_BARRIER::Transition(inTargets[i].second->Res(),
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		}
-		g.CL().ResourceBarrier(3, barriers);
-	}
+	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	g.Flush();
 }

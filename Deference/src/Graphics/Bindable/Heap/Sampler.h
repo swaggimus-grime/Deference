@@ -2,8 +2,11 @@
 
 #include "Resource.h"
 
-class Sampler : public Resource
+class Sampler
 {
 public:
-	Sampler(Graphics& g, const D3D12_CPU_DESCRIPTOR_HANDLE& handle);
+	Sampler(Graphics& g, HCPU handle);
+
+private:
+	HCPU m_Handle;
 };

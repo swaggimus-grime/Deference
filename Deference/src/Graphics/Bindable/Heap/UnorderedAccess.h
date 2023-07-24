@@ -8,5 +8,9 @@ class Graphics;
 class UnorderedAccess : public Resource
 {
 public:
-	UnorderedAccess(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle);
+	UnorderedAccess(Graphics& g);
+	void CreateView(Graphics& g, HCPU hcpu);
+
+private:
+	HCPU m_Handle;
 };

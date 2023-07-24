@@ -12,8 +12,9 @@ SamplerState smp : register(s0);
 
 struct Material
 {
-    uint diffMapIndex;
-    uint normMapIndex;
+    int diffMapIndex;
+    int specMapIndex;
+    int normMapIndex;
 };
 
 ConstantBuffer<Material> material : register(b0);
@@ -23,7 +24,7 @@ GeometryBuffer main(VertexOut input)
     float3 diff = float3(0, 0, 0);
     {
         uint diffIdx = material.diffMapIndex;
-        if (diffIdx != 9999)
+        if (diffIdx != -1)
         {
             Texture2D diffTex = textures[diffIdx];
             diff = diffTex.Sample(smp, input.tex).rgb;
@@ -33,7 +34,7 @@ GeometryBuffer main(VertexOut input)
     float3 norm = float3(0, 0, 0);
     {
         uint normIdx = material.normMapIndex;
-        if (normIdx != 9999)
+        if (normIdx != -1)
         {
             Texture2D normMap = textures[normIdx];
             norm = normMap.Sample(smp, input.tex).rgb;

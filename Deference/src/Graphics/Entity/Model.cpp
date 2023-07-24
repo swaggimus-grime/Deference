@@ -10,6 +10,7 @@
 #include "Bindable/Heap/AccelStruct.h"
 
 Model::Model(Graphics& g, const std::string& filePath)
+    :m_World(XMMatrixIdentity())
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(filePath,
@@ -21,87 +22,67 @@ Model::Model(Graphics& g, const std::string& filePath)
         aiProcess_CalcTangentSpace);
     BR (scene && !(scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) && scene->mRootNode);
 
-    m_Drawables.reserve(scene->mNumMeshes);
-
-    UINT texIdx = 0;
+    INT texIdx = 0;
+    const auto dir = filePath.substr(0, filePath.find_last_of('\\'));
+    InputLayout layout(INPUT_LAYOUT_CONFIG::GEOMETRY_PIPELINE);
     for (UINT meshIndex = 0; meshIndex < scene->mNumMeshes; meshIndex++) 
     {
-        const aiMesh* pMesh = scene->mMeshes[meshIndex];
-        const aiMaterial* pMat = scene->mMaterials[pMesh->mMaterialIndex];
-        m_Drawables.push_back(MakeShared<Mesh>(g, this, texIdx, pMesh, pMat, filePath.substr(0, filePath.find_last_of('\\'))));
-    }
-}
-
-Model::Mesh::Mesh(Graphics& g, Model* parent, UINT& texIdx, const aiMesh* mesh, const aiMaterial* mat, const std::string& dir)
-{
-    InputLayout layout(INPUT_LAYOUT_CONFIG::GEOMETRY_PIPELINE);
-    VertexStream stream(std::move(layout), mesh->mNumVertices);
-    for (UINT vert = 0; vert < mesh->mNumVertices; vert++) {
-        stream.Pos(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mVertices[vert].x);
-        for (UINT i = 0; i < 8; i++)
-        {
-            if (mesh->HasTextureCoords(i))
+        const aiMesh* mesh = scene->mMeshes[meshIndex];
+        const aiMaterial* mat = scene->mMaterials[mesh->mMaterialIndex];
+        
+        VertexStream stream(std::move(layout), mesh->mNumVertices);
+        for (UINT vert = 0; vert < mesh->mNumVertices; vert++) {
+            stream.Pos(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mVertices[vert].x);
+            for (UINT i = 0; i < 8; i++)
             {
-                stream.Tex(vert) = *reinterpret_cast<XMFLOAT2*>(&mesh->mTextureCoords[i][vert].x);
-                break;
+                if (mesh->HasTextureCoords(i))
+                {
+                    stream.Tex(vert) = *reinterpret_cast<XMFLOAT2*>(&mesh->mTextureCoords[i][vert].x);
+                    break;
+                }
+            }
+
+            stream.Norm(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mNormals[vert].x);
+            if (mesh->HasTangentsAndBitangents())
+            {
+                stream.Tan(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mTangents[vert].x);
+                stream.Bitan(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mBitangents[vert].x);
+            }
+            else
+            {
+                stream.Tan(vert) = { 0, 0, 0 };
+                stream.Bitan(vert) = { 0, 0, 0 };
             }
         }
 
-        stream.Norm(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mNormals[vert].x);
-        if (mesh->HasTangentsAndBitangents())
+        std::vector<UINT> indices;
+        indices.reserve(mesh->mNumFaces * mesh->mFaces[0].mNumIndices);
+        for (UINT faceIndex = 0; faceIndex < mesh->mNumFaces; faceIndex++)
         {
-            stream.Tan(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mTangents[vert].x);
-            stream.Bitan(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mBitangents[vert].x);
+            const aiFace& face = mesh->mFaces[faceIndex];
+            for (UINT indIndex = 0; indIndex < face.mNumIndices; indIndex++)
+                indices.push_back(face.mIndices[indIndex]);
         }
-        else
+
+        m_Buffers.emplace_back(MakeShared<VertexBuffer>(g, std::move(stream)) , MakeShared<IndexBuffer>(g, indices.size(), indices.data()));
+    
+        auto getTexture = [&](aiTextureType type)
         {
-            stream.Tan(vert) = { 0, 0, 0 };
-            stream.Bitan(vert) = { 0, 0, 0 };
-        }
-    }
-    m_VB = MakeShared<VertexBuffer>(g, stream);
+            aiString texName;
+            mat->GetTexture(type, 0, &texName);
+            if (texName.length == NULL)
+                return -1;
+            std::string texPath = std::string(texName.C_Str());
+            texPath = dir + "\\" + texPath;
+            m_Textures.push_back(MakeShared<Texture2D>(g, std::wstring(texPath.begin(), texPath.end())));
+            return texIdx++;
+        };
 
-    std::vector<UINT> indices;
-    indices.reserve(mesh->mNumFaces * mesh->mFaces[0].mNumIndices);
-    for (UINT faceIndex = 0; faceIndex < mesh->mNumFaces; faceIndex++)
-    {
-        const aiFace& face = mesh->mFaces[faceIndex];
-        for (UINT indIndex = 0; indIndex < face.mNumIndices; indIndex++)
-            indices.push_back(face.mIndices[indIndex]);
-    }
-    m_IB = MakeShared<IndexBuffer>(g, indices.size(), indices.data());
-
-    std::vector<std::string> texturePaths;
-    auto getTexture = [&](aiTextureType type)
-    {
-        aiString texName;
-        mat->GetTexture(type, 0, &texName);
-        if (texName.length == NULL)
-            return false;
-        std::string texPath = std::string(texName.C_Str());
-        texPath = dir + "\\" + texPath;
-        texturePaths.push_back(std::move(texPath));
-        return true;
-    };
-
-    bool diff = getTexture(aiTextureType_BASE_COLOR);
-    if(!diff)
-        diff = getTexture(aiTextureType_DIFFUSE);
-    bool norm = getTexture(aiTextureType_NORMALS);
-    if (!norm)
-        norm = getTexture(aiTextureType_HEIGHT);
-
-    m_CBVHeap = MakeUnique<SucHeap>(g, 1); // transform
-    m_Transform = m_CBVHeap->Add<Transform>(g);
-
-    if (texturePaths.size() > 0)
-    {
-        m_TextureHeap = MakeUnique<SucHeap>(g, texturePaths.size());
-        m_DiffuseIndex = diff ? texIdx++ : 9999;
-        m_NormalIndex = norm ? texIdx++ : 9999;
-        for (const auto& path : texturePaths)
-            m_TextureHeap->Add<Texture2D>(g, std::wstring(path.begin(), path.end()));
+        m_TextureIndexes.emplace_back(
+            getTexture(aiTextureType_DIFFUSE),
+            getTexture(aiTextureType_SPECULAR),
+            getTexture(aiTextureType_NORMALS));
     }
 
-    m_BLAS = TLAS::BLAS(g, { m_VB }, { m_IB });
+    m_BLAS = TLAS::BLAS(g, m_Buffers);
 }

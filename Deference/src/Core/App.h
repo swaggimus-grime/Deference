@@ -18,6 +18,6 @@ private:
 	Unique<Window> m_Wnd;
 	Unique<Graphics> m_Gfx;
 	Shared<Camera> m_Cam;
-	Unique<GeometryGraph> m_Graph;
-	Unique<Model> m_Cup; 
+	Unique<FrameGraph> m_Graph;
+	Shared<Model> m_Cup; 
 };

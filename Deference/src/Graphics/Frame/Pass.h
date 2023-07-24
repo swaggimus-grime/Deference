@@ -1,15 +1,17 @@
 #pragma once
 
-#include "Bindable/Heap/Heap.h"
+#include "Bindable/Heap/DescriptorHeap.h"
 
 class Graphics;
-class GeometryGraph;
+class FrameGraph;
 class RenderTargetHeap;
 
 class Pass
 {
 public:
-	virtual void Run(Graphics& g, GeometryGraph* parent) = 0;
+	virtual void Run(Graphics& g, FrameGraph* parent) = 0;
+
+	virtual void ShowGUI() {}
 
 	inline auto& GetInTargets() { return m_InTargets; }
 	inline auto& GetOutTargets() { return m_OutTargets; }
@@ -35,7 +37,7 @@ public:
 		return it->second;
 	}
 
-	virtual void OnAdd(Graphics& g, GeometryGraph* parent);
+	virtual void OnAdd(Graphics& g, FrameGraph* parent);
 
 protected:
 	inline void AddInTarget(const std::string& name) { m_InTargets.push_back({ std::move(name), nullptr }); }
@@ -46,6 +48,7 @@ protected:
 protected:
 	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_InTargets;
 	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_OutTargets;
+
 	Unique<RenderTargetHeap> m_RTs;
 	std::vector<Shared<Bindable>> m_Bindables;
 };

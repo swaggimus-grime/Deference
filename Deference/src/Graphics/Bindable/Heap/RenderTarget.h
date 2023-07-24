@@ -9,29 +9,16 @@
 class RenderTarget : public Target
 {
 public:
-	RenderTarget(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle, D3D12_RESOURCE_STATES initState, ComPtr<ID3D12Resource> res);
-	RenderTarget(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle, D3D12_RESOURCE_STATES initState = D3D12_RESOURCE_STATE_RENDER_TARGET);
+	RenderTarget(Graphics& g);
+	RenderTarget(const ComPtr<ID3D12Resource>& res);
+
+	virtual void CreateView(Graphics& g, HCPU hcpu) override;
 
 	virtual void Clear(Graphics& g) override;
 	virtual void Bind(Graphics& g) override;
-	virtual void BindWithOther(Graphics& g, Target* ds) override;
-};
+	void BindWithDepth(Graphics& g, Shared<DepthStencil> ds);
+	void BindWithDepth(Graphics& g, DepthStencil& ds);
 
-class ReadbackRenderTarget : public RenderTarget
-{
-public:
-	ReadbackRenderTarget(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle);
-};
-
-class CopyTarget : public Resource
-{
-public:
-	CopyTarget(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle);
-};
-
-class RTV : public Resource
-{
-public:
-	RTV(Graphics& g, const D3D12_CPU_DESCRIPTOR_HANDLE& handle, Shared<RenderTarget> rt);
-
+private:
+	D3D12_CPU_DESCRIPTOR_HANDLE m_ShaderResourceHandle;
 };

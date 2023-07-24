@@ -1,8 +1,8 @@
 #include "Sampler.h"
 
-Sampler::Sampler(Graphics& g, const D3D12_CPU_DESCRIPTOR_HANDLE& handle)
-    :Resource(handle)
+Sampler::Sampler(Graphics& g, HCPU handle)
 {
+    m_Handle = handle;
     D3D12_SAMPLER_DESC samplerDesc = {};
     samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;

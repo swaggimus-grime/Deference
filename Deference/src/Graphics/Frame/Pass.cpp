@@ -1,10 +1,13 @@
 #include "Pass.h"
 
-void Pass::OnAdd(Graphics& g, GeometryGraph* parent)
+void Pass::OnAdd(Graphics& g, FrameGraph* parent)
 {
 	m_RTs = MakeUnique<RenderTargetHeap>(g, m_OutTargets.size());
 	for (auto& t : m_OutTargets)
-		t.second = m_RTs->Add(g);
+	{
+		t.second = MakeShared<RenderTarget>(g);
+		t.second->CreateView(g, m_RTs->Next());
+	}
 }
 
 void Pass::BindBindables(Graphics& g)

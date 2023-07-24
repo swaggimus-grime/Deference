@@ -151,25 +151,25 @@ void Graphics::OnWindowResize(UINT width, UINT height)
 void Graphics::BeginFrame()
 {   
     m_CurrentBB = m_SC->CurrentBB();
-    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     m_CurrentBB->Clear(*this);
 }
 
 void Graphics::EndFrame()
 {
-    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_PRESENT);
+    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     Flush();
     m_SC->Present();
 }
 
 void Graphics::CopyToCurrentBB(Shared<RenderTarget> src)
 {
-    src->Transition(*this, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_COPY_DEST);
-    m_CmdList->CopyResource(m_CurrentBB->Res(), src->Res());
+    src->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+    m_CmdList->CopyResource(**m_CurrentBB, **src);
 
-    src->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
-    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    src->Transition(*this, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void Graphics::CreateBuffer(ComPtr<ID3D12Resource>& buffer, SIZE_T size, const void* data, D3D12_RESOURCE_STATES state)

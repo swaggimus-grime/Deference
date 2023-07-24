@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include <numbers>
 
 Camera::Camera(Graphics& g, const XMFLOAT3& pos)
 	:m_Pos(pos), m_Proj(XMMatrixPerspectiveLH(1.f, 9 / 16.f, 0.5f, 1000.0f)), m_MoveSpeed(100.f), m_LookSpeed(0.006f),
@@ -17,16 +18,17 @@ XMMATRIX Camera::View() const
 
 void Camera::Rotate(float dx, float dy)
 {
-	static constexpr float cmf = 2 * M_PI;
+	constexpr float pi = std::numbers::pi_v<float>;
+	static constexpr float cmf = 2 * pi;
 	const float mod = fmod(m_Yaw + dx * m_LookSpeed, cmf);
-	if (mod > M_PI)
+	if (mod > pi)
 		m_Yaw = mod - cmf;
-	else if (mod < -M_PI)
+	else if (mod < -pi)
 		m_Yaw = mod + cmf;
 	else
 		m_Yaw = mod;
 
-	m_Pitch = std::clamp(static_cast<double>(m_Pitch + dy * m_LookSpeed), 0.995f * -M_PI / 2.0f, 0.995f * M_PI / 2.0f);
+	m_Pitch = std::clamp(static_cast<float>(m_Pitch + dy * m_LookSpeed), 0.995f * -pi / 2.0f, 0.995f * pi / 2.0f);
 }
 
 void Camera::Move(const XMFLOAT3& delta)

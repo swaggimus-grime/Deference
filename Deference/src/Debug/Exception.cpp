@@ -1,6 +1,7 @@
 #include "Exception.h"
 #include <exception>
 #include <format>
+#include <comdef.h>
 
 HRWrapper::HRWrapper(HRESULT hr, std::source_location loc)
 	:m_HR(hr), m_Loc(loc)

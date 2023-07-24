@@ -1,5 +1,4 @@
 #include "GeometryPass.h"
-#include "Entity/Drawable.h"
 #include "Bindable/Heap/RenderTarget.h"
 #include "Bindable/Pipeline/GeometryPipeline.h"
 #include "Bindable/Viewport.h"
@@ -7,34 +6,46 @@
 #include "Bindable/Heap/Sampler.h"
 
 GeometryPass::GeometryPass(Graphics& g)
-	:m_DepthHeap(g)
+	:m_DepthHeap(g, 1), m_SamplerHeap(g, 1), m_GPUHeap(g, 10)
 {
-	m_Depth = m_DepthHeap.Add(g);
+	m_Depth = MakeShared<DepthStencil>(g);
+	m_Depth->CreateView(g, m_DepthHeap.Next());
 
-	m_SamplerHeap = MakeUnique<SamplerHeap>(g, 1);
-	m_SamplerHeap->Add<Sampler>(g);
-	m_TextureHeap = MakeUnique<CSUHeap>(g, 100);
+	m_SamplerHeap.Add(g);
 
 	AddOutTarget("Position");
 	AddOutTarget("Normal");
 	AddOutTarget("Albedo");
 }
 
-void GeometryPass::OnAdd(Graphics& g, GeometryGraph* parent)
+void GeometryPass::OnAdd(Graphics& g, FrameGraph* parent)
 {
 	Pass::OnAdd(g, parent);
 	AddBindable(MakeShared<Viewport>(g));
 	AddBindable(MakeShared<GeometryPipeline>(g));
 
-	auto& drawables = parent->Drawables();
-	for (auto& d : drawables)
-		m_TextureHeap->CopyToHeap(g, d->GetTextureHeap());
-	m_CBVHandle = m_TextureHeap->GPUHandle();
-	for (auto& d : drawables)
-		m_TextureHeap->CopyToHeap(g, d->GetCBVHeap());
+	const auto& models = parent->GetModels();
+	for (const auto& m : models)
+	{
+		for (const auto& texture : m->GetTextures())
+		{
+			texture->CreateView(g, m_GPUHeap.Next());
+		}
+	}
+
+	using enum CONSTANT_TYPE;
+
+	{
+		ConstantBufferLayout layout;
+		layout.Add<XMMATRIX>("world");
+		layout.Add<XMMATRIX>("mvp");
+		layout.Add<XMFLOAT3X3>("normMat");
+		m_Transform = MakeUnique<ConstantBuffer>(g, std::move(layout));
+		m_Transform->CreateView(g, m_GPUHeap.Next());
+	}
 }
 
-void GeometryPass::Run(Graphics& g, GeometryGraph* parent)
+void GeometryPass::Run(Graphics& g, FrameGraph* parent)
 {
 	auto& outs = GetOutTargets();
 	m_RTs->BindWithDepth(g, m_Depth);
@@ -46,23 +57,36 @@ void GeometryPass::Run(Graphics& g, GeometryGraph* parent)
 
 	BindBindables(g);
 
-	ID3D12DescriptorHeap* heaps[] = { m_TextureHeap->GetHeap(), m_SamplerHeap->GetHeap() };
+	ID3D12DescriptorHeap* heaps[] = { m_GPUHeap.GetHeap(), m_SamplerHeap.GetHeap() };
 	g.CL().SetDescriptorHeaps(2, heaps);
-	g.CL().SetGraphicsRootDescriptorTable(0, m_TextureHeap->GPUStart());
-	g.CL().SetGraphicsRootDescriptorTable(1, m_SamplerHeap->GPUStart());
+	g.CL().SetGraphicsRootDescriptorTable(0, m_GPUHeap.GPUStart());
+	g.CL().SetGraphicsRootDescriptorTable(1, m_SamplerHeap.GPUStart());
 
 	g.CL().IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	g.SetCamera(parent->GetCamera());
 
-	auto& drawables = parent->Drawables();
-	CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle = m_CBVHandle;
-	for (auto& d : drawables)
+	const auto& cam = parent->GetCamera();
+	for (const auto& m : parent->GetModels())
 	{
-		UINT idxes[] = { d->DiffuseIndex(), d->NormalIndex() };
-		g.CL().SetGraphicsRoot32BitConstants(3, 2, idxes, 0);
-		g.CL().SetGraphicsRootDescriptorTable(2, cbvHandle);
-		cbvHandle.ptr += m_TextureHeap->IncSize();
+		XMMATRIX world = m->GetWorldTransform();
 
-		d->Rasterize(g);
+		(*m_Transform)["world"] = XMMatrixTranspose(world);
+		(*m_Transform)["mvp"] = XMMatrixTranspose(world * cam->View() * cam->Proj());
+		(*m_Transform)["normMat"] = XMMatrixInverse(nullptr, world);
+
+		g.CL().SetGraphicsRootConstantBufferView(2, m_Transform->GetGPUAddress());
+
+		const auto& buffers = m->GetBuffers();
+		const auto& textureIndexes = m->GetTextureIndexes();
+		for (UINT i = 0; i < buffers.size(); i++)
+		{
+			const auto& buffPair = buffers[i];
+			buffPair.first->Bind(g);
+			buffPair.second->Bind(g);
+			g.CL().SetGraphicsRoot32BitConstants(3, sizeof(TextureIndex) / sizeof(INT), &textureIndexes[i], 0);
+
+			g.CL().DrawIndexedInstanced(buffPair.second->NumIndices(), 1, 0, 0, 0);
+		}
 	}
+
+	g.Flush();
 }

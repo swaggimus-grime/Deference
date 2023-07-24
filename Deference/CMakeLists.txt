@@ -37,10 +37,8 @@ add_custom_target(copy_resources ALL
 
 add_dependencies(Deference copy_resources)
 
-option(KDV_BUILD_USING_PCH "Build using pch" ON)
-
-if (CMAKE_VERSION VERSION_GREATER 3.16 AND KDV_BUILD_USING_PCH)
-  target_precompile_headers(Deference PUBLIC "src/pch.h" ${HEADERS})
+if (CMAKE_VERSION VERSION_GREATER 3.16)
+  target_precompile_headers(Deference PUBLIC ${HEADERS})
   #set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
 endif()
 

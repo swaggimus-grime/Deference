@@ -14,8 +14,8 @@ struct AORayPayload
 struct RayGenCB
 {
     float gAORadius;
-    uint gFrameCount;
     float gMinT;
+    uint gFrameCount;
 };
 
 ConstantBuffer<RayGenCB> aoConstants : register(b0);

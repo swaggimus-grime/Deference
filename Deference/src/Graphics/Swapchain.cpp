@@ -43,7 +43,11 @@ Swapchain::Swapchain(Graphics& g, HWND hWnd, UINT numBuffs)
     {
         ComPtr<ID3D12Resource> bb;
         HR m_SC->GetBuffer(i, IID_PPV_ARGS(&bb));
-        m_BackBuffs.push_back(std::move(m_RTs->Add(g, D3D12_RESOURCE_STATE_PRESENT, std::move(bb))));
+
+        auto rt = MakeShared<RenderTarget>(std::move(bb));
+        rt->CreateView(g, m_RTs->Next());
+
+        m_BackBuffs.push_back(std::move(rt));
     }
 }
 

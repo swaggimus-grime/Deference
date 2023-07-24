@@ -22,7 +22,7 @@ DiffusePipeline::DiffusePipeline(Graphics& g)
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0, 0);
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0);
 
 		CD3DX12_ROOT_PARAMETER1 params[1];
 		params[0].InitAsDescriptorTable(_countof(ranges), &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
@@ -65,7 +65,7 @@ DiffusePipeline::DiffusePipeline(Graphics& g)
 	}
 	{
 		auto config = so.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
-		config->Config(2);
+		config->Config(1);
 	}
 
 	Create(g, so, {1}, {}, {});

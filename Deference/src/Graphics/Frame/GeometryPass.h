@@ -1,27 +1,28 @@
 #pragma once
 
 #include "Pass.h"
-#include "Bindable/Heap/Heap.h"
+#include "Bindable/Heap/DescriptorHeap.h"
 #include "Bindable/Heap/RenderTarget.h"
 #include "Bindable/Heap/DepthStencil.h"
 
 class VertexBuffer;
 class IndexBuffer;
-class Material;
-class DrawableCollection;
 
 class GeometryPass : public Pass
 {
 public:
 	GeometryPass(Graphics& g);
-	virtual void OnAdd(Graphics& g, GeometryGraph* parent) override;
-	virtual void Run(Graphics& g, GeometryGraph* parent) override;
+	virtual void OnAdd(Graphics& g, FrameGraph* parent) override;
+	virtual void Run(Graphics& g, FrameGraph* parent) override;
 
 private:
 	DepthStencilHeap m_DepthHeap;
 	Shared<DepthStencil> m_Depth;
-	Unique<SamplerHeap> m_SamplerHeap;
-	Unique<CSUHeap> m_TextureHeap;
+
+	SamplerHeap m_SamplerHeap;
+
+	GPUShaderHeap m_GPUHeap;
+
 	Shared<Camera> m_Cam;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE m_CBVHandle;
+	Unique<ConstantBuffer> m_Transform;
 };

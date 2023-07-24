@@ -10,11 +10,12 @@ App::App(const std::string& name, UINT32 width, UINT32 height)
 	m_Gfx = MakeUnique<Graphics>(m_Wnd->GetHandle(), width, height);
 
 	m_Cam = MakeShared<Camera>(*m_Gfx);
-	m_Cup = MakeUnique<Model>(*m_Gfx, "models\\void\\scene.gltf");
+	m_Cup = MakeShared<Model>(*m_Gfx, "models\\void\\scene.gltf");
 
-	m_Graph = MakeUnique<GeometryGraph>();
-	m_Graph->AddGeometry(*m_Cup);
+	m_Graph = MakeUnique<FrameGraph>();
+	m_Graph->AddModel(m_Cup);
 	m_Graph->SetCamera(m_Cam);
+	m_Graph->FinishScene(*m_Gfx);
 
 	{
 		auto pass = MakeShared<GeometryPass>(*m_Gfx);

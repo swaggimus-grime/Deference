@@ -7,16 +7,18 @@ class AccumPass : public ScreenPass
 public:
 	AccumPass(Graphics& g);
 
-	virtual void OnAdd(Graphics& g, GeometryGraph* parent) override;
-	virtual void Run(Graphics& g, GeometryGraph* parent) override;
+	virtual void OnAdd(Graphics& g, FrameGraph* parent) override;
+	virtual void Run(Graphics& g, FrameGraph* parent) override;
+	virtual void ShowGUI() override;
 
 private:
 	DepthStencilHeap m_DepthHeap;
-	Shared<DepthStencil> m_Depth;
-	Unique<CSUHeap> m_ResHeap;
+	DepthStencil m_Depth;
+
+	Unique<GPUShaderHeap> m_GPUHeap;
 	UINT m_NumPassedFrames;
 
 	RenderTargetHeap m_PrevFrameHeap;
-	Shared<RenderTarget> m_PrevFrame;
+	Unique<RenderTarget> m_PrevFrame;
 	XMFLOAT3 m_PrevCamHash;
 };

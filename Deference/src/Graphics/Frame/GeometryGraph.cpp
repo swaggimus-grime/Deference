@@ -1,24 +1,29 @@
 #include "GeometryGraph.h"
-#include "Entity/Drawable.h"
 #include <imgui.h>
 
-GeometryGraph::GeometryGraph()
+FrameGraph::FrameGraph()
 	:m_CurrentTarget(0)
 {
 }
 
-void GeometryGraph::AddGeometry(Shared<Drawable> d)
+void FrameGraph::AddModel(Shared<Model> m)
 {
-	m_Drawables.push_back(std::move(d));
+	m_Models.push_back(std::move(m));
 }
 
-void GeometryGraph::AddGeometry(DrawableCollection& d)
+void FrameGraph::FinishScene(Graphics& g)
 {
-	for (auto& drawable : d.Drawables())
-		AddGeometry(std::move(drawable));
+	const auto& blass =
+		std::views::iota(0u, (UINT)m_Models.size()) |
+		std::views::transform([&](UINT i) {
+		return m_Models[i]->GetBLAS();
+			}) |
+		std::ranges::to<std::vector>();
+
+	m_TLAS = MakeUnique<TLAS>(g, std::move(blass));
 }
 
-void GeometryGraph::AddPass(Graphics& g, Shared<Pass> pass)
+void FrameGraph::AddPass(Graphics& g, Shared<Pass> pass)
 {
 	ConnectTargets(pass);
 	pass->OnAdd(g, this);
@@ -30,7 +35,7 @@ void GeometryGraph::AddPass(Graphics& g, Shared<Pass> pass)
 	m_Passes.push_back(std::move(pass));
 }
 
-Shared<RenderTarget> GeometryGraph::Run(Graphics& g)
+Shared<RenderTarget> FrameGraph::Run(Graphics& g)
 {
 	for (auto& p : m_Passes)
 		p->Run(g, this);
@@ -38,7 +43,7 @@ Shared<RenderTarget> GeometryGraph::Run(Graphics& g)
 	return GetTarget(m_TargetNames[m_CurrentTarget]);
 }
 
-void GeometryGraph::ShowUI(Graphics& g)
+void FrameGraph::ShowUI(Graphics& g)
 {
 	ImGui::Begin("Frame Graph");
 	if (ImGui::BeginCombo("Current Target", m_TargetNames[m_CurrentTarget].c_str())) {
@@ -55,9 +60,12 @@ void GeometryGraph::ShowUI(Graphics& g)
 		ImGui::EndCombo();
 	}
 	ImGui::End();
+
+	for (auto& pass : m_Passes)
+		pass->ShowGUI();
 }
 
-void GeometryGraph::ConnectTargets(Shared<Pass> pass)
+void FrameGraph::ConnectTargets(Shared<Pass> pass)
 {
 	if (m_Passes.empty())
 		return;
@@ -66,7 +74,7 @@ void GeometryGraph::ConnectTargets(Shared<Pass> pass)
 		in.second = GetTarget(in.first);
 }
 
-Shared<RenderTarget> GeometryGraph::GetTarget(const std::string& name)
+Shared<RenderTarget> FrameGraph::GetTarget(const std::string& name)
 {
 	auto it = std::find_if(m_Targets.begin(), m_Targets.end(), [&](const auto& p) { return name == p.first; });
 	return it->second;

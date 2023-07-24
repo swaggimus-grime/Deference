@@ -2,7 +2,7 @@
 
 #include <dxgi1_6.h>
 #include <wrl.h>
-#include "Bindable/Heap/Heap.h"
+#include "Bindable/Heap/DescriptorHeap.h"
 #include "Bindable/Heap/RenderTarget.h"
 
 class Swapchain

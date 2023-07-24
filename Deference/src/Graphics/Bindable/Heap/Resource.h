@@ -8,13 +8,30 @@
 class Resource
 {
 public:
-	Resource(D3D12_CPU_DESCRIPTOR_HANDLE handle, ComPtr<ID3D12Resource> res = nullptr, D3D12_RESOURCE_STATES initState = D3D12_RESOURCE_STATE_COMMON);
-	auto& Handle() const { return m_Handle; }
-	void Transition(Graphics& g, D3D12_RESOURCE_STATES state);
-	auto Res() const { return m_Res.Get(); }
+	Resource() = default;
+
+	inline ID3D12Resource* operator*() const { return m_Res.Get(); }
+	void Transition(Graphics& g, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
+
+	template<typename T>
+	static void Transition(Graphics& g, const std::vector<Shared<T>>& resources,
+		D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
+		requires Derived<Resource, T>
+	{
+		std::vector<D3D12_RESOURCE_BARRIER> barriers(resources.size());
+
+		UINT i = 0;
+		for (const auto& res : resources)
+			barriers[i++] = CD3DX12_RESOURCE_BARRIER::Transition(**res, before, after);
+
+		g.CL().ResourceBarrier(i, barriers.data());
+	}
+
+
+	virtual void CreateView(Graphics& g, HCPU hcpu) = 0;
+	inline auto GetView() const { return m_Handle; }
 
 protected:
 	ComPtr<ID3D12Resource> m_Res;
-	D3D12_RESOURCE_STATES m_State;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_Handle;
+	HCPU m_Handle;
 };
