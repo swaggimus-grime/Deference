@@ -2,11 +2,11 @@
 #include "Bindable/Heap/RenderTarget.h"
 #include "Bindable/Pipeline/GeometryPipeline.h"
 #include "Bindable/Viewport.h"
-#include "GeometryGraph.h"
+#include "FrameGraph.h"
 #include "Bindable/Heap/Sampler.h"
 
 GeometryPass::GeometryPass(Graphics& g)
-	:m_DepthHeap(g, 1), m_SamplerHeap(g, 1), m_GPUHeap(g, 10)
+	:m_DepthHeap(g, 1), m_SamplerHeap(g, 1), m_GPUHeap(g, 100)
 {
 	m_Depth = MakeShared<DepthStencil>(g);
 	m_Depth->CreateView(g, m_DepthHeap.Next());
@@ -21,7 +21,6 @@ GeometryPass::GeometryPass(Graphics& g)
 void GeometryPass::OnAdd(Graphics& g, FrameGraph* parent)
 {
 	Pass::OnAdd(g, parent);
-	AddBindable(MakeShared<Viewport>(g));
 	AddBindable(MakeShared<GeometryPipeline>(g));
 
 	const auto& models = parent->GetModels();
@@ -89,4 +88,10 @@ void GeometryPass::Run(Graphics& g, FrameGraph* parent)
 	}
 
 	g.Flush();
+}
+
+void GeometryPass::OnResize(Graphics& g, UINT w, UINT h)
+{
+	Pass::OnResize(g, w, h);
+	m_Depth->Resize(g, w, h);
 }

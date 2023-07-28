@@ -14,7 +14,6 @@ HybridOutPass::HybridOutPass(Graphics& g)
 
 	AddOutTarget("Hybrid");
 
-	AddBindable(MakeShared<Viewport>(g));
 	AddBindable(MakeShared<HybridOutPipeline>(g));
 }
 
@@ -54,4 +53,15 @@ void HybridOutPass::Run(Graphics& g, FrameGraph* parent)
 	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	g.Flush();
+}
+
+void HybridOutPass::OnResize(Graphics& g, UINT w, UINT h)
+{
+	Pass::OnResize(g, w, h);
+	m_Depth->Resize(g, w, h);
+
+	m_GPUHeap->Reset();
+	auto& ins = GetInTargets();
+	for (auto& in : ins)
+		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
 }

@@ -22,3 +22,11 @@ void Viewport::Bind(Graphics& g)
     g.CL().RSSetViewports(1, &m_VP);
     g.CL().RSSetScissorRects(1, &m_SR);
 }
+
+void Viewport::Resize(UINT w, UINT h)
+{
+    m_VP.Width = w;
+    m_VP.Height = h;
+    m_SR.right = w;
+    m_SR.bottom = h;
+}

@@ -1,6 +1,7 @@
 ﻿#include "App.h"
 #include <thread>
 #include "UI/UI.h"
+#include <semaphore>
 
 App::App(const std::string& name, UINT32 width, UINT32 height)
 {
@@ -37,7 +38,15 @@ App::App(const std::string& name, UINT32 width, UINT32 height)
 		auto pass = MakeShared<HybridOutPass>(*m_Gfx);
 		m_Graph->AddPass(*m_Gfx, pass);
 	}
-	
+
+	m_Wnd->SetOnResize([&](UINT w, UINT h) {
+		w = std::max(w, 1u);
+		h = std::max(h, 1u);
+		m_Gfx->OnResize(w, h);
+		m_Cam->OnResize(w, h);
+		m_Graph->OnResize(*m_Gfx, w, h);
+	});
+
 	m_Gfx->Flush();
 }
 
@@ -47,15 +56,17 @@ App::~App()
 
 INT App::Run()
 {
-	std::optional<INT> ret;
 	using namespace std::chrono;
 	const auto startTime = steady_clock::now();
 	float prevTime = 0.f;
 	bool running = true;
 
+	std::binary_semaphore sem(0);
+
 	std::thread renderer([&]() {
 		auto& g = *m_Gfx;
 		while (running) {
+			sem.acquire();
 			g.BeginFrame();
 
 			auto target = m_Graph->Run(g);
@@ -69,7 +80,10 @@ INT App::Run()
 		}
 	});
 
-	while (!(ret = m_Wnd->Update())) {
+	std::optional<INT> ret;
+	while (!ret) {
+		sem.release();
+		ret = m_Wnd->Update();
 		float currentTime = duration<float>(steady_clock::now() - startTime).count();
 		float deltaTime = currentTime - prevTime;
 		prevTime = currentTime;
@@ -109,6 +123,8 @@ INT App::Run()
 
 		while (const auto delta = input.ReadMouseDelta())
 			cam->Rotate((float)delta->x, (float)delta->y);
+
+		cam->Update();
 	}
 
 	running = false;

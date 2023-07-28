@@ -5,6 +5,7 @@
 class Graphics;
 class FrameGraph;
 class RenderTargetHeap;
+class Viewport;
 
 class Pass
 {
@@ -38,6 +39,7 @@ public:
 	}
 
 	virtual void OnAdd(Graphics& g, FrameGraph* parent);
+	virtual void OnResize(Graphics& g, UINT w, UINT h);
 
 protected:
 	inline void AddInTarget(const std::string& name) { m_InTargets.push_back({ std::move(name), nullptr }); }
@@ -51,4 +53,7 @@ protected:
 
 	Unique<RenderTargetHeap> m_RTs;
 	std::vector<Shared<Bindable>> m_Bindables;
+
+private:
+	Shared<Viewport> m_Viewport;
 };

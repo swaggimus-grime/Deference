@@ -18,7 +18,6 @@ public:
 	virtual void Bind(Graphics& g) override;
 	void BindWithDepth(Graphics& g, Shared<DepthStencil> ds);
 	void BindWithDepth(Graphics& g, DepthStencil& ds);
+	virtual void Resize(Graphics& g, UINT w, UINT h) override;
 
-private:
-	D3D12_CPU_DESCRIPTOR_HANDLE m_ShaderResourceHandle;
 };

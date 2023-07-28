@@ -56,3 +56,29 @@ void RenderTarget::BindWithDepth(Graphics& g, DepthStencil& ds)
     auto depth = ds.GetView();
     g.CL().OMSetRenderTargets(1, &m_Handle, false, &depth);
 }
+
+void RenderTarget::Resize(Graphics& g, UINT w, UINT h)
+{
+    const auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+    const D3D12_RESOURCE_DESC res = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM,
+        static_cast<UINT64>(w),
+        static_cast<UINT>(h),
+        1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+
+    D3D12_CLEAR_VALUE clearValue = {};
+    clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    XMFLOAT4 col = { 0.f, 0.f, 0.f, 1.f };
+    std::memcpy(clearValue.Color, &col, sizeof(XMFLOAT4));
+
+    HR g.Device().CreateCommittedResource(
+        &heap,
+        D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
+        &res,
+        D3D12_RESOURCE_STATE_RENDER_TARGET,
+        &clearValue,
+        IID_PPV_ARGS(&m_Res)
+    );
+
+    if(m_Handle.ptr != 0)
+        g.Device().CreateRenderTargetView(m_Res.Get(), nullptr, m_Handle);
+}

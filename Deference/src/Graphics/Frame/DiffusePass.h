@@ -13,7 +13,7 @@ public:
 	virtual void Run(Graphics& g, FrameGraph* parent) override;
 
 	virtual void ShowGUI() override;
-
+	virtual void OnResize(Graphics& g, UINT w, UINT h) override;
 private:
 	Shared<DiffusePipeline> m_Pipeline;
 

@@ -8,7 +8,7 @@
 D3D_ROOT_SIGNATURE_VERSION Graphics::ROOT_SIG_VERSION = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
 Graphics::Graphics(HWND hWnd, UINT width, UINT height)
-    :m_Width(width), m_Height(height)
+    :m_Width(width), m_Height(height), m_Resized(false)
 {
     {
         ComPtr<ID3D12Debug> debug;
@@ -80,12 +80,10 @@ Graphics::Graphics(HWND hWnd, UINT width, UINT height)
     cqd.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     cqd.NodeMask = 0;
     HR m_Device->CreateCommandQueue(&cqd, IID_PPV_ARGS(&m_CQ));
+    HR m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_Alloc));
+    HR m_Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc.Get(), nullptr, IID_PPV_ARGS(&m_CmdList));
 
     m_SC = MakeUnique<Swapchain>(*this, hWnd, s_NumInFlightFrames);
-
-    HR m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_Alloc));
-
-    HR m_Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_Alloc.Get(), nullptr, IID_PPV_ARGS(&m_CmdList));
 
     HR m_Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
     m_FenceValue = 0;
@@ -113,6 +111,13 @@ Graphics::~Graphics()
         HR GetLastError();
 }
 
+void Graphics::OnResize(UINT w, UINT h)
+{
+    m_Width = w;
+    m_Height = h;
+    m_SC->OnResize(*this, m_Width, m_Height);
+}
+
 void Graphics::Flush()
 {
     m_CmdList->Close();
@@ -128,48 +133,39 @@ void Graphics::Flush()
     m_CmdList->Reset(m_Alloc.Get(), nullptr);
 }
 
-void Graphics::OnWindowResize(UINT width, UINT height)
+void Graphics::Wait()
 {
-    m_Width = width;
-    m_Height = height;
-
-    /*Flush(m_CQ, m_Fence, m_FenceValue, m_FenceEvent);
-    for(UINT i = 0; i < s_NumBuffs; i++)
-        m_BackBuffs[i].Reset();
-
-    DXGI_SWAP_CHAIN_DESC scd = {};
-    HR m_SC->GetDesc(&scd);
-    HR m_SC->ResizeBuffers(s_NumBuffs, m_Width, m_Height, scd.BufferDesc.Format, scd.Flags);
-    m_RtvHandle = m_DescHeap->GetCPUDescriptorHandleForHeapStart();
-    for (UINT i = 0; i < s_NumBuffs; i++) {
-        HR m_SC->GetBuffer(i, IID_PPV_ARGS(&m_BackBuffs[i]));
-        m_Device->CreateRenderTargetView(m_BackBuffs[i].Get(), nullptr, m_RtvHandle);
-        m_RtvHandle.Offset(m_RtvSize);
-    }*/
+    if (m_Fence->GetCompletedValue() < m_FenceValue)
+    {
+        HR m_Fence->SetEventOnCompletion(m_FenceValue, m_FenceEvent);
+        ::WaitForSingleObject(m_FenceEvent, INFINITE);
+    }
 }
 
 void Graphics::BeginFrame()
 {   
-    m_CurrentBB = m_SC->CurrentBB();
-    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-    m_CurrentBB->Clear(*this);
+    auto bb = m_SC->CurrentBB();
+    bb->Transition(*this, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    bb->Clear(*this);
 }
 
 void Graphics::EndFrame()
 {
-    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+    auto bb = m_SC->CurrentBB();
+    bb->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     Flush();
     m_SC->Present();
 }
 
 void Graphics::CopyToCurrentBB(Shared<RenderTarget> src)
 {
+    auto bb = m_SC->CurrentBB();
     src->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
-    m_CmdList->CopyResource(**m_CurrentBB, **src);
+    bb->Transition(*this, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+    m_CmdList->CopyResource(**bb, **src);
 
     src->Transition(*this, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-    m_CurrentBB->Transition(*this, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    bb->Transition(*this, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void Graphics::CreateBuffer(ComPtr<ID3D12Resource>& buffer, SIZE_T size, const void* data, D3D12_RESOURCE_STATES state)
@@ -217,4 +213,3 @@ void Graphics::CreateBuffer(ComPtr<ID3D12Resource>& buffer, SIZE_T size, D3D12_H
     const auto rdesc = CD3DX12_RESOURCE_DESC::Buffer(size);
     HR m_Device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &rdesc, state, nullptr, IID_PPV_ARGS(&buffer));
 }
-

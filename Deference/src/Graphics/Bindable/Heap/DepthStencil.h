@@ -8,7 +8,7 @@ public:
 	DepthStencil(Graphics& g);
 
 	virtual void CreateView(Graphics& g, HCPU hcpu) override;
-
+	virtual void Resize(Graphics& g, UINT w, UINT h) override;
 	virtual void Clear(Graphics& g) override;
 	virtual void Bind(Graphics& g) override;
 };

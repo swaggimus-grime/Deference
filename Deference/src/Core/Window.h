@@ -4,6 +4,7 @@
 #include <Windows.h>
 #include "Input.h"
 #include "Graphics/Graphics.h"
+#include <functional>
 
 class Window {
 public:
@@ -11,6 +12,8 @@ public:
 	Window() = delete;
 	Window(const Window&) = delete;
 	~Window();
+
+	inline void SetOnResize(std::function<void(UINT, UINT)> callback) { m_OnResize = callback; }
 
 	std::optional<INT> Update();
 	inline HWND GetHandle() const { return m_Handle; }
@@ -29,6 +32,7 @@ private:
 	LRESULT HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 private:
+	std::function<void(UINT, UINT)> m_OnResize;
 	HWND m_Handle;
 	HINSTANCE m_Inst;
 	std::string m_Name;

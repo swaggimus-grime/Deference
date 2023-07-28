@@ -6,7 +6,6 @@
 #include "Debug/Exception.h"
 #include "Bindable/Pipeline/VertexBuffer.h"
 #include "Bindable/Pipeline/InputLayout.h"
-#include "Frame/GeometryGraph.h"
 #include "Bindable/Heap/AccelStruct.h"
 
 Model::Model(Graphics& g, const std::string& filePath)

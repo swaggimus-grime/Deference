@@ -36,6 +36,7 @@ public:
 	}
 
 	inline auto CPUStart() const { return m_CPUStart; }
+	inline auto GetGPUHandle() const requires shaderVisible { return m_GPUHandle; }
 	inline auto GPUStart() const requires shaderVisible { return m_GPUStart; }
 
 	virtual void Bind(Graphics& g) override
@@ -44,12 +45,18 @@ public:
 			m_Heap.GetAddressOf());
 	}
 
+	inline void Reset() { m_CPUHandle = m_CPUStart; }
+
 	inline auto* GetHeap() const { return m_Heap.Get(); }
 
 	inline HCPU Next()
 	{
 		HCPU ret = m_CPUHandle;
 		m_CPUHandle.ptr += m_IncSize;
+
+		if constexpr (shaderVisible)
+			m_GPUHandle.ptr += m_IncSize;
+
 		return ret;
 	}
 

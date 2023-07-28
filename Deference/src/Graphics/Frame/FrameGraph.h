@@ -21,6 +21,8 @@ public:
 	inline auto& GetModels() const { return m_Models; }
 	inline TLAS& GetTLAS() const { return *m_TLAS; }
 
+	void OnResize(Graphics& g, UINT w, UINT h);
+
 private:
 	void ConnectTargets(Shared<Pass> pass);
 	Shared<RenderTarget> GetTarget(const std::string& name);

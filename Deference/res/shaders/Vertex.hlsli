@@ -19,3 +19,12 @@ struct ScreenVertexOut
     float4 pos : SV_Position;
     float2 tex : TEXCOORD;
 };
+
+struct GeometryVertex
+{
+    float3 pos;
+    float2 tex;
+    float3 norm;
+    float3 tan;
+    float3 bitan;
+};

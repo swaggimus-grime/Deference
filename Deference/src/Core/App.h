@@ -3,7 +3,7 @@
 #include "Window.h"
 #include "Graphics.h"
 #include "Graphics/Entity/Camera.h"
-#include "Graphics/Frame/GeometryGraph.h"
+#include "Graphics/Frame/FrameGraph.h"
 #include "Graphics/Entity/Model.h"
 
 class App {

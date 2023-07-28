@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Pass.h"
+#include "RasterPass.h"
 
-class ScreenPass : public Pass
+class ScreenPass : public RasterPass
 {
 public:
 	ScreenPass(Graphics& g);

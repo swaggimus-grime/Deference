@@ -1,6 +1,7 @@
 #include "ScreenPass.h"
 
 ScreenPass::ScreenPass(Graphics& g)
+	:RasterPass(g)
 {
 	InputLayout layout(INPUT_LAYOUT_CONFIG::SCREEN);
 	VertexStream stream(std::move(layout), 4);

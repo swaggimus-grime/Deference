@@ -28,6 +28,8 @@ Window::Window(const std::string& name, unsigned int width, unsigned int height)
 	wc.lpszClassName = m_Name.c_str();
 	RegisterClassEx(&wc);
 
+	m_OnResize = [](UINT, UINT) {};
+
 	RECT wr = { 0, 0, m_Width, m_Height };
 	AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
 	m_Handle = CreateWindowEx(NULL, m_Name.c_str(), m_Name.c_str(),
@@ -208,6 +210,7 @@ LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 		m_Width = LOWORD(lParam);
 		m_Height = HIWORD(lParam);
+		m_OnResize(m_Width, m_Height);
 		//m_Graphics->OnWindowResize(std::max(1u, m_Width), std::max(1u, m_Height));
 		ImGui::GetIO().DisplaySize = ImVec2((float)m_Width, (float)m_Height);
 		break;

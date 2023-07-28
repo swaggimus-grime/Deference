@@ -12,16 +12,18 @@ public:
 	void Present();
 	inline UINT NumBuffs() const { return m_NumBuffs; }
 	inline IDXGISwapChain4* Handle() const { return m_SC.Get(); }
-	inline Shared<RenderTarget> CurrentBB() const
+	inline RenderTarget* CurrentBB() const
 	{
 		UINT currentIdx = m_SC->GetCurrentBackBufferIndex();
-		return m_BackBuffs[currentIdx];
+		return m_BackBuffs[currentIdx].get();
 	}
+
+	void OnResize(Graphics& g, UINT w, UINT h);
 
 	static constexpr auto s_Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 private:
-	std::vector<Shared<RenderTarget>> m_BackBuffs;
+	std::vector<Unique<RenderTarget>> m_BackBuffs;
 	Unique<RenderTargetHeap> m_RTs;
 	ComPtr<IDXGISwapChain4> m_SC;
 	UINT m_NumBuffs;

@@ -10,8 +10,13 @@ public:
 	virtual void CreateView(Graphics& g, HCPU hcpu) override;
 };
 
-//class EnvironmentMap : public Texture
-//{
-//public:
-//	EnvironmentMap(Graphics& g, D3D12_CPU_DESCRIPTOR_HANDLE handle, const std::wstring& path);
-//};
+class EnvironmentMap : public Resource
+{
+public:
+	EnvironmentMap(Graphics& g, const std::wstring& path);
+	virtual void CreateView(Graphics& g, HCPU hcpu) override;
+	inline void SetHGPU(HGPU hgpu) { m_HGPU = hgpu; };
+	inline auto GetHGPU() const { return m_HGPU; }
+private:
+	HGPU m_HGPU;
+};

@@ -4,6 +4,7 @@
 #include "util.h"
 #include <chrono>
 #include <unordered_map>
+#include <functional>
 
 class Camera;
 class Context;
@@ -20,16 +21,19 @@ public:
 	Graphics& operator=(const Graphics&) = delete;
 	~Graphics();
 
+	//inline void SetOnResize(std::function<void(UINT, UINT)> callback) { m_OnResize = callback; }
+	void OnResize(UINT w, UINT h);
+
 	inline ID3D12Device5& Device() const { return *m_Device.Get(); }
 	inline ID3D12GraphicsCommandList4& CL() const { return *m_CmdList.Get(); }
 	inline ID3D12CommandAllocator& CA() const { return *m_Alloc.Get(); }
 	inline auto& CQ() const { return *m_CQ.Get(); }
 
 	void Flush();
+	void Wait();
 
 	inline UINT Width() const { return m_Width; }
 	inline UINT Height() const { return m_Height; }
-	void OnWindowResize(UINT width, UINT height);
 
 	void BeginFrame();
 	void EndFrame();
@@ -63,7 +67,8 @@ private:
 	HANDLE m_FenceEvent;
 	UINT64 m_FenceValue = 0;
 
-	Shared<RenderTarget> m_CurrentBB;
-
 	Shared<Camera> m_Cam;
+
+	std::function<void(UINT, UINT)> m_OnResize;
+	bool m_Resized;
 };

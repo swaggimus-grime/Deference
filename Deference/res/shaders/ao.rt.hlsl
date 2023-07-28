@@ -16,6 +16,7 @@ struct RayGenCB
     float gAORadius;
     float gMinT;
     uint gFrameCount;
+    uint gRayCount;
 };
 
 ConstantBuffer<RayGenCB> aoConstants : register(b0);
@@ -40,6 +41,18 @@ float shootAmbientOcclusionRay(float3 orig, float3 dir, float minT, float maxT)
     return rayPayload.aoValue;
 }
 
+// Utility function to get a vector perpendicular to an input vector 
+//    (from "Efficient Construction of Perpendicular Vectors Without Branching")
+float3 getPerpendicularVector(float3 u)
+{
+    float3 a = abs(u);
+    uint xm = ((a.x - a.y) < 0 && (a.x - a.z) < 0) ? 1 : 0;
+    uint ym = (a.y - a.z) < 0 ? (1 ^ xm) : 0;
+    uint zm = 1 ^ (xm | ym);
+    return cross(u, float3(xm, ym, zm));
+}
+
+// Generates a seed for a random number generator from 2 inputs plus a backoff
 uint initRand(uint val0, uint val1, uint backoff = 16)
 {
     uint v0 = val0, v1 = val1, s0 = 0;
@@ -61,18 +74,6 @@ float nextRand(inout uint s)
     return float(s & 0x00FFFFFF) / float(0x01000000);
 }
 
-// Utility function to get a vector perpendicular to an input vector 
-//    (from "Efficient Construction of Perpendicular Vectors Without Branching")
-float3 getPerpendicularVector(float3 u)
-{
-    float3 a = abs(u);
-    uint xm = ((a.x - a.y) < 0 && (a.x - a.z) < 0) ? 1 : 0;
-    uint ym = (a.y - a.z) < 0 ? (1 ^ xm) : 0;
-    uint zm = 1 ^ (xm | ym);
-    return cross(u, float3(xm, ym, zm));
-}
-
-// Get a cosine-weighted random vector centered around a specified normal direction.
 float3 getCosHemisphereSample(inout uint randSeed, float3 hitNorm)
 {
 	// Get 2 random numbers to select our sample with
@@ -104,21 +105,24 @@ void AoRayGen()
     float4 worldNorm = gNorm[launchIndex];
 
 	// Default ambient occlusion value if we hit the background
-    float aoVal = 1.0f;
+    float aoVal = float(aoConstants.gRayCount);
 
   // worldPos.w == 0 for background pixels; only shoot AO rays elsewhere
     if (worldPos.w != 0.0f)
     {
-        // Random ray, sampled on cosine-weighted hemisphere around normal 
-        float3 worldDir = getCosHemisphereSample(randSeed, worldNorm.xyz);
-
-         // Shoot our ambient occlusion ray and update the final AO value
-        aoVal = shootAmbientOcclusionRay(worldPos.xyz, worldDir, aoConstants.gMinT, aoConstants.gAORadius);
+        aoVal = 0.f;
+        for (int i = 0; i < aoConstants.gRayCount; i++)
+        {
+            // Random ray, sampled on cosine-weighted hemisphere around normal 
+            float3 worldDir = getCosHemisphereSample(randSeed, worldNorm.xyz);
+             // Shoot our ambient occlusion ray and update the final AO value
+            aoVal += shootAmbientOcclusionRay(worldPos.xyz, worldDir, aoConstants.gMinT, aoConstants.gAORadius);
+        }
     }
 
+    aoVal /= aoConstants.gRayCount;
     gOutput[launchIndex] = float4(aoVal, aoVal, aoVal, 1.0f);
 }
-
 
 
 // What code is executed when our ray misses all geometry?

@@ -89,3 +89,14 @@ void DiffusePass::ShowGUI()
 		ImGui::End();
 	}
 }
+
+void DiffusePass::OnResize(Graphics& g, UINT w, UINT h)
+{
+	Pass::OnResize(g, w, h);
+	m_Output->Resize(g, w, h);
+
+	m_GPUHeap->Reset();
+	auto& ins = GetInTargets();
+	for (auto& in : ins)
+		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
+}

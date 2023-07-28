@@ -12,7 +12,7 @@ public:
 	virtual void OnAdd(Graphics& g, FrameGraph* parent) override;
 	virtual void Run(Graphics& g, FrameGraph* parent) override;
 	virtual void ShowGUI() override;
-
+	virtual void OnResize(Graphics& g, UINT w, UINT h) override;
 private:
 	Unique<GPUShaderHeap> m_GPUHeap;
 	Unique<UnorderedAccess> m_Output;

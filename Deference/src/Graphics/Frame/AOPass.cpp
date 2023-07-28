@@ -34,11 +34,13 @@ void AOPass::OnAdd(Graphics& g, FrameGraph* parent)
 	layout.Add<CONSTANT_TYPE::FLOAT>("radius");
 	layout.Add<CONSTANT_TYPE::FLOAT>("minT");
 	layout.Add<CONSTANT_TYPE::UINT>("frameCount");
+	layout.Add<CONSTANT_TYPE::UINT>("rayCount");
 	m_Constants = MakeUnique<ConstantBuffer>(g, std::move(layout));
 	m_Constants->CreateView(g, m_GPUHeap->Next());
 
 	(*m_Constants)["radius"] = 100.f;
-	(*m_Constants)["minT"] = 0.0001f;
+	(*m_Constants)["minT"] = 0.001f;
+	(*m_Constants)["rayCount"] = 1;
 
 	m_Pipeline = MakeShared<AOPipeline>(g);
 	UINT64* heapPtr = reinterpret_cast<UINT64*>(m_GPUHeap->GPUStart().ptr);
@@ -80,8 +82,20 @@ void AOPass::ShowGUI()
 	if (ImGui::Begin("AO Pass"))
 	{
 		ImGui::SliderFloat("Radius", ((*m_Constants)["radius"]), 10.f, 1000.f);
-		ImGui::SliderFloat("MinT", (*m_Constants)["minT"], 0.0001f, 1.f);
+		ImGui::SliderFloat("MinT", (*m_Constants)["minT"], 0.001f, 1.f);
+		ImGui::SliderInt("Ray Count", (*m_Constants)["rayCount"], 1, 100);
 
 		ImGui::End();
 	}
+}
+
+void AOPass::OnResize(Graphics& g, UINT w, UINT h)
+{
+	Pass::OnResize(g, w, h);
+	m_Output->Resize(g, w, h);
+
+	m_GPUHeap->Reset();
+	auto& ins = GetInTargets();
+	for (auto& in : ins)
+		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
 }

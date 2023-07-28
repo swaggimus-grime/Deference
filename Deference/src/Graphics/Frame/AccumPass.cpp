@@ -3,14 +3,12 @@
 #include "Bindable/Pipeline/VertexBuffer.h"
 #include "Bindable/Pipeline/IndexBuffer.h"
 #include "Entity/Camera.h"
-#include "GeometryGraph.h"
+#include "FrameGraph.h"
 #include "VecOps.h"
 
 AccumPass::AccumPass(Graphics& g)
-	:ScreenPass(g), m_DepthHeap(g), m_Depth(g), m_NumPassedFrames(0), m_PrevFrameHeap(g, 1)
+	:ScreenPass(g),  m_NumPassedFrames(0), m_PrevFrameHeap(g, 1)
 {
-	m_Depth.CreateView(g, m_DepthHeap.Next());
-
 	AddInTarget("AO");
 	AddOutTarget("Accumulation");
 }
@@ -19,15 +17,27 @@ void AccumPass::ShowGUI()
 {
 }
 
+void AccumPass::OnResize(Graphics& g, UINT w, UINT h)
+{
+	ScreenPass::OnResize(g, w, h);
+	m_PrevFrame->Resize(g, w, h);
+
+	m_GPUHeap->Reset();
+	auto& ins = GetInTargets();
+	for (auto& in : ins)
+		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
+
+	m_PrevFrame->CreateShaderResourceView(g, m_GPUHeap->Next());
+	m_PrevFrame->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+}
+
 void AccumPass::OnAdd(Graphics& g, FrameGraph* parent)
 {
 	Pass::OnAdd(g, parent);
-	AddBindable(MakeShared<Viewport>(g));
 	AddBindable(MakeShared<AccumPipeline>(g));
 
 	auto& ins = GetInTargets();
 	m_GPUHeap = MakeUnique<GPUShaderHeap>(g, ins.size() + 1);
-
 	for (auto& in : ins)
 		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
 

@@ -1,4 +1,4 @@
-#include "GeometryGraph.h"
+#include "FrameGraph.h"
 #include <imgui.h>
 
 FrameGraph::FrameGraph()
@@ -41,6 +41,12 @@ Shared<RenderTarget> FrameGraph::Run(Graphics& g)
 		p->Run(g, this);
 
 	return GetTarget(m_TargetNames[m_CurrentTarget]);
+}
+
+void FrameGraph::OnResize(Graphics& g, UINT w, UINT h)
+{
+	for (auto& p : m_Passes)
+		p->OnResize(g, w, h);
 }
 
 void FrameGraph::ShowUI(Graphics& g)

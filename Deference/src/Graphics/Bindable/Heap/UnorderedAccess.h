@@ -10,7 +10,6 @@ class UnorderedAccess : public Resource
 public:
 	UnorderedAccess(Graphics& g);
 	void CreateView(Graphics& g, HCPU hcpu);
+	void Resize(Graphics& g, UINT w, UINT h);
 
-private:
-	HCPU m_Handle;
 };

@@ -44,7 +44,7 @@ Swapchain::Swapchain(Graphics& g, HWND hWnd, UINT numBuffs)
         ComPtr<ID3D12Resource> bb;
         HR m_SC->GetBuffer(i, IID_PPV_ARGS(&bb));
 
-        auto rt = MakeShared<RenderTarget>(std::move(bb));
+        auto rt = MakeUnique<RenderTarget>(std::move(bb));
         rt->CreateView(g, m_RTs->Next());
 
         m_BackBuffs.push_back(std::move(rt));
@@ -54,4 +54,23 @@ Swapchain::Swapchain(Graphics& g, HWND hWnd, UINT numBuffs)
 void Swapchain::Present()
 {
     m_SC->Present(0, m_AllowTearing ? DXGI_FEATURE_PRESENT_ALLOW_TEARING : 0);
+}
+
+void Swapchain::OnResize(Graphics& g, UINT w, UINT h)
+{
+    g.Wait();
+    m_BackBuffs.clear();
+    HR m_SC->ResizeBuffers(m_NumBuffs, w, h, s_Format, m_AllowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
+
+    m_RTs->Reset();
+    for (int i = 0; i < m_NumBuffs; ++i)
+    {
+        ComPtr<ID3D12Resource> bb;
+        HR m_SC->GetBuffer(i, IID_PPV_ARGS(&bb));
+
+        auto rt = MakeUnique<RenderTarget>(std::move(bb));
+        rt->CreateView(g, m_RTs->Next());
+
+        m_BackBuffs.push_back(std::move(rt));
+    }
 }
