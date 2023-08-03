@@ -20,13 +20,13 @@ void FrameGraph::FinishScene(Graphics& g)
 			}) |
 		std::ranges::to<std::vector>();
 
-	m_TLAS = MakeUnique<TLAS>(g, std::move(blass));
+	m_TLAS = MakeShared<TLAS>(g, std::move(blass));
 }
 
 void FrameGraph::AddPass(Graphics& g, Shared<Pass> pass)
 {
 	ConnectTargets(pass);
-	pass->OnAdd(g, this);
+	pass->OnAdd(g);
 	for (auto& out : pass->GetOutTargets())
 	{
 		m_TargetNames.push_back(out.first);
@@ -38,7 +38,7 @@ void FrameGraph::AddPass(Graphics& g, Shared<Pass> pass)
 Shared<RenderTarget> FrameGraph::Run(Graphics& g)
 {
 	for (auto& p : m_Passes)
-		p->Run(g, this);
+		p->Run(g);
 
 	return GetTarget(m_TargetNames[m_CurrentTarget]);
 }

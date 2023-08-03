@@ -7,6 +7,7 @@
 #include "Bindable/Pipeline/VertexBuffer.h"
 #include "Bindable/Pipeline/InputLayout.h"
 #include "Bindable/Heap/AccelStruct.h"
+#include <ranges>
 
 Model::Model(Graphics& g, const std::string& filePath)
     :m_World(XMMatrixIdentity())
@@ -63,25 +64,30 @@ Model::Model(Graphics& g, const std::string& filePath)
                 indices.push_back(face.mIndices[indIndex]);
         }
 
-        m_Buffers.emplace_back(MakeShared<VertexBuffer>(g, std::move(stream)) , MakeShared<IndexBuffer>(g, indices.size(), indices.data()));
-    
         auto getTexture = [&](aiTextureType type)
         {
             aiString texName;
             mat->GetTexture(type, 0, &texName);
             if (texName.length == NULL)
-                return -1;
+                return MakeShared<Texture2D>();
             std::string texPath = std::string(texName.C_Str());
             texPath = dir + "\\" + texPath;
-            m_Textures.push_back(MakeShared<Texture2D>(g, std::wstring(texPath.begin(), texPath.end())));
-            return texIdx++;
+            return MakeShared<Texture2D>(g, std::wstring(texPath.begin(), texPath.end()));
         };
 
-        m_TextureIndexes.emplace_back(
-            getTexture(aiTextureType_DIFFUSE),
-            getTexture(aiTextureType_SPECULAR),
-            getTexture(aiTextureType_NORMALS));
+        Mesh m;
+        m.m_VB = MakeShared<VertexBuffer>(g, std::move(stream));
+        m.m_IB = MakeShared<IndexBuffer>(g, indices.size(), indices.data());
+        m.m_DiffuseMap = getTexture(aiTextureType_DIFFUSE);
+        m.m_NormalMap = getTexture(aiTextureType_NORMALS);
+        m_Meshes.push_back(std::move(m));
     }
 
-    m_BLAS = TLAS::BLAS(g, m_Buffers);
+    const auto& pairs =
+        std::views::iota(0u, (UINT)m_Meshes.size()) |
+        std::views::transform([&](UINT i) {
+            return std::make_pair(m_Meshes[i].m_VB, m_Meshes[i].m_IB);
+        }) |
+        std::ranges::to<std::vector>();
+    m_BLAS = TLAS::BLAS(g, pairs);
 }

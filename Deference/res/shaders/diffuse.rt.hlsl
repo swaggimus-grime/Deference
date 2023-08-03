@@ -90,7 +90,6 @@ void DiffuseAndHardShadow()
 	// If we don't hit any geometry, our difuse material contains our background color.
     float3 shadeColor = float3(0.0, 0.0, 0.0);
 
-	//// Our camera sees the background if worldPos.w is 0, only shoot an AO ray elsewhere
     if (wPos.w != 0.0f)
     {
         for (int lightIndex = 0; lightIndex < 1; lightIndex++)
@@ -110,6 +109,8 @@ void DiffuseAndHardShadow()
         // Physically based Lambertian term is albedo/pi
         shadeColor *= diffuse.rgb / 3.141592f;
     }
+    else
+        shadeColor += diffuse.rgb;
     
     output[launchIndex] = float4(shadeColor, 1.0f);
 }

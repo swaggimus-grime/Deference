@@ -17,7 +17,6 @@ float4 main(ScreenVertexOut v) : SV_Target0
 	// Todo: reflection
     shadeColor = (directLighting * (float4(ambient, ambient, ambient, ambient) + accum)).rgb;
     bool isGeometry = (worldPos.w != 0.0f);
-    shadeColor = isGeometry ? shadeColor : shadeColor + float3(0.48, 0.75, 0.85);
+    shadeColor = isGeometry ? shadeColor : shadeColor; // + float3(0.48, 0.75, 0.85);
     return float4(shadeColor, 1.0f);
-    //return accum;
 }

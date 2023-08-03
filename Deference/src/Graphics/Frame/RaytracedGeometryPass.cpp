@@ -1,87 +1,117 @@
-//#include "RaytracedGeometryPass.h"
-//#include "Bindable/Pipeline/RaytracedGeometryPipeline.h"
-//#include <ranges>
-//#include "FrameGraph.h"
-//
-//RaytracedGeometryPass::RaytracedGeometryPass(Graphics& g)
-//	:m_GPUHeap(g, 6), m_Environment(g, L"textures\\MonValley_G_DirtRoad_3k.hdr")
-//{
-//	m_Outputs.reserve(3);
-//	
-//	AddOutTarget("Position");
-//	AddOutTarget("Normal");
-//	AddOutTarget("Albedo");
-//}
-//
-//void RaytracedGeometryPass::OnAdd(Graphics& g, FrameGraph* parent)
-//{
-//	Pass::OnAdd(g, parent);
-//
-//	auto& ins = GetInTargets();
-//
-//	for (auto& o : m_Outputs)
-//	{
-//		o = MakeShared<UnorderedAccess>(g);
-//		o->CreateView(g, m_GPUHeap.Next());
-//	}
-//
-//	const auto& models = parent->GetModels();
-//	for (const auto& m : models)
-//	{
-//		
-//	}
-//
-//	ConstantBufferLayout layout;
-//	layout.Add<CONSTANT_TYPE::XMMATRIX>("viewInv");
-//	layout.Add<CONSTANT_TYPE::XMMATRIX>("projInv");
-//	layout.Add<CONSTANT_TYPE::XMFLOAT3>("wPos");
-//	m_Transform = MakeUnique<ConstantBuffer>(g, std::move(layout));
-//	m_Transform->CreateView(g, m_GPUHeap.Next());
-//
-//	parent->GetTLAS().CreateView(g, m_GPUHeap->Next());
-//	m_Environment.CreateView(g, m_GPUHeap->Next());
-//
-//	m_Pipeline = MakeShared<RaytracedGeometryPipeline>(g);
-//	UINT64* heapPtr = reinterpret_cast<UINT64*>(m_GPUHeap.GPUStart().ptr);
-//	m_Pipeline->UpdateTable(g,
-//		{
-//			{RaytracedGeometryPipeline::rayGenEP, {heapPtr}}
-//		},
-//		{
-//			{RaytracedGeometryPipeline::missEP, {}}
-//		},
-//		{
-//			{RaytracedGeometryPipeline::hitGroup, {}}
-//		}
-//		);
-//}
-//
-//void RaytracedGeometryPass::Run(Graphics& g, FrameGraph* parent)
-//{
-//	auto& outs = GetOutTargets();
-//
-//	m_Pipeline->Bind(g);
-//	m_GPUHeap->Bind(g);
-//
-//	m_Pipeline->Dispatch(g);
-//
-//	const auto& targets =
-//		std::views::iota(0u, (UINT)outs.size()) |
-//		std::views::transform([&](UINT i) {
-//		return outs.at(i).second;
-//			}) |
-//		std::ranges::to<std::vector>();
-//	Resource::Transition(g, m_Outputs, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-//	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
-//	
-//	for(UINT i = 0; i < m_Outputs.size(); i++)
-//		g.CL().CopyResource(**targets[i], **m_Outputs[i]);
-//
-//	Resource::Transition(g, m_Outputs, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-//	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
-//	g.Flush();
-//}
-//
-//void RaytracedGeometryPass::ShowGUI()
-//{
-//}
+#include "RaytracedGeometryPass.h"
+#include "Bindable/Pipeline/RaytracedGeometryPipeline.h"
+#include <ranges>
+#include "FrameGraph.h"
+#include "Entity/Model.h"
+#include "Entity/Camera.h"
+#include <ranges>
+
+RaytracedGeometryPass::RaytracedGeometryPass(Graphics& g, FrameGraph* parent)
+	:m_Models(std::move(parent->GetModels())), m_Cam(parent->GetCamera())
+{	
+	AddOutTarget("Position");
+	AddOutTarget("Normal");
+	AddOutTarget("Albedo");
+
+	m_TLAS = parent->GetTLAS();
+	AddResource(m_TLAS);
+	m_Environment = MakeShared<EnvironmentMap>(g, L"textures\\MonValley_G_DirtRoad_3k.hdr");
+	AddResource(m_Environment);
+
+	ConstantBufferLayout layout;
+	layout.Add<CONSTANT_TYPE::XMMATRIX>("viewInv");
+	layout.Add<CONSTANT_TYPE::XMMATRIX>("projInv");
+	layout.Add<CONSTANT_TYPE::XMFLOAT3>("wPos");
+	m_Transform = MakeShared<ConstantBuffer>(g, std::move(layout));
+	AddResource(m_Transform);
+
+	for (auto& model : m_Models)
+	{
+		for (auto& mesh : model->GetMeshes())
+		{
+			AddResource(mesh.m_VB);
+			AddResource(mesh.m_IB);
+			AddResource(mesh.m_DiffuseMap);
+			AddResource(mesh.m_NormalMap);
+		}
+	}
+}
+
+void RaytracedGeometryPass::Run(Graphics& g)
+{
+	(*m_Transform)["viewInv"] = XMMatrixTranspose(m_Cam->ViewInv());
+	(*m_Transform)["projInv"] = XMMatrixTranspose(m_Cam->ProjInv());
+	(*m_Transform)["wPos"] = m_Cam->Pos();
+
+	m_Pipeline->Bind(g);
+	m_GPUHeap->Bind(g);
+	g.CL().SetComputeRootConstantBufferView(0, m_Transform->GetGPUAddress());
+	g.CL().SetComputeRootDescriptorTable(1, GetOutputs()[0]->GetHGPU());
+
+	m_Pipeline->Dispatch(g);
+
+	auto& outs = GetOutTargets();
+	const auto& targets =
+	std::views::iota(0u, (UINT)outs.size()) |
+	std::views::transform([&](UINT i) {
+	return outs.at(i).second;
+		}) |
+	std::ranges::to<std::vector>();
+
+	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+	Resource::Transition(g, m_Outputs, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	
+	for (UINT i = 0; i < targets.size(); i++)
+		g.CL().CopyResource(**targets[i], **m_Outputs[i]);
+	
+	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	Resource::Transition(g, m_Outputs, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	
+	g.Flush();
+}
+
+void RaytracedGeometryPass::OnAdd(Graphics& g)
+{
+	__super::OnAdd(g);
+
+	m_Pipeline = MakeUnique<RaytracedGeometryPipeline>(g);
+	{
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(HGPU));
+		auto scene = m_TLAS->GetHGPU();
+		table->Add(RaytracedGeometryPipeline::rayGenEP, &scene, sizeof(HGPU)); //scene
+		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::RAY_GEN, std::move(table));
+	}
+	{
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(HGPU));	
+		auto env = m_Environment->GetHGPU();
+		table->Add(RaytracedGeometryPipeline::missEP, &env, sizeof(HGPU));
+		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::MISS, std::move(table));
+	}
+	{
+		std::vector<HitArguments> argsList;
+		for (auto& model : m_Models)
+		{
+			for (auto& mesh : model->GetMeshes())
+			{
+				HitArguments args
+				{
+					.m_VertexBuffer = mesh.m_VB->GetHGPU(),
+					.m_IndexBuffer = mesh.m_IB->GetHGPU(),
+					.m_DiffuseMap = mesh.m_DiffuseMap->GetHGPU(),
+					.m_NormalMap = mesh.m_NormalMap->GetHGPU()
+				};
+
+				argsList.push_back(std::move(args));
+			}
+		}
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), argsList.size(), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(HitArguments));
+		for (auto& a : argsList)
+			table->Add(RaytracedGeometryPipeline::hitGroup, &a, sizeof(HitArguments));
+		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::HIT, std::move(table));
+	}
+
+}
+
+void RaytracedGeometryPass::ShowGUI()
+{
+}

@@ -19,15 +19,15 @@ DepthStencil::DepthStencil(Graphics& g)
     );
 }
 
-void DepthStencil::CreateView(Graphics& g, HCPU hcpu)
+void DepthStencil::CreateView(Graphics& g, HDESC h)
 {
-    m_Handle = hcpu;
+    SetHandle(h);
     D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
     desc.Format = m_Res->GetDesc().Format;
     desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     desc.Flags = D3D12_DSV_FLAG_NONE;
 
-    g.Device().CreateDepthStencilView(m_Res.Get(), &desc, m_Handle);
+    g.Device().CreateDepthStencilView(m_Res.Get(), &desc, GetHCPU());
 }
 
 void DepthStencil::Resize(Graphics& g, UINT w, UINT h)
@@ -48,23 +48,24 @@ void DepthStencil::Resize(Graphics& g, UINT w, UINT h)
         IID_PPV_ARGS(&m_Res)
     );
 
-    if (m_Handle.ptr != 0)
+    if (GetHCPU().ptr != 0)
     {
         D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
         desc.Format = m_Res->GetDesc().Format;
         desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
         desc.Flags = D3D12_DSV_FLAG_NONE;
 
-        g.Device().CreateDepthStencilView(m_Res.Get(), &desc, m_Handle);
+        g.Device().CreateDepthStencilView(m_Res.Get(), &desc, GetHCPU());
     }
 }
 
 void DepthStencil::Clear(Graphics& g)
 {
-	g.CL().ClearDepthStencilView(m_Handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	g.CL().ClearDepthStencilView(GetHCPU(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }
 
 void DepthStencil::Bind(Graphics& g)
 {
-	g.CL().OMSetRenderTargets(0, nullptr, false, &m_Handle);
+    auto h = GetHCPU();
+	g.CL().OMSetRenderTargets(0, nullptr, false, &h);
 }

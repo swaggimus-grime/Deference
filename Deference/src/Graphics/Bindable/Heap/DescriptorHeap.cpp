@@ -3,7 +3,7 @@
 #include <d3dx12.h>
 
 RenderTargetHeap::RenderTargetHeap(Graphics& g, UINT numTargets)
-	:DescriptorHeap(g, numTargets), m_NumTargets(numTargets)
+	:DescriptorHeap(g, numTargets, false), m_NumTargets(numTargets)
 {
 }
 
@@ -13,15 +13,15 @@ void RenderTargetHeap::Bind(Graphics& g)
 	g.CL().OMSetRenderTargets(m_NumTargets, &handle, true, nullptr);
 }
 
-void RenderTargetHeap::BindWithDepth(Graphics& g, Shared<DepthStencil> depth)
+void RenderTargetHeap::BindWithDepth(Graphics& g, DepthStencil& depth)
 {
 	const auto& handle = CPUStart();
-	auto d = depth->GetView();
+	auto d = depth.GetHCPU();
 	g.CL().OMSetRenderTargets(m_NumTargets, &handle, true, &d);
 }
 
 DepthStencilHeap::DepthStencilHeap(Graphics& g, UINT numTargets)
-	:DescriptorHeap(g, numTargets)
+	:DescriptorHeap(g, numTargets, false)
 {
 }
 
@@ -32,16 +32,17 @@ void DepthStencilHeap::Bind(Graphics& g)
 }
 
 CPUShaderHeap::CPUShaderHeap(Graphics& g, UINT numDescs)
-	:DescriptorHeap(g, numDescs)
+	:DescriptorHeap(g, numDescs, false)
 {
 }
 
 SamplerHeap::SamplerHeap(Graphics& g, UINT numDescs)
-	:DescriptorHeap(g, numDescs)
+	:GPUVisibleHeap(g, numDescs)
 {
 }
 
 GPUShaderHeap::GPUShaderHeap(Graphics& g, UINT numDescs)
-	:DescriptorHeap(g, numDescs)
+	:GPUVisibleHeap(g, numDescs)
 {
 }
+

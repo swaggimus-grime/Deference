@@ -117,7 +117,7 @@ public:
         return ConstantBufferElement(m_Data + offset.second);
     }
 
-    virtual void CreateView(Graphics& g, HCPU hcpu) override;
+    virtual void CreateView(Graphics& g, HDESC h) override;
 
     inline D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddress() const { return m_Res->GetGPUVirtualAddress(); }
 

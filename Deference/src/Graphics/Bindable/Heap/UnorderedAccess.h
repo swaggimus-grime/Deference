@@ -9,7 +9,7 @@ class UnorderedAccess : public Resource
 {
 public:
 	UnorderedAccess(Graphics& g);
-	void CreateView(Graphics& g, HCPU hcpu);
+	void CreateView(Graphics& g, HDESC h);
 	void Resize(Graphics& g, UINT w, UINT h);
 
 };

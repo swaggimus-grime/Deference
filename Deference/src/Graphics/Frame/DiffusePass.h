@@ -1,23 +1,14 @@
 #pragma once
 
-#include "Pass.h"
+#include "RaytracePass.h"
 
-class DiffusePipeline;
-class UnorderedAccess;
-
-class DiffusePass : public Pass
+class DiffusePass : public RaytracePass
 {
 public:
-	DiffusePass(Graphics& g);
-	virtual void OnAdd(Graphics& g, FrameGraph* parent) override;
-	virtual void Run(Graphics& g, FrameGraph* parent) override;
-
+	DiffusePass(Graphics& g, FrameGraph* parent);
+	virtual void OnAdd(Graphics& g) override;
 	virtual void ShowGUI() override;
-	virtual void OnResize(Graphics& g, UINT w, UINT h) override;
-private:
-	Shared<DiffusePipeline> m_Pipeline;
 
-	Unique<GPUShaderHeap> m_GPUHeap;
-	Unique<UnorderedAccess> m_Output;
-	Unique<ConstantBuffer> m_Light;
+private:
+	Shared<ConstantBuffer> m_Light;
 };

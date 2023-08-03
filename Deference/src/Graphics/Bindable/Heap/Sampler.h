@@ -5,8 +5,10 @@
 class Sampler
 {
 public:
-	Sampler(Graphics& g, HCPU handle);
+	Sampler(Graphics& g, HDESC h);
+	inline HCPU GetHCPU() const { return m_Handle.m_HCPU; }
+	inline HGPU GetHGPU() const { return m_Handle.m_HGPU; }
 
 private:
-	HCPU m_Handle;
+	HDESC m_Handle;
 };

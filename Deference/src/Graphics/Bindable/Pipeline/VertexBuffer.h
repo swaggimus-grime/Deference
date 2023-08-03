@@ -35,16 +35,15 @@ private:
 	std::unordered_map<VERTEX_ATTRIBUTES, UINT> m_Offsets;
 };
 
-class VertexBuffer : public Bindable
+class VertexBuffer : public Resource, public Bindable
 {
 public:
 	VertexBuffer(Graphics& g, const VertexStream& stream);
 	virtual void Bind(Graphics& g) override;
-	inline auto* Res() const { return m_Buffer.Get(); }
+	virtual void CreateView(Graphics& g, HDESC h) override;
 	inline UINT NumVertices() const { return m_View.SizeInBytes / Stride(); }
 	inline UINT Stride() const { return m_View.StrideInBytes; }
 
 private:
-	ComPtr<ID3D12Resource> m_Buffer;
 	D3D12_VERTEX_BUFFER_VIEW m_View;
 };

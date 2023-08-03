@@ -2,22 +2,26 @@
 
 #include "Bindable/Bindable.h"
 
-class SubObject;
+enum class SHADER_TABLE_TYPE
+{
+	RAY_GEN,
+	MISS,
+	HIT
+};
+
+class ShaderBindTable;
 
 class RaytracingPipeline : public Bindable
 {
 public:
 	virtual void Bind(Graphics& g) override;
-	void UpdateTable(Graphics& g,
-		const std::vector<std::pair<LPCWSTR, const std::vector<void*>&>>& raygen,
-		const std::vector<std::pair<LPCWSTR, const std::vector<void*>&>>& miss,
-		const std::vector<std::pair<LPCWSTR, const std::vector<void*>&>>& hit);
+	inline auto* GetProps() const { return m_Props.Get(); }
 	void Dispatch(Graphics& g);
+
+	void SubmitTable(SHADER_TABLE_TYPE type, Shared<ShaderBindTable> table);
+
 protected:
-	void Create(Graphics& g, CD3DX12_STATE_OBJECT_DESC& desc, 
-		const std::vector<UINT>& rgNumArgsPerEntry, 
-		const std::vector<UINT>& missNumArgsPerEntry, 
-		const std::vector<UINT>& hitNumArgsPerEntry);
+	void Create(Graphics& g, CD3DX12_STATE_OBJECT_DESC& desc);
 	ComPtr<IDxcBlob> CreateLibrary(const std::wstring& path);
 
 private:
@@ -37,15 +41,35 @@ private:
 
 	static DXC s_DXC;
 
-private:
-	ComPtr<ID3D12StateObject> m_State;
-	ComPtr<ID3D12StateObjectProperties> m_Props;
-	ComPtr<ID3D12Resource> m_Table;
 
+protected:
 	Shared<RootSig> m_GlobalSig;
 
+private:
+	Shared<ShaderBindTable> m_RayGenTable;
+	Shared<ShaderBindTable> m_MissTable;
+	Shared<ShaderBindTable> m_HitTable;
+
+	ComPtr<ID3D12StateObject> m_State;
+	ComPtr<ID3D12StateObjectProperties> m_Props;
+
 	D3D12_DISPATCH_RAYS_DESC m_Dispatch;
-	UINT m_RayGenSize;
-	UINT m_MissSize;
-	UINT m_HitSize;
+};
+
+class ShaderBindTable
+{
+public:
+	ShaderBindTable(Graphics& g, RaytracingPipeline* parent, UINT numRecords, SIZE_T recordSize);
+	void Add(LPCWSTR shaderName, void* localArgs = nullptr, SIZE_T localArgSize = 0);
+	D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddress() const;
+	inline auto GetSize() const { return m_Size; }
+	inline auto GetStride() const { return m_RecordSize; }
+	void Finish();
+
+private:
+	UINT64 m_Size;
+	RaytracingPipeline* m_Parent;
+	ComPtr<ID3D12Resource> m_Buffer;
+	const SIZE_T m_RecordSize;
+	uint8_t* m_Mapped;
 };

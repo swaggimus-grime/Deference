@@ -10,11 +10,11 @@
 #include "Sampler.h"
 #include <map>
 
-template<D3D12_DESCRIPTOR_HEAP_TYPE T, bool shaderVisible>
+template<D3D12_DESCRIPTOR_HEAP_TYPE T>
 class DescriptorHeap : public Bindable
 {
 public:
-	DescriptorHeap(Graphics& g, unsigned int numDescs)
+	DescriptorHeap(Graphics& g, unsigned int numDescs, bool shaderVisible)
 		:m_IncSize(g.Device().GetDescriptorHandleIncrementSize(T)),
 		m_MaxNumDescs(numDescs)
 	{
@@ -27,17 +27,9 @@ public:
 
 		m_CPUStart = m_Heap->GetCPUDescriptorHandleForHeapStart();
 		m_CPUHandle = m_CPUStart;
-
-		if constexpr (shaderVisible)
-		{
-			m_GPUStart = m_Heap->GetGPUDescriptorHandleForHeapStart();
-			m_GPUHandle = m_GPUStart;
-		}
 	}
 
 	inline auto CPUStart() const { return m_CPUStart; }
-	inline auto GetGPUHandle() const requires shaderVisible { return m_GPUHandle; }
-	inline auto GPUStart() const requires shaderVisible { return m_GPUStart; }
 
 	virtual void Bind(Graphics& g) override
 	{
@@ -47,56 +39,38 @@ public:
 
 	inline void Reset() { m_CPUHandle = m_CPUStart; }
 
-	inline auto* GetHeap() const { return m_Heap.Get(); }
+	inline auto* operator*() const { return m_Heap.Get(); }
 
-	inline HCPU Next()
+	inline UINT GetIncSize() const { return m_IncSize; }
+
+	virtual HDESC Next()
 	{
 		HCPU ret = m_CPUHandle;
 		m_CPUHandle.ptr += m_IncSize;
-
-		if constexpr (shaderVisible)
-			m_GPUHandle.ptr += m_IncSize;
-
-		return ret;
-	}
-
-protected:
-	template<typename T, typename... Args>
-		requires Derived<Resource, T> || Derived<Sampler, T>
-	Shared<T> AddToHeap(Graphics& g, Args... args)
-	{
-		Shared<T> d = MakeShared<T>(g, m_CPUHandle, std::forward<Args>(args)...);
-		m_CPUHandle.ptr += m_IncSize;
-		return d;
+		return { ret, 0 };
 	}
 
 private:
-	ComPtr<ID3D12DescriptorHeap> m_Heap;
 	const UINT m_IncSize;
+	ComPtr<ID3D12DescriptorHeap> m_Heap;
 	const UINT m_MaxNumDescs;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_CPUStart;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_CPUHandle;
-
-	struct Empty {};
-	using GPUHandle = std::conditional_t<shaderVisible, D3D12_GPU_DESCRIPTOR_HANDLE, Empty>;
-
-	GPUHandle m_GPUStart;
-	GPUHandle m_GPUHandle;
 };
 
-class RenderTargetHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV, false>
+class RenderTargetHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV>
 {
 public:
 	RenderTargetHeap(Graphics& g, UINT numTargets);
 	virtual void Bind(Graphics& g) override;
-	virtual void BindWithDepth(Graphics& g, Shared<DepthStencil> depth);
+	virtual void BindWithDepth(Graphics& g, DepthStencil& depth);
 
 private:
 	UINT m_NumTargets;
 };
 
-class DepthStencilHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_DSV, false>
+class DepthStencilHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_DSV>
 {
 public:
 	DepthStencilHeap(Graphics& g, UINT numTargets = 1);
@@ -104,28 +78,51 @@ public:
 
 };
 
-class CPUShaderHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false>
+class CPUShaderHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV>
 {
 public:
 	CPUShaderHeap(Graphics& g, UINT numDescs);
-
+	
 };
 
-class GPUShaderHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, true>
+template<D3D12_DESCRIPTOR_HEAP_TYPE T>
+class GPUVisibleHeap : public DescriptorHeap<T>
+{
+public:
+	inline auto GPUStart() const { return m_GPUStart; }
+
+	virtual HDESC Next() override
+	{
+		auto desc = DescriptorHeap<T>::Next();
+		desc.m_HGPU = m_GPUHandle;
+		m_GPUHandle.ptr += DescriptorHeap<T>::GetIncSize();
+
+		return desc;
+	}
+
+protected:
+	GPUVisibleHeap(Graphics& g, UINT numDescs)
+		:DescriptorHeap<T>(g, numDescs, true)
+	{
+		m_GPUStart = (**this)->GetGPUDescriptorHandleForHeapStart();
+		m_GPUHandle = m_GPUStart;
+	}
+
+private:
+	HGPU m_GPUStart;
+	HGPU m_GPUHandle;
+};
+
+class GPUShaderHeap : public GPUVisibleHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV>
 {
 public:
 	GPUShaderHeap(Graphics& g, UINT numDescs);
-
+	
 };
 
-class SamplerHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, true>
+class SamplerHeap : public GPUVisibleHeap<D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER>
 {
 public:
 	SamplerHeap(Graphics& g, UINT numDescs);
 
-	template<typename... Args>
-	void Add(Graphics& g, Args&&... args)
-	{
-		AddToHeap<Sampler>(g, std::forward<Args>(args)...);
-	}
 };

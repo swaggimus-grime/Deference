@@ -72,11 +72,11 @@ ComPtr<ID3D12Resource> TLAS::BLAS(Graphics& g, const std::vector<Shared<VertexBu
 	for (uint32_t i = 0; i < vbs.size(); i++)
 	{
 		geometries[i].Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-		geometries[i].Triangles.VertexBuffer.StartAddress = vbs[i]->Res()->GetGPUVirtualAddress();
+		geometries[i].Triangles.VertexBuffer.StartAddress = (**vbs[i])->GetGPUVirtualAddress();
 		geometries[i].Triangles.VertexBuffer.StrideInBytes = vbs[i]->Stride();
 		geometries[i].Triangles.VertexCount = vbs[i]->NumVertices();
 		geometries[i].Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
-		geometries[i].Triangles.IndexBuffer = ibs[i]->Res()->GetGPUVirtualAddress();
+		geometries[i].Triangles.IndexBuffer = (**ibs[i])->GetGPUVirtualAddress();
 		geometries[i].Triangles.IndexCount = ibs[i]->NumIndices();
 		geometries[i].Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
 		geometries[i].Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
@@ -131,11 +131,11 @@ ComPtr<ID3D12Resource> TLAS::BLAS(Graphics& g, const std::vector<std::pair<Share
 	for (uint32_t i = 0; i < buffers.size(); i++)
 	{
 		geometries[i].Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-		geometries[i].Triangles.VertexBuffer.StartAddress = buffers[i].first->Res()->GetGPUVirtualAddress();
+		geometries[i].Triangles.VertexBuffer.StartAddress = (**buffers[i].first)->GetGPUVirtualAddress();
 		geometries[i].Triangles.VertexBuffer.StrideInBytes = buffers[i].first->Stride();
 		geometries[i].Triangles.VertexCount = buffers[i].first->NumVertices();
 		geometries[i].Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
-		geometries[i].Triangles.IndexBuffer = buffers[i].second->Res()->GetGPUVirtualAddress();
+		geometries[i].Triangles.IndexBuffer = (**buffers[i].second)->GetGPUVirtualAddress();
 		geometries[i].Triangles.IndexCount = buffers[i].second->NumIndices();
 		geometries[i].Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
 		geometries[i].Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
@@ -183,15 +183,15 @@ ComPtr<ID3D12Resource> TLAS::BLAS(Graphics& g, const std::vector<std::pair<Share
 	return result;
 }
 
-void TLAS::CreateView(Graphics& g, HCPU hcpu)
+void TLAS::CreateView(Graphics& g, HDESC h)
 {
-	m_Handle = hcpu;
+	SetHandle(h);
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	desc.RaytracingAccelerationStructure.Location = m_Res->GetGPUVirtualAddress();
 
-	g.Device().CreateShaderResourceView(nullptr, &desc, m_Handle);
+	g.Device().CreateShaderResourceView(nullptr, &desc, GetHCPU());
 }
 
 

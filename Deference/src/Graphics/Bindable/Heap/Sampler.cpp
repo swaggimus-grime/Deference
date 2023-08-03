@@ -1,8 +1,8 @@
 #include "Sampler.h"
 
-Sampler::Sampler(Graphics& g, HCPU handle)
+Sampler::Sampler(Graphics& g, HDESC h)
 {
-    m_Handle = handle;
+    m_Handle = h;
     D3D12_SAMPLER_DESC samplerDesc = {};
     samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -13,5 +13,5 @@ Sampler::Sampler(Graphics& g, HCPU handle)
     samplerDesc.MipLODBias = 0.0f;
     samplerDesc.MaxAnisotropy = 1;
     samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-    g.Device().CreateSampler(&samplerDesc, m_Handle);
+    g.Device().CreateSampler(&samplerDesc, GetHCPU());
 }

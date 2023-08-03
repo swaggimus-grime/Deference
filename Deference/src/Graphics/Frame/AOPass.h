@@ -1,22 +1,18 @@
 #pragma once
 
-#include "Pass.h"
+#include "RaytracePass.h"
 
 class AOPipeline;
-class UnorderedAccess;
 
-class AOPass : public Pass
+class AOPass : public RaytracePass
 {
 public:
-	AOPass(Graphics& g);
-	virtual void OnAdd(Graphics& g, FrameGraph* parent) override;
-	virtual void Run(Graphics& g, FrameGraph* parent) override;
+	AOPass(Graphics& g, FrameGraph* parent);
+	virtual void OnAdd(Graphics& g) override;
+	virtual void Run(Graphics& g) override;
 	virtual void ShowGUI() override;
-	virtual void OnResize(Graphics& g, UINT w, UINT h) override;
+
 private:
-	Unique<GPUShaderHeap> m_GPUHeap;
-	Unique<UnorderedAccess> m_Output;
-	Unique<ConstantBuffer> m_Constants;
-	Shared<AOPipeline> m_Pipeline;
+	Shared<ConstantBuffer> m_Constants;
 	UINT m_FrameCount;
 };

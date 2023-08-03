@@ -21,13 +21,13 @@ UnorderedAccess::UnorderedAccess(Graphics& g)
         IID_PPV_ARGS(&m_Res));
 }
 
-void UnorderedAccess::CreateView(Graphics& g, HCPU hcpu)
+void UnorderedAccess::CreateView(Graphics& g, HDESC h)
 {
-    m_Handle = hcpu;
+    SetHandle(h);
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
     desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
     g.Device().CreateUnorderedAccessView(m_Res.Get(), nullptr, &desc,
-        m_Handle);
+        GetHCPU());
 }
 
 void UnorderedAccess::Resize(Graphics& g, UINT w, UINT h)
@@ -49,11 +49,11 @@ void UnorderedAccess::Resize(Graphics& g, UINT w, UINT h)
         D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr,
         IID_PPV_ARGS(&m_Res));
 
-    if (m_Handle.ptr != 0)
+    if (GetHCPU().ptr != 0)
     {
         D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
         desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
         g.Device().CreateUnorderedAccessView(m_Res.Get(), nullptr, &desc,
-            m_Handle);
+            GetHCPU());
     }
 }

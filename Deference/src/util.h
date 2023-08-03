@@ -15,6 +15,12 @@
 using HCPU = D3D12_CPU_DESCRIPTOR_HANDLE;
 using HGPU = D3D12_GPU_DESCRIPTOR_HANDLE;
 
+struct HDESC
+{
+	HCPU m_HCPU;
+	HGPU m_HGPU;
+};
+
 #define ALIGN(v, powerOf2Alignment) (((v) + (powerOf2Alignment)-1) & ~((powerOf2Alignment)-1))
 
 using Microsoft::WRL::ComPtr;

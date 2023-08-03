@@ -1,80 +1,72 @@
 #include "AOPass.h"
 #include "Bindable/Heap/AccelStruct.h"
-#include "Bindable/Heap/UnorderedAccess.h"
 #include "Bindable/Pipeline/AOPipeline.h"
 #include "Entity/Camera.h"
 #include <imgui.h>
 
-AOPass::AOPass(Graphics& g)
+AOPass::AOPass(Graphics& g, FrameGraph* parent)
 	:m_FrameCount(0)
 {
+	m_TLAS = parent->GetTLAS();
+	AddResource(m_TLAS);
+
 	AddInTarget("Position");
 	AddInTarget("Normal");
-
 	AddOutTarget("AO");
-}
 
-void AOPass::OnAdd(Graphics& g, FrameGraph* parent)
-{
-	Pass::OnAdd(g, parent);
-
-	auto& ins = GetInTargets();
-	const auto& models = parent->GetModels();
-
-	m_GPUHeap = MakeUnique<GPUShaderHeap>(g, ins.size() + 3);
-
-	for (auto& in : ins)
-		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
-	parent->GetTLAS().CreateView(g, m_GPUHeap->Next());
-
-	m_Output = MakeUnique<UnorderedAccess>(g);
-	m_Output->CreateView(g, m_GPUHeap->Next());
-	
 	ConstantBufferLayout layout;
 	layout.Add<CONSTANT_TYPE::FLOAT>("radius");
 	layout.Add<CONSTANT_TYPE::FLOAT>("minT");
 	layout.Add<CONSTANT_TYPE::UINT>("frameCount");
 	layout.Add<CONSTANT_TYPE::UINT>("rayCount");
-	m_Constants = MakeUnique<ConstantBuffer>(g, std::move(layout));
-	m_Constants->CreateView(g, m_GPUHeap->Next());
-
+	m_Constants = MakeShared<ConstantBuffer>(g, std::move(layout));
+	AddResource(m_Constants);
 	(*m_Constants)["radius"] = 100.f;
 	(*m_Constants)["minT"] = 0.001f;
 	(*m_Constants)["rayCount"] = 1;
-
-	m_Pipeline = MakeShared<AOPipeline>(g);
-	UINT64* heapPtr = reinterpret_cast<UINT64*>(m_GPUHeap->GPUStart().ptr);
-	m_Pipeline->UpdateTable(g,
-		{
-			{AOPipeline::rayGenEP, {heapPtr}}
-		},
-		{
-			{AOPipeline::missEP, {}}
-		},
-		{
-			{AOPipeline::hitGroup, {}}
-		}
-	);
 }
 
-void AOPass::Run(Graphics& g, FrameGraph* parent)
+void AOPass::OnAdd(Graphics& g)
 {
-	auto ao = GetOutTarget("AO");
+	__super::OnAdd(g);
 
-	m_Pipeline->Bind(g);
-	m_GPUHeap->Bind(g);
+	m_Pipeline = MakeUnique<AOPipeline>(g);
 
+	{
+		struct RayGenArgs
+		{
+			HGPU m_Pos;
+			HGPU m_Norm;
+			HGPU m_Scene;
+			HGPU m_Constants;
+			HGPU m_Output;
+		} args;
+		args.m_Pos = GetInTarget("Position")->GetShaderHGPU();
+		args.m_Norm = GetInTarget("Normal")->GetShaderHGPU();
+		args.m_Scene = m_TLAS->GetHGPU();
+		args.m_Constants = m_Constants->GetHGPU();
+		args.m_Output = GetOutput("AO")->GetHGPU();
+
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(RayGenArgs));
+		table->Add(AOPipeline::rayGenEP, &args, sizeof(RayGenArgs));
+		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::RAY_GEN, std::move(table));
+	}
+	{
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+		table->Add(AOPipeline::missEP);
+		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::MISS, std::move(table));
+	}
+	{
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+		table->Add(AOPipeline::hitGroup);
+		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::HIT, std::move(table));
+	}
+}
+
+void AOPass::Run(Graphics& g)
+{
+	__super::Run(g);
 	(*m_Constants)["frameCount"] = m_FrameCount++;
-
-	m_Pipeline->Dispatch(g);
-
-	m_Output->Transition(g, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	ao->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
-	g.CL().CopyResource(**ao, **m_Output);
-
-	m_Output->Transition(g, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	ao->Transition(g, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	g.Flush();
 }
 
 void AOPass::ShowGUI()
@@ -87,15 +79,4 @@ void AOPass::ShowGUI()
 
 		ImGui::End();
 	}
-}
-
-void AOPass::OnResize(Graphics& g, UINT w, UINT h)
-{
-	Pass::OnResize(g, w, h);
-	m_Output->Resize(g, w, h);
-
-	m_GPUHeap->Reset();
-	auto& ins = GetInTargets();
-	for (auto& in : ins)
-		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
 }

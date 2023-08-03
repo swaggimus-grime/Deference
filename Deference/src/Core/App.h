@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Window.h"
 #include "Graphics.h"
@@ -19,5 +19,5 @@ private:
 	Unique<Graphics> m_Gfx;
 	Shared<Camera> m_Cam;
 	Unique<FrameGraph> m_Graph;
-	Shared<Model> m_Cup; 
+	Shared<Model> m_Cup;
 };

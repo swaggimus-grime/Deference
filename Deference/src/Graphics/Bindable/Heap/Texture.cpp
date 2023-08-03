@@ -65,16 +65,15 @@ Texture2D::Texture2D(Graphics& g, const std::wstring& path)
      Transition(g, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
-void Texture2D::CreateView(Graphics& g, HCPU hcpu)
+void Texture2D::CreateView(Graphics& g, HDESC h)
 {
-    m_Handle = hcpu;
-    D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-    desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    desc.Format = m_Res->GetDesc().Format;
-    desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    desc.Texture2D.MipLevels = m_Res->GetDesc().MipLevels;
-
-    g.Device().CreateShaderResourceView(m_Res.Get(), &desc, m_Handle);
+    SetHandle(h);
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.Format = m_Res ? m_Res->GetDesc().Format : DXGI_FORMAT_R8G8B8A8_UNORM;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = m_Res ? m_Res->GetDesc().MipLevels : 1;
+    g.Device().CreateShaderResourceView(m_Res ? m_Res.Get() : nullptr, &srvDesc, GetHCPU());
 }
 
 EnvironmentMap::EnvironmentMap(Graphics& g, const std::wstring& path)
@@ -136,13 +135,13 @@ EnvironmentMap::EnvironmentMap(Graphics& g, const std::wstring& path)
     g.Flush();
 }
 
-void EnvironmentMap::CreateView(Graphics& g, HCPU hcpu)
+void EnvironmentMap::CreateView(Graphics& g, HDESC h)
 {
-    m_Handle = hcpu;
+    SetHandle(h);
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.Format = m_Res->GetDesc().Format;
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     srvDesc.Texture2D.MipLevels = 1;
-    g.Device().CreateShaderResourceView(m_Res.Get(), &srvDesc, m_Handle);
+    g.Device().CreateShaderResourceView(m_Res.Get(), &srvDesc, GetHCPU());
 }

@@ -29,21 +29,22 @@ RenderTarget::RenderTarget(const ComPtr<ID3D12Resource>& res)
     m_Res = std::move(res);
 }
 
-void RenderTarget::CreateView(Graphics& g, HCPU hcpu)
+void RenderTarget::CreateView(Graphics& g, HDESC h)
 {
-    m_Handle = hcpu;
-    g.Device().CreateRenderTargetView(m_Res.Get(), nullptr, m_Handle);
+    SetHandle(h);
+    g.Device().CreateRenderTargetView(m_Res.Get(), nullptr, GetHCPU());
 }
 
 void RenderTarget::Clear(Graphics& g)
 {
    FLOAT col[] = { 0.f, 0.f, 0.f, 1.f };
-   g.CL().ClearRenderTargetView(m_Handle, col, 0, nullptr);
+   g.CL().ClearRenderTargetView(GetHCPU(), col, 0, nullptr);
 }
 
 void RenderTarget::Bind(Graphics& g)
 {
-    g.CL().OMSetRenderTargets(1, &m_Handle, false, nullptr);
+    auto h = GetHCPU();
+    g.CL().OMSetRenderTargets(1, &h, false, nullptr);
 }
 
 void RenderTarget::BindWithDepth(Graphics& g, Shared<DepthStencil> ds)
@@ -53,8 +54,9 @@ void RenderTarget::BindWithDepth(Graphics& g, Shared<DepthStencil> ds)
 
 void RenderTarget::BindWithDepth(Graphics& g, DepthStencil& ds)
 {
-    auto depth = ds.GetView();
-    g.CL().OMSetRenderTargets(1, &m_Handle, false, &depth);
+    auto depth = ds.GetHCPU();
+    auto h = GetHCPU();
+    g.CL().OMSetRenderTargets(1, &h, false, &depth);
 }
 
 void RenderTarget::Resize(Graphics& g, UINT w, UINT h)
@@ -79,6 +81,6 @@ void RenderTarget::Resize(Graphics& g, UINT w, UINT h)
         IID_PPV_ARGS(&m_Res)
     );
 
-    if(m_Handle.ptr != 0)
-        g.Device().CreateRenderTargetView(m_Res.Get(), nullptr, m_Handle);
+    if(GetHCPU().ptr != 0)
+        g.Device().CreateRenderTargetView(m_Res.Get(), nullptr, GetHCPU());
 }

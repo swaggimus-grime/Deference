@@ -23,6 +23,5 @@ ScreenPass::ScreenPass(Graphics& g)
 
 void ScreenPass::Rasterize(Graphics& g)
 {
-	g.CL().IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	g.CL().DrawIndexedInstanced(m_NumIndices, 1, 0, 0, 0);
 }

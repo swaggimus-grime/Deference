@@ -12,7 +12,7 @@ public:
 	RenderTarget(Graphics& g);
 	RenderTarget(const ComPtr<ID3D12Resource>& res);
 
-	virtual void CreateView(Graphics& g, HCPU hcpu) override;
+	virtual void CreateView(Graphics& g, HDESC h) override;
 
 	virtual void Clear(Graphics& g) override;
 	virtual void Bind(Graphics& g) override;

@@ -1,24 +1,31 @@
-//#pragma once
-//
-//#include <array>
-//#include "Pass.h"
-//#include "Bindable/Heap/Texture.h"
-//
-//class RaytracedGeometryPipeline;
-//
-//class RaytracedGeometryPass : public Pass
-//{
-//public:
-//	RaytracedGeometryPass(Graphics& g);
-//	virtual void OnAdd(Graphics& g, FrameGraph* parent) override;
-//	virtual void Run(Graphics& g, FrameGraph* parent) override;
-//
-//	virtual void ShowGUI() override;
-//
-//private:
-//	Shared<RaytracedGeometryPipeline> m_Pipeline;
-//	EnvironmentMap m_Environment;
-//	GPUShaderHeap m_GPUHeap;
-//	std::vector<Shared<UnorderedAccess>> m_Outputs;
-//	Unique<ConstantBuffer> m_Transform;
-//};
+#pragma once
+
+#include <array>
+#include "RaytracePass.h"
+#include "Bindable/Heap/Texture.h"
+
+class Model;
+
+class RaytracedGeometryPass : public RaytracePass
+{
+public:
+	RaytracedGeometryPass(Graphics& g, FrameGraph* parent);
+	virtual void Run(Graphics& g) override;
+	virtual void OnAdd(Graphics& g) override;
+	virtual void ShowGUI() override;
+
+private:
+	struct HitArguments
+	{
+		HGPU m_VertexBuffer;
+		HGPU m_IndexBuffer;
+		HGPU m_DiffuseMap;
+		HGPU m_NormalMap;
+	};
+
+private:
+	std::vector<Shared<Model>> m_Models;
+	Shared<EnvironmentMap> m_Environment;
+	Shared<ConstantBuffer> m_Transform;
+	Shared<Camera> m_Cam;
+};

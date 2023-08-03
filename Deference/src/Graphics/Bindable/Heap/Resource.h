@@ -8,11 +8,6 @@
 class Resource
 {
 public:
-	Resource()
-	{
-		m_Handle.ptr = 0;
-	}
-
 	inline ID3D12Resource* operator*() const { return m_Res.Get(); }
 	void Transition(Graphics& g, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 
@@ -30,10 +25,18 @@ public:
 		g.CL().ResourceBarrier(i, barriers.data());
 	}
 
-	virtual void CreateView(Graphics& g, HCPU hcpu) = 0;
-	inline auto GetView() const { return m_Handle; }
+	inline auto GetHCPU() const { return  m_Handle.m_HCPU; }
+	inline auto GetHGPU() const { return  m_Handle.m_HGPU; }
+
+	virtual void CreateView(Graphics& g, HDESC h) = 0;
+
+protected:
+	Resource();
+	inline void SetHandle(HDESC h) { m_Handle = h; }
 
 protected:
 	ComPtr<ID3D12Resource> m_Res;
-	HCPU m_Handle;
+
+private:
+	HDESC m_Handle;
 };

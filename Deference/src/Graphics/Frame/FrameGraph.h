@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GeometryPass.h"
+#include "Pass.h"
 
 class Model;
 
@@ -19,7 +19,7 @@ public:
 	void ShowUI(Graphics& g);
 
 	inline auto& GetModels() const { return m_Models; }
-	inline TLAS& GetTLAS() const { return *m_TLAS; }
+	inline auto GetTLAS() const { return m_TLAS; }
 
 	void OnResize(Graphics& g, UINT w, UINT h);
 
@@ -35,6 +35,6 @@ private:
 	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_Targets;
 
 	std::vector<Shared<Model>> m_Models;
-	Unique<TLAS> m_TLAS;
+	Shared<TLAS> m_TLAS;
 	Shared<Camera> m_Camera;
 };

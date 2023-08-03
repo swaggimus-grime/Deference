@@ -18,14 +18,27 @@ DiffusePipeline::DiffusePipeline(Graphics& g)
 		hg->SetAnyHitShaderImport(anyEP);
 		hg->SetHitGroupExport(hitGroup);
 	}
+	{
+		m_GlobalSig = MakeShared<RootSig>(g, 0, nullptr);
+		auto sig = so.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+		sig->SetRootSignature(m_GlobalSig->Sig());
+	}
 	{		
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[3];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0, 0);
-		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
-		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0);
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[6];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0); //Pos
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0); //Norm
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0); //Albedo
+		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 0); //Scene
+		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0); //Point light
+		ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0); //Output
 
-		CD3DX12_ROOT_PARAMETER1 params[1];
-		params[0].InitAsDescriptorTable(_countof(ranges), &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
+		CD3DX12_ROOT_PARAMETER1 params[6];
+		params[0].InitAsDescriptorTable(1, &ranges[0]);
+		params[1].InitAsDescriptorTable(1, &ranges[1]);
+		params[2].InitAsDescriptorTable(1, &ranges[2]);
+		params[3].InitAsDescriptorTable(1, &ranges[3]);
+		params[4].InitAsDescriptorTable(1, &ranges[4]);
+		params[5].InitAsDescriptorTable(1, &ranges[5]);
 		
 		m_RayGenSig = MakeShared<RootSig>(g, _countof(params), params, true);
 		auto sig = so.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
@@ -68,6 +81,6 @@ DiffusePipeline::DiffusePipeline(Graphics& g)
 		config->Config(1);
 	}
 
-	Create(g, so, {1}, {}, {});
+	Create(g, so);
 }
 

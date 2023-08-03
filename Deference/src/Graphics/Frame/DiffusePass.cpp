@@ -5,73 +5,63 @@
 #include "Entity/Camera.h"
 #include <imgui.h>
 
-DiffusePass::DiffusePass(Graphics& g)
+DiffusePass::DiffusePass(Graphics& g, FrameGraph* parent)
 {
 	AddInTarget("Position");
 	AddInTarget("Normal");
 	AddInTarget("Albedo");
-
 	AddOutTarget("Diffuse");
-}
 
-void DiffusePass::OnAdd(Graphics& g, FrameGraph* parent)
-{
-	Pass::OnAdd(g, parent);
-
-	auto& ins = GetInTargets();
-	const auto& models = parent->GetModels();
-
-	m_GPUHeap = MakeUnique<GPUShaderHeap>(g, ins.size() + models.size() + 2);
-	for (auto& in : ins)
-		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
-
-	parent->GetTLAS().CreateView(g, m_GPUHeap->Next());
-
-	m_Output = MakeUnique<UnorderedAccess>(g);
-	m_Output->CreateView(g, m_GPUHeap->Next());
-
+	m_TLAS = parent->GetTLAS();
+	AddResource(m_TLAS);
 	ConstantBufferLayout layout;
 	layout.Add<CONSTANT_TYPE::XMFLOAT3>("pos");
 	layout.Add<CONSTANT_TYPE::FLOAT>("intensity");
 	layout.Add<CONSTANT_TYPE::XMFLOAT3>("color");
-	m_Light = MakeUnique<ConstantBuffer>(g, std::move(layout));
-	m_Light->CreateView(g, m_GPUHeap->Next());
-
+	m_Light = MakeShared<ConstantBuffer>(g, std::move(layout));
 	(*m_Light)["pos"] = XMFLOAT3{ 0, 5.f, 10.f };
 	(*m_Light)["color"] = XMFLOAT3{ 1, 1, 1 };
 	(*m_Light)["intensity"] = 2.f;
-
-	m_Pipeline = MakeShared<DiffusePipeline>(g);
-	UINT64* heapPtr = reinterpret_cast<UINT64*>(m_GPUHeap->GPUStart().ptr);
-	m_Pipeline->UpdateTable(g,
-		{
-			{DiffusePipeline::rayGenEP, {heapPtr}}
-		},
-		{
-			{DiffusePipeline::missEP, {}}
-		},
-		{
-			{DiffusePipeline::hitGroup, {}}
-		}
-	);
+	AddResource(m_Light);
 }
 
-void DiffusePass::Run(Graphics& g, FrameGraph* parent)
+void DiffusePass::OnAdd(Graphics& g)
 {
-	auto diffuse = GetOutTarget("Diffuse");
+	__super::OnAdd(g);
+	m_Pipeline = MakeUnique<DiffusePipeline>(g);
 
-	m_Pipeline->Bind(g);
-	m_GPUHeap->Bind(g);
+	{
+		struct GenArgs
+		{
+			HGPU m_Pos;
+			HGPU m_Norm;
+			HGPU m_Albedo;
+			HGPU m_Scene;
+			HGPU m_Light;
+			HGPU m_Output;
+		} args;
 
-	m_Pipeline->Dispatch(g);
+		args.m_Pos = GetInTarget("Position")->GetShaderHGPU();
+		args.m_Norm = GetInTarget("Normal")->GetShaderHGPU();
+		args.m_Albedo = GetInTarget("Albedo")->GetShaderHGPU();
+		args.m_Scene = m_TLAS->GetHGPU();
+		args.m_Light = m_Light->GetHGPU();
+		args.m_Output = GetOutput("Diffuse")->GetHGPU();
 
-	m_Output->Transition(g, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-	diffuse->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
-	g.CL().CopyResource(**diffuse, **m_Output);
-
-	m_Output->Transition(g, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	diffuse->Transition(g, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	g.Flush();
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(GenArgs));
+		table->Add(DiffusePipeline::rayGenEP, &args, sizeof(GenArgs));
+		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::RAY_GEN, std::move(table));
+	}
+	{
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+		table->Add(DiffusePipeline::missEP);
+		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::MISS, std::move(table));
+	}
+	{
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+		table->Add(DiffusePipeline::hitGroup);
+		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::HIT, std::move(table));
+	}
 }
 
 void DiffusePass::ShowGUI()
@@ -88,15 +78,4 @@ void DiffusePass::ShowGUI()
 
 		ImGui::End();
 	}
-}
-
-void DiffusePass::OnResize(Graphics& g, UINT w, UINT h)
-{
-	Pass::OnResize(g, w, h);
-	m_Output->Resize(g, w, h);
-
-	m_GPUHeap->Reset();
-	auto& ins = GetInTargets();
-	for (auto& in : ins)
-		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
 }
