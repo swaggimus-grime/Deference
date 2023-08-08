@@ -15,17 +15,5 @@ public:
 	virtual void ShowGUI() override;
 
 private:
-	struct HitArguments
-	{
-		HGPU m_VertexBuffer;
-		HGPU m_IndexBuffer;
-		HGPU m_DiffuseMap;
-		HGPU m_NormalMap;
-	};
-
-private:
-	std::vector<Shared<Model>> m_Models;
-	Shared<EnvironmentMap> m_Environment;
 	Shared<ConstantBuffer> m_Transform;
-	Shared<Camera> m_Cam;
 };

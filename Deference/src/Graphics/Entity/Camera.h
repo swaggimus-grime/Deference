@@ -26,6 +26,8 @@ public:
 	void Rotate(float dx, float dy);
 	void Move(const XMFLOAT3& delta);
 
+	void ShowUI();
+
 private:
 	XMMATRIX m_View;
 	XMMATRIX m_ViewInv;

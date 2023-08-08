@@ -7,16 +7,13 @@
 #include <ranges>
 
 RaytracedGeometryPass::RaytracedGeometryPass(Graphics& g, FrameGraph* parent)
-	:m_Models(std::move(parent->GetModels())), m_Cam(parent->GetCamera())
+	:RaytracePass(parent)
 {	
 	AddOutTarget("Position");
 	AddOutTarget("Normal");
 	AddOutTarget("Albedo");
 
-	m_TLAS = parent->GetTLAS();
-	AddResource(m_TLAS);
-	m_Environment = MakeShared<EnvironmentMap>(g, L"textures\\MonValley_G_DirtRoad_3k.hdr");
-	AddResource(m_Environment);
+	GetGlobalResource("Env");
 
 	ConstantBufferLayout layout;
 	layout.Add<CONSTANT_TYPE::XMMATRIX>("viewInv");
@@ -24,17 +21,6 @@ RaytracedGeometryPass::RaytracedGeometryPass(Graphics& g, FrameGraph* parent)
 	layout.Add<CONSTANT_TYPE::XMFLOAT3>("wPos");
 	m_Transform = MakeShared<ConstantBuffer>(g, std::move(layout));
 	AddResource(m_Transform);
-
-	for (auto& model : m_Models)
-	{
-		for (auto& mesh : model->GetMeshes())
-		{
-			AddResource(mesh.m_VB);
-			AddResource(mesh.m_IB);
-			AddResource(mesh.m_DiffuseMap);
-			AddResource(mesh.m_NormalMap);
-		}
-	}
 }
 
 void RaytracedGeometryPass::Run(Graphics& g)

@@ -5,20 +5,15 @@
 class Target : public Resource, public Bindable
 {
 public:
-	Target()
-	{
-		m_ShaderResourceHandle.m_HCPU.ptr = 0;
-		m_ShaderResourceHandle.m_HGPU.ptr = 0;
-	}
+	Target();
 
 	virtual void Clear(Graphics& g) = 0;
 
 	void CreateShaderResourceView(Graphics& g, HDESC h);
 	virtual void Resize(Graphics& g, UINT w, UINT h) = 0;
-
-	inline HGPU GetShaderHGPU() const { return m_ShaderResourceHandle.m_HGPU; }
+	void CopyShaderResourceView(Graphics& g, HCPU h);
 
 protected:
-	HDESC m_ShaderResourceHandle;
+	HCPU m_ShaderResourceHCPU;
 
 };

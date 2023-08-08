@@ -1,4 +1,6 @@
 #include "RaytracePass.h"
+#include "RaytracePass.h"
+#include "RaytracePass.h"
 
 void RaytracePass::Run(Graphics& g)
 {
@@ -30,6 +32,12 @@ void RaytracePass::Run(Graphics& g)
 	g.Flush();
 }
 
+RaytracePass::RaytracePass(FrameGraph* parent)
+	:Pass(parent)
+{
+	AddGlobalResource(parent->GetTLAS());
+}
+
 void RaytracePass::OnAdd(Graphics& g)
 {
 	SIZE_T numOuts = GetOutTargets().size();
@@ -53,4 +61,9 @@ void RaytracePass::OnResize(Graphics& g, UINT w, UINT h)
 Shared<UnorderedAccess> RaytracePass::GetOutput(const std::string& name)
 {
 	return m_Outputs.at(GetOutTargetIndex(name));
+}
+
+void RaytracePass::AddModelDescriptors()
+{
+
 }

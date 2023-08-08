@@ -13,26 +13,43 @@ void FrameGraph::AddModel(Shared<Model> m)
 
 void FrameGraph::FinishScene(Graphics& g)
 {
-	const auto& blass =
-		std::views::iota(0u, (UINT)m_Models.size()) |
-		std::views::transform([&](UINT i) {
-		return m_Models[i]->GetBLAS();
-			}) |
-		std::ranges::to<std::vector>();
+	UINT totalModelDescriptors = 0;
+
+	const auto& blass = ToVector(m_Models, [&](UINT i) {
+		const auto& m = m_Models[i];
+		totalModelDescriptors += m->GetMeshes().size() * sizeof(MeshArguments) / sizeof(HGPU);
+		return m->GetBLAS();
+	});
 
 	m_TLAS = MakeShared<TLAS>(g, std::move(blass));
-}
 
-void FrameGraph::AddPass(Graphics& g, Shared<Pass> pass)
-{
-	ConnectTargets(pass);
-	pass->OnAdd(g);
-	for (auto& out : pass->GetOutTargets())
+	m_GlobalHeap = MakeUnique<CPUShaderHeap>(g, m_HCPUs.size() + totalModelDescriptors);
+	AddGlobalResource("TLAS", m_TLAS);
+
+	for (auto& p : m_GlobalResources)
+		p.second->CreateView(g, m_GlobalHeap->Next().m_HCPU);
+	
+	for (auto& model : m_Models)
 	{
-		m_TargetNames.push_back(out.first);
-		m_Targets.push_back(out);
+		for (auto& mesh : model->GetMeshes())
+		{
+			mesh.m_VB->CreateView(g, m_GlobalHeap->Next().m_HCPU);
+			mesh.m_IB->CreateView(g, m_GlobalHeap->Next().m_HCPU);
+			mesh.m_DiffuseMap->CreateView(g, m_GlobalHeap->Next().m_HCPU);
+			mesh.m_NormalMap->CreateView(g, m_GlobalHeap->Next().m_HCPU);
+		}
 	}
-	m_Passes.push_back(std::move(pass));
+
+	for (auto& pass : m_Passes)
+	{
+		ConnectTargets(pass);
+		pass->OnAdd(g);
+		for (auto& out : pass->GetOutTargets())
+		{
+			m_TargetNames.push_back(out.first);
+			m_Targets.push_back(out);
+		}
+	}
 }
 
 Shared<RenderTarget> FrameGraph::Run(Graphics& g)
@@ -69,6 +86,11 @@ void FrameGraph::ShowUI(Graphics& g)
 
 	for (auto& pass : m_Passes)
 		pass->ShowGUI();
+}
+
+void FrameGraph::AddGlobalResource(const std::string& name, Shared<Resource> r)
+{
+	m_GlobalResources.insert({ std::move(name), std::move(r) });
 }
 
 void FrameGraph::ConnectTargets(Shared<Pass> pass)

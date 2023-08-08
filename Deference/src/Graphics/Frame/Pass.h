@@ -10,6 +10,8 @@ class Viewport;
 class Pass
 {
 public:
+	Pass(FrameGraph* parent);
+
 	virtual void Run(Graphics& g) = 0;
 	virtual void ShowGUI() {}
 
@@ -52,6 +54,7 @@ public:
 	
 protected:
 	void AddResource(Shared<Resource> r);
+	void GetGlobalResource(const std::string& name);
 
 	inline void AddInTarget(const std::string& name) { m_InTargets.push_back({ std::move(name), nullptr }); }
 	inline void AddOutTarget(const std::string& name) { m_OutTargets.push_back({ std::move(name), nullptr }); }
@@ -61,6 +64,7 @@ protected:
 protected:
 	Unique<RenderTargetHeap> m_RTs;
 	Unique<GPUShaderHeap> m_GPUHeap;
+	FrameGraph* m_Parent;
 
 private:
 	Shared<Viewport> m_Viewport;
@@ -68,4 +72,5 @@ private:
 	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_OutTargets;
 	std::vector<Shared<Bindable>> m_Bindables;
 	std::vector<Shared<Resource>> m_Resources;
+	std::vector<std::string> m_GlobalResourceNames;
 };

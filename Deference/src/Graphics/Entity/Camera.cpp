@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include <numbers>
+#include <imgui.h>
 
 constexpr float pi = std::numbers::pi_v<float>;
 
@@ -51,4 +52,13 @@ void Camera::Move(const XMFLOAT3& delta)
 	));
 
 	m_Pos += newDelta;
+}
+
+void Camera::ShowUI()
+{
+	if (ImGui::Begin("Camera"))
+	{
+		ImGui::SliderFloat("Move Speed", &m_MoveSpeed, 1.f, 100.f);
+		ImGui::End();
+	}
 }

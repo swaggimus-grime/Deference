@@ -29,9 +29,9 @@ RenderTarget::RenderTarget(const ComPtr<ID3D12Resource>& res)
     m_Res = std::move(res);
 }
 
-void RenderTarget::CreateView(Graphics& g, HDESC h)
+void RenderTarget::CreateView(Graphics& g, HCPU h)
 {
-    SetHandle(h);
+    SetHCPU(h);
     g.Device().CreateRenderTargetView(m_Res.Get(), nullptr, GetHCPU());
 }
 

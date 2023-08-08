@@ -1,3 +1,6 @@
+#ifndef __VERTEX_HLSLI__
+#define __VERTEX_HLSLI__
+
 struct VertexIn
 {
     float3 pos : POSITION;
@@ -28,3 +31,5 @@ struct GeometryVertex
     float3 tan;
     float3 bitan;
 };
+
+#endif

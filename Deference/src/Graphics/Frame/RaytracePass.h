@@ -5,11 +5,14 @@
 class RaytracePass : public Pass
 {
 public:
+	RaytracePass(FrameGraph* parent);
 	virtual void OnAdd(Graphics& g) override;
 	virtual void Run(Graphics& g) override;
 	virtual void OnResize(Graphics& g, UINT w, UINT h) override;
 	inline const auto& GetOutputs() const { return m_Outputs; }
 	Shared<UnorderedAccess> GetOutput(const std::string& name);
+
+	void AddModelDescriptors();
 
 protected:
 	Unique<RaytracingPipeline> m_Pipeline;

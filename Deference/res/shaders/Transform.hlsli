@@ -1,8 +1,5 @@
-//struct CamData
-//{
-//    matrix view;
-//    matrix proj;
-//};
+#ifndef __TRANSFORM_HLSLI__
+#define __TRANSFORM_HLSLI__
 
 struct ModelTransform
 {
@@ -12,4 +9,5 @@ struct ModelTransform
 };
 
 ConstantBuffer<ModelTransform> modelTransform : register(b0);
-//ConstantBuffer<ModelData> modelData : register(b1);
+
+#endif 

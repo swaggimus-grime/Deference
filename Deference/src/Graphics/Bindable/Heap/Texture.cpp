@@ -65,9 +65,9 @@ Texture2D::Texture2D(Graphics& g, const std::wstring& path)
      Transition(g, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
-void Texture2D::CreateView(Graphics& g, HDESC h)
+void Texture2D::CreateView(Graphics& g, HCPU h)
 {
-    SetHandle(h);
+    SetHCPU(h);
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.Format = m_Res ? m_Res->GetDesc().Format : DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -135,9 +135,9 @@ EnvironmentMap::EnvironmentMap(Graphics& g, const std::wstring& path)
     g.Flush();
 }
 
-void EnvironmentMap::CreateView(Graphics& g, HDESC h)
+void EnvironmentMap::CreateView(Graphics& g, HCPU h)
 {
-    SetHandle(h);
+    SetHCPU(h);
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.Format = m_Res->GetDesc().Format;

@@ -1,7 +1,7 @@
 #include "RasterPass.h"
 
-RasterPass::RasterPass(Graphics& g)
-	:m_DepthHeap(g), m_Depth(g)
+RasterPass::RasterPass(Graphics& g, FrameGraph* parent)
+	:Pass(parent), m_DepthHeap(g), m_Depth(g)
 {
 	m_Depth.CreateView(g, m_DepthHeap.Next());
 }

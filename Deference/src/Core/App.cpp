@@ -11,33 +11,12 @@ App::App(const std::string& name, UINT32 width, UINT32 height)
 	m_Gfx = MakeUnique<Graphics>(m_Wnd->GetHandle(), width, height);
 
 	m_Cam = MakeShared<Camera>(*m_Gfx);
-	m_Cup = MakeShared<Model>(*m_Gfx, "models\\interior\\scene.gltf");
+	m_Cup = MakeShared<Model>(*m_Gfx, "models\\void\\scene.gltf");
 
-	m_Graph = MakeUnique<FrameGraph>();
+	m_Graph = MakeUnique<PathTraceGraph>();
 	m_Graph->AddModel(m_Cup);
 	m_Graph->SetCamera(m_Cam);
 	m_Graph->FinishScene(*m_Gfx);
-
-	{
-		auto pass = MakeShared<RaytracedGeometryPass>(*m_Gfx, m_Graph.get());
-		m_Graph->AddPass(*m_Gfx, pass);
-	}
-	{
-		auto pass = MakeShared<DiffusePass>(*m_Gfx, m_Graph.get());
-		m_Graph->AddPass(*m_Gfx, pass);
-	}
-	{
-		auto pass = MakeShared<AOPass>(*m_Gfx, m_Graph.get());
-		m_Graph->AddPass(*m_Gfx, pass);
-	}
-	{
-		auto pass = MakeShared<AccumPass>(*m_Gfx, m_Graph.get());
-		m_Graph->AddPass(*m_Gfx, pass);
-	}
-	{
-		auto pass = MakeShared<HybridOutPass>(*m_Gfx);
-		m_Graph->AddPass(*m_Gfx, pass);
-	}
 
 	m_Wnd->SetOnResize([&](UINT w, UINT h) {
 		w = std::max(w, 1u);
@@ -72,6 +51,7 @@ INT App::Run()
 			auto target = m_Graph->Run(g);
 			target->Bind(g);
 			UI::BeginFrame(g);
+			m_Cam->ShowUI();
 			m_Graph->ShowUI(g);
 			UI::EndFrame(g);
 

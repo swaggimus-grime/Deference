@@ -25,18 +25,17 @@ public:
 		g.CL().ResourceBarrier(i, barriers.data());
 	}
 
-	inline auto GetHCPU() const { return  m_Handle.m_HCPU; }
-	inline auto GetHGPU() const { return  m_Handle.m_HGPU; }
+	inline auto GetHCPU() const { return m_HCPU; }
 
-	virtual void CreateView(Graphics& g, HDESC h) = 0;
+	virtual void CreateView(Graphics& g, HCPU h) = 0;
+
+	void CopyView(Graphics& g, HCPU hcpu);
 
 protected:
 	Resource();
-	inline void SetHandle(HDESC h) { m_Handle = h; }
+	inline void SetHCPU(HCPU h) { m_HCPU = h; }
 
 protected:
 	ComPtr<ID3D12Resource> m_Res;
-
-private:
-	HDESC m_Handle;
+	HCPU m_HCPU;
 };

@@ -11,17 +11,42 @@ public:
 	void AddModel(Shared<Model> m);
 	void FinishScene(Graphics& g);
 
-	void AddPass(Graphics& g, Shared<Pass> pass);
 	inline void SetCamera(Shared<Camera> cam) { m_Camera = cam; }
-	inline auto GetCamera() const { return m_Camera; }
 
 	Shared<RenderTarget> Run(Graphics& g);
 	void ShowUI(Graphics& g);
 
+	inline auto GetCamera() const { return m_Camera; }
 	inline auto& GetModels() const { return m_Models; }
 	inline auto GetTLAS() const { return m_TLAS; }
 
 	void OnResize(Graphics& g, UINT w, UINT h);
+
+	struct MeshArguments
+	{
+		HGPU m_VertexBuffer;
+		HGPU m_IndexBuffer;
+		HGPU m_DiffuseMap;
+		HGPU m_NormalMap;
+	};
+
+	inline auto GetGlobalResource(const std::string& name)
+	{
+		auto r = m_GlobalResources.find(name);
+		if (r != m_GlobalResources.end())
+			return r->second;
+		else
+			throw DefException("Cannot find global resource with name: " + name);
+	}
+protected:
+	template<typename T>
+		requires Derived<Pass, T>
+	void AddPass(Graphics& g)
+	{
+		m_Passes.push_back(std::move(MakeShared<T>(g)));
+	}
+
+	void AddGlobalResource(const std::string& name, Shared<Resource> r);
 
 private:
 	void ConnectTargets(Shared<Pass> pass);
@@ -37,4 +62,7 @@ private:
 	std::vector<Shared<Model>> m_Models;
 	Shared<TLAS> m_TLAS;
 	Shared<Camera> m_Camera;
+
+	Unique<CPUShaderHeap> m_GlobalHeap;
+	std::unordered_map<std::string, Shared<Resource>> m_GlobalResources;
 };

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 #include <string>
 #include <concepts>
 #include <type_traits>
@@ -25,6 +26,14 @@ struct HDESC
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
+
+template<typename T>
+static auto ToVector(std::vector<T> v, std::function<void(UINT)> f)
+{
+	return std::views::iota(0u, (UINT)v.size()) |
+		std::views::transform(f) |
+		std::ranges::to<std::vector>();
+}
 
 //Rename smart ptrs to shorter name
 template<typename T>
