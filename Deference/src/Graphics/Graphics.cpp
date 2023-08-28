@@ -10,11 +10,16 @@ D3D_ROOT_SIGNATURE_VERSION Graphics::ROOT_SIG_VERSION = D3D_ROOT_SIGNATURE_VERSI
 Graphics::Graphics(HWND hWnd, UINT width, UINT height)
     :m_Width(width), m_Height(height), m_Resized(false)
 {
+#ifdef DEBUG
     {
         ComPtr<ID3D12Debug> debug;
+        ComPtr<ID3D12Debug1> debug1;
         HR D3D12GetDebugInterface(IID_PPV_ARGS(&debug));
-        debug->EnableDebugLayer();
+        HR debug->QueryInterface(IID_PPV_ARGS(&debug1));
+        debug1->SetEnableGPUBasedValidation(true);
+        debug1->EnableDebugLayer();
     }
+#endif
 
     ComPtr<IDXGIFactory4> factory;
     UINT factFlags = 0;
@@ -54,7 +59,7 @@ Graphics::Graphics(HWND hWnd, UINT width, UINT height)
         D3D12_MESSAGE_ID DenyIds[] = {
             D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
             D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
-            D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
+            D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE
         };
 
         D3D12_INFO_QUEUE_FILTER NewFilter = {};

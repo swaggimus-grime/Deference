@@ -40,7 +40,7 @@ class VertexBuffer : public Resource, public Bindable
 public:
 	VertexBuffer(Graphics& g, const VertexStream& stream);
 	virtual void Bind(Graphics& g) override;
-	virtual void CreateView(Graphics& g, HDESC h) override;
+	virtual void CreateView(Graphics& g, HCPU h) override;
 	inline UINT NumVertices() const { return m_View.SizeInBytes / Stride(); }
 	inline UINT Stride() const { return m_View.StrideInBytes; }
 

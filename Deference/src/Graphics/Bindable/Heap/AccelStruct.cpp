@@ -7,7 +7,7 @@ TLAS::TLAS(Graphics& g, const std::vector<ComPtr<ID3D12Resource>>& blass)
 	D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs = {};
 	inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
 	inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
-	inputs.NumDescs = 1;
+	inputs.NumDescs = blass.size();
 	inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
 	D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info;
@@ -61,6 +61,8 @@ TLAS::TLAS(Graphics& g, const std::vector<ComPtr<ID3D12Resource>>& blass)
 
 	const auto barrier = CD3DX12_RESOURCE_BARRIER::UAV(m_Res.Get());
 	g.CL().ResourceBarrier(1, &barrier);
+
+	m_Res->SetName(L"TLAS");
 
 	g.Flush();
 }
@@ -185,7 +187,7 @@ ComPtr<ID3D12Resource> TLAS::BLAS(Graphics& g, const std::vector<std::pair<Share
 
 void TLAS::CreateView(Graphics& g, HCPU h)
 {
-	SetHCPU(h);
+	m_HCPU = h;
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

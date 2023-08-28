@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <ranges>
 #include <functional>
 #include <string>
 #include <concepts>
@@ -18,22 +19,15 @@ using HGPU = D3D12_GPU_DESCRIPTOR_HANDLE;
 
 struct HDESC
 {
-	HCPU m_HCPU;
-	HGPU m_HGPU;
+	HCPU m_HCPU = { 0 };
+	HGPU m_HGPU = { 0 };
+	UINT m_HeapIdx = 0;
 };
 
 #define ALIGN(v, powerOf2Alignment) (((v) + (powerOf2Alignment)-1) & ~((powerOf2Alignment)-1))
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
-
-template<typename T>
-static auto ToVector(std::vector<T> v, std::function<void(UINT)> f)
-{
-	return std::views::iota(0u, (UINT)v.size()) |
-		std::views::transform(f) |
-		std::ranges::to<std::vector>();
-}
 
 //Rename smart ptrs to shorter name
 template<typename T>
@@ -57,6 +51,9 @@ concept Derived = std::is_base_of<U, T>::value;
 
 template<typename U, typename T>
 concept SameClass = std::is_same<U, T>::value;
+
+template<typename U, typename T>
+concept NotSame = !std::is_same<U, T>::value;
 
 template<typename T>
 concept IsEnum = std::is_enum_v<T>;

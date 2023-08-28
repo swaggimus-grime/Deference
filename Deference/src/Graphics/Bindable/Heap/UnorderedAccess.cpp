@@ -23,7 +23,7 @@ UnorderedAccess::UnorderedAccess(Graphics& g)
 
 void UnorderedAccess::CreateView(Graphics& g, HCPU h)
 {
-    SetHCPU(h);
+    m_HCPU = h;
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
     desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
     g.Device().CreateUnorderedAccessView(m_Res.Get(), nullptr, &desc,

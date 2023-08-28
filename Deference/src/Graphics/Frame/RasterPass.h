@@ -5,15 +5,14 @@
 class RasterPass : public Pass
 {
 public:
-	RasterPass(Graphics& g, FrameGraph* parent);
 	virtual void Run(Graphics& g) override;
 	virtual void OnResize(Graphics& g, UINT w, UINT h) override;
 
-
 protected:
-	DepthStencil m_Depth;
+	RasterPass(Graphics& g, const std::string& name, FrameGraph* parent);
 	Unique<Pipeline> m_Pipeline;
 
 private:
 	DepthStencilHeap m_DepthHeap;
+	Shared<DepthStencil> m_Depth;
 };

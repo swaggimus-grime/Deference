@@ -43,7 +43,8 @@ private:
 
 
 protected:
-	Shared<RootSig> m_GlobalSig;
+	inline void SetGlobalSig(Unique<RootSig>&& sig) { m_GlobalSig = std::move(sig); }
+	inline void AddLocalSig(Unique<RootSig>&& sig) { m_Sigs.push_back(std::move(sig)); }
 
 private:
 	Shared<ShaderBindTable> m_RayGenTable;
@@ -54,6 +55,8 @@ private:
 	ComPtr<ID3D12StateObjectProperties> m_Props;
 
 	D3D12_DISPATCH_RAYS_DESC m_Dispatch;
+	Unique<RootSig> m_GlobalSig;
+	std::vector<Unique<RootSig>> m_Sigs;
 };
 
 class ShaderBindTable

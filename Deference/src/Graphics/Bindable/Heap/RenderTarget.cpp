@@ -31,7 +31,7 @@ RenderTarget::RenderTarget(const ComPtr<ID3D12Resource>& res)
 
 void RenderTarget::CreateView(Graphics& g, HCPU h)
 {
-    SetHCPU(h);
+    m_HCPU = h;
     g.Device().CreateRenderTargetView(m_Res.Get(), nullptr, GetHCPU());
 }
 

@@ -16,7 +16,7 @@ void Pipeline::Create(Graphics& g, Shared<RootSig> sig, const VertexShader& vs, 
 {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {}; 
     psoDesc.InputLayout = layout.Layout();
-    psoDesc.pRootSignature = sig->Sig();
+    psoDesc.pRootSignature = **sig;
     psoDesc.VS = vs.ByteCode(); 
     psoDesc.PS = ps.ByteCode(); 
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;

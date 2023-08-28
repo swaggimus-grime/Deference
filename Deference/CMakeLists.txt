@@ -38,8 +38,8 @@ add_custom_target(copy_resources ALL
 add_dependencies(Deference copy_resources)
 
 if (CMAKE_VERSION VERSION_GREATER 3.16)
+  set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
   target_precompile_headers(Deference PUBLIC ${HEADERS})
-  #set(CMAKE_PCH_INSTANTIATE_TEMPLATES ON)
 endif()
 
 set_property(TARGET Deference PROPERTY CXX_STANDARD 23)

@@ -21,6 +21,12 @@ public:
 	inline XMMATRIX ViewInv() const { return m_ViewInv; }
 	inline XMMATRIX Proj() const { return m_Proj; }
 	inline XMMATRIX ProjInv() const { return m_ProjInv; }
+	inline XMMATRIX WorldToProj() const { return m_View * m_Proj; }
+	inline XMMATRIX ProjToWorld() const { return XMMatrixInverse(nullptr, m_View * m_Proj); }
+
+	inline XMFLOAT4 DirDU() const { return XMFLOAT4(m_DirDU.x, m_DirDU.y, m_DirDU.z, 0.f); }
+	inline XMFLOAT4 DirDV() const { return XMFLOAT4(m_DirDV.x, m_DirDV.y, m_DirDV.z, 0.f); }
+	inline XMFLOAT4 DirTopLeft() const { return XMFLOAT4(m_DirTopLeft.x, m_DirTopLeft.y, m_DirTopLeft.z, 0.f); }
 
 	inline auto Share() const { return shared_from_this(); }
 	void Rotate(float dx, float dy);
@@ -33,6 +39,11 @@ private:
 	XMMATRIX m_ViewInv;
 	XMMATRIX m_Proj;
 	XMMATRIX m_ProjInv;
+
+	XMFLOAT3 m_DirDU;
+	XMFLOAT3 m_DirDV;
+	XMFLOAT3 m_DirTopLeft;
+	XMFLOAT2 m_ImgPlaneSize;
 
 	XMFLOAT3 m_Pos;
 	float m_Pitch;

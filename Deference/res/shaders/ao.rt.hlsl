@@ -84,7 +84,8 @@ void AoRayGen()
 void AoMiss(inout AORayPayload rayData)
 {
 	// Our ambient occlusion value is 1 if we hit nothing.
-    rayData.aoValue = 1.0f;
+    rayData.aoValue = RayTCurrent();
+
 }
 
 // What code is executed when our ray hits a potentially transparent surface?

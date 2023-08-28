@@ -44,8 +44,8 @@ Swapchain::Swapchain(Graphics& g, HWND hWnd, UINT numBuffs)
         ComPtr<ID3D12Resource> bb;
         HR m_SC->GetBuffer(i, IID_PPV_ARGS(&bb));
 
-        auto rt = MakeUnique<RenderTarget>(std::move(bb));
-        rt->CreateView(g, m_RTs->Next());
+        auto rt = MakeShared<RenderTarget>(std::move(bb));
+        m_RTs->Add(g, rt);
 
         m_BackBuffs.push_back(std::move(rt));
     }
@@ -68,8 +68,8 @@ void Swapchain::OnResize(Graphics& g, UINT w, UINT h)
         ComPtr<ID3D12Resource> bb;
         HR m_SC->GetBuffer(i, IID_PPV_ARGS(&bb));
 
-        auto rt = MakeUnique<RenderTarget>(std::move(bb));
-        rt->CreateView(g, m_RTs->Next());
+        auto rt = MakeShared<RenderTarget>(std::move(bb));
+        m_RTs->Add(g, rt);
 
         m_BackBuffs.push_back(std::move(rt));
     }

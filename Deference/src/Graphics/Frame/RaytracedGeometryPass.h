@@ -9,10 +9,12 @@ class Model;
 class RaytracedGeometryPass : public RaytracePass
 {
 public:
-	RaytracedGeometryPass(Graphics& g, FrameGraph* parent);
+	RaytracedGeometryPass(Graphics& g, const std::string& name, FrameGraph* parent);
 	virtual void Run(Graphics& g) override;
-	virtual void OnAdd(Graphics& g) override;
 	virtual void ShowGUI() override;
+	virtual void Finish(Graphics& g) override;
+
+private:
 
 private:
 	Shared<ConstantBuffer> m_Transform;

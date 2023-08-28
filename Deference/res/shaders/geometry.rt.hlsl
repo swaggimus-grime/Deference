@@ -16,8 +16,8 @@ Texture2D<float4> env : register(t1);
 
 struct Camera
 {
-    matrix viewInv;
-    matrix projInv;
+    matrix projToWorld;
+    matrix worldToProj;
     float3 wPos;
 };
 
@@ -53,7 +53,7 @@ void PrimaryClosestHit(inout SimplePayload dummy, BuiltInTriangleIntersectionAtt
     ShadingData shadeData = getShadingData(PrimitiveIndex(), attribs);
 
 	// Save out our G-buffer values to the specified output textures
-    gWsPos[idx] = float4(shadeData.wPos, 1.f);
+    gWsPos[idx] = float4(shadeData.wPos, 1);
     gWsNorm[idx] = float4(shadeData.normal, length(shadeData.wPos - cam.wPos));
     gMatDif[idx] = float4(shadeData.diffuse, shadeData.opacity);
     //gMatSpec[idx] = float4(shadeData.specular, shadeData.linearRoughness);
@@ -62,19 +62,14 @@ void PrimaryClosestHit(inout SimplePayload dummy, BuiltInTriangleIntersectionAtt
 [shader("raygeneration")]
 void GeometryRayGen()
 {
-	// Convert our ray index into a ray direction in world space. 
     float2 currenPixelLocation = DispatchRaysIndex().xy + float2(0.5f, 0.5f);
     float2 pixelCenter = currenPixelLocation / DispatchRaysDimensions().xy;
     float2 ndc = float2(2, -2) * pixelCenter + float2(-1, 1);
-    float4 at = mul(float4(ndc, 1, 1), cam.projInv);
-    float3 dir = mul(float4(normalize(at.xyz / at.w), 0), cam.viewInv).xyz;
-    
+    float4 world = mul(float4(ndc, 0, 1), cam.projToWorld);
+    world.xyz /= world.w;
+
 	// Initialize a ray structure for our ray tracer
-    RayDesc ray;
-    ray.Origin = cam.wPos;
-    ray.Direction = dir;
-    ray.TMin = 0.0001f;
-    ray.TMax = 1e+38f;
+    RayDesc ray = { cam.wPos, 0.0f, normalize(world.xyz - cam.wPos), 1e+38f };
 
 	// Initialize our ray payload (a per-ray, user-definable structure).
     SimplePayload payload = { false };

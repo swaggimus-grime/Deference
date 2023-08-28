@@ -19,9 +19,10 @@ AOPipeline::AOPipeline(Graphics& g)
 		hg->SetHitGroupExport(hitGroup);
 	}
 	{
-		m_GlobalSig = MakeShared<RootSig>(g, 0, nullptr);
+		auto pSig = MakeUnique<RootSig>(g, 0, nullptr);
 		auto sig = so.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-		sig->SetRootSignature(m_GlobalSig->Sig());
+		sig->SetRootSignature(**pSig);
+		SetGlobalSig(std::move(pSig));
 	}
 	{
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[5];
@@ -38,31 +39,25 @@ AOPipeline::AOPipeline(Graphics& g)
 		params[3].InitAsDescriptorTable(1, &ranges[3]);
 		params[4].InitAsDescriptorTable(1, &ranges[4]);
 
-		m_RayGenSig = MakeShared<RootSig>(g, _countof(params), params, true);
+		auto pSig = MakeUnique<RootSig>(g, _countof(params), params, true);
 		auto sig = so.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-		sig->SetRootSignature(m_RayGenSig->Sig());
+		sig->SetRootSignature(**pSig);
 
 		auto ass = so.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 		ass->AddExport(rayGenEP);
 		ass->SetSubobjectToAssociate(*sig);
+		AddLocalSig(std::move(pSig));
 	}
 	{
-		m_HitSig = MakeShared<RootSig>(g, 0, nullptr, true);
+		auto pSig = MakeUnique<RootSig>(g, 0, nullptr, true);
 		auto sig = so.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-		sig->SetRootSignature(m_HitSig->Sig());
+		sig->SetRootSignature(**pSig);
 
 		auto ass = so.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 		ass->AddExport(anyEP);
-		ass->SetSubobjectToAssociate(*sig);
-	}
-	{
-		m_MissSig = MakeShared<RootSig>(g, 0, nullptr, true);
-		auto sig = so.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-		sig->SetRootSignature(m_MissSig->Sig());
-
-		auto ass = so.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 		ass->AddExport(missEP);
 		ass->SetSubobjectToAssociate(*sig);
+		AddLocalSig(std::move(pSig));
 	}
 	{
 		auto config = so.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();

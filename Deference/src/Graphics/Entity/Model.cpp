@@ -42,7 +42,11 @@ Model::Model(Graphics& g, const std::string& filePath)
                 }
             }
 
-            stream.Norm(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mNormals[vert].x);
+            if (mesh->HasNormals())
+                stream.Norm(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mNormals[vert].x);
+            else
+                stream.Norm(vert) = { 0, 0, 0 };
+                
             if (mesh->HasTangentsAndBitangents())
             {
                 stream.Tan(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mTangents[vert].x);
@@ -80,6 +84,7 @@ Model::Model(Graphics& g, const std::string& filePath)
         m.m_IB = MakeShared<IndexBuffer>(g, indices.size(), indices.data());
         m.m_DiffuseMap = getTexture(aiTextureType_DIFFUSE);
         m.m_NormalMap = getTexture(aiTextureType_NORMALS);
+        m.m_SpecularMap = getTexture(aiTextureType_SPECULAR);
         m_Meshes.push_back(std::move(m));
     }
 

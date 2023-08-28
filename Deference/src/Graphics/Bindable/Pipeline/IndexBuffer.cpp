@@ -16,9 +16,9 @@ void IndexBuffer::Bind(Graphics& g)
     g.CL().IASetIndexBuffer(&m_View);
 }
 
-void IndexBuffer::CreateView(Graphics& g, HDESC h)
+void IndexBuffer::CreateView(Graphics& g, HCPU h)
 {
-	SetHandle(h);
+	m_HCPU = h;
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

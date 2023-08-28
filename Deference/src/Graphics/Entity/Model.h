@@ -10,13 +10,6 @@ class Graphics;
 class InputLayout;
 class FrameGraph;
 
-struct TextureIndex
-{
-	INT m_Diffuse;
-	INT m_Specular;
-	INT m_Normal;
-};
-
 class Model
 {
 public:
@@ -32,6 +25,7 @@ public:
 		Shared<IndexBuffer> m_IB;
 		Shared<Texture2D> m_DiffuseMap;
 		Shared<Texture2D> m_NormalMap;
+		Shared<Texture2D> m_SpecularMap;
 	};
 
 private:

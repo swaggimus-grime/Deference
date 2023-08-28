@@ -1,28 +1,25 @@
 #include "RasterPass.h"
 
-RasterPass::RasterPass(Graphics& g, FrameGraph* parent)
-	:Pass(parent), m_DepthHeap(g), m_Depth(g)
+RasterPass::RasterPass(Graphics& g, const std::string& name, FrameGraph* parent)
+	:Pass(std::move(name), parent), m_DepthHeap(g), m_Depth(MakeShared<DepthStencil>(g))
 {
-	m_Depth.CreateView(g, m_DepthHeap.Next());
+	m_DepthHeap.Add(g, m_Depth);
 }
 
 void RasterPass::Run(Graphics& g)
 {
 	BindBindables(g);
-
-	for (auto& out : GetOutTargets())
+	auto& outs = GetOutTargets();
+	for (auto& out : outs)
 		out.second->Clear(g);
-	m_Depth.Clear(g);
-
-	m_RTs->BindWithDepth(g, m_Depth);
-
+	m_Depth->Clear(g);
+	m_TargetHeap->BindWithDepth(g, *m_Depth);
 	m_Pipeline->Bind(g);
-
 	g.CL().IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 void RasterPass::OnResize(Graphics& g, UINT w, UINT h)
 {
 	Pass::OnResize(g, w, h);
-	m_Depth.Resize(g, w, h);
+	m_Depth->Resize(g, w, h);
 }

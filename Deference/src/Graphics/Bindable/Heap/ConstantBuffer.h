@@ -53,10 +53,10 @@ public:
     friend class ConstantBuffer;
 
     template<CONSTANT_TYPE T>
-    void Add(const std::string& name)
+    void Add(const std::string& name, std::optional<size_t> size = {})
     {
         m_Constants.insert({ name, { T, m_Size } });
-        m_Size += sizeof(ConstType<T>::CPUType);
+        m_Size += size.has_value() ? *size : sizeof(ConstType<T>::CPUType);
     }
 
 private:
@@ -117,7 +117,7 @@ public:
         return ConstantBufferElement(m_Data + offset.second);
     }
 
-    virtual void CreateView(Graphics& g, HDESC h) override;
+    virtual void CreateView(Graphics& g, HCPU h) override;
 
     inline D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddress() const { return m_Res->GetGPUVirtualAddress(); }
 

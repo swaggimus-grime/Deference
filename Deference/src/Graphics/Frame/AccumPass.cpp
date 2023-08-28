@@ -6,14 +6,19 @@
 #include "FrameGraph.h"
 #include "VecOps.h"
 
-AccumPass::AccumPass(Graphics& g, FrameGraph* parent)
-	:ScreenPass(g),  m_NumPassedFrames(0), m_PrevFrameHeap(g, 1), m_Cam(parent->GetCamera())
+AccumPass::AccumPass(Graphics& g, const std::string& name, FrameGraph* parent)
+	:ScreenPass(g, std::move(name), parent),  m_NumPassedFrames(0), m_PrevFrameHeap(g, 1)
 {
-	AddInTarget("AO");
-	AddOutTarget("Accumulation");
+	AddInTarget("Target");
+	AddOutTarget("Target");
 
 	m_Pipeline = MakeUnique<AccumPipeline>(g);
-	m_PrevCamHash = m_Cam->Pos() * m_Cam->Pitch() * m_Cam->Yaw();
+	m_PrevCamHash = { 0, 0, 0 };
+
+	m_PrevFrame = MakeShared<RenderTarget>(g);
+	m_PrevFrameHeap.Add(g, m_PrevFrame);
+	m_PrevFrame->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	AddTargetResource(m_PrevFrame);
 }
 
 void AccumPass::ShowGUI()
@@ -24,22 +29,6 @@ void AccumPass::OnResize(Graphics& g, UINT w, UINT h)
 {
 	ScreenPass::OnResize(g, w, h);
 	m_PrevFrame->Resize(g, w, h);
-	m_PrevFrame->CreateShaderResourceView(g, m_GPUHeap->Next());
-	m_PrevFrame->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-}
-
-void AccumPass::OnAdd(Graphics& g)
-{
-	__super::OnAdd(g);
-	
-	auto& ins = GetInTargets();
-	m_GPUHeap = MakeUnique<GPUShaderHeap>(g, ins.size() + 1);
-	for (auto& in : ins)
-		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());
-
-	m_PrevFrame = MakeUnique<RenderTarget>(g);
-	m_PrevFrame->CreateView(g, m_PrevFrameHeap.Next());
-	m_PrevFrame->CreateShaderResourceView(g, m_GPUHeap->Next());
 	m_PrevFrame->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
@@ -47,7 +36,8 @@ void AccumPass::Run(Graphics& g)
 {
 	__super::Run(g);
 
-	XMFLOAT3 currentCamHash = m_Cam->Pos() * m_Cam->Pitch() * m_Cam->Yaw();
+	const auto& cam = m_Parent->GetCamera();
+	XMFLOAT3 currentCamHash = cam->Pos() * cam->Pitch() * cam->Yaw();
 	if (m_PrevCamHash != currentCamHash)
 	{
 		m_PrevCamHash = std::move(currentCamHash);
@@ -57,14 +47,14 @@ void AccumPass::Run(Graphics& g)
 	BindBindables(g);
 	m_GPUHeap->Bind(g);
 
-	auto currentAO = GetInTarget("AO");
+	auto currentAO = GetInTarget("Target");
 	currentAO->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	g.CL().SetGraphicsRootDescriptorTable(0, m_GPUHeap->GPUStart());
 	g.CL().SetGraphicsRoot32BitConstant(1, m_NumPassedFrames++, 0);
 
 	Rasterize(g);
 
-	auto accum = GetOutTarget("Accumulation");
+	auto accum = GetOutTarget("Target");
 	m_PrevFrame->Transition(g, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST);
 	accum->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	g.CL().CopyResource(**m_PrevFrame, **accum);

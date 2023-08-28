@@ -7,11 +7,79 @@
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+#include <filesystem>
+#include <shlobj.h>
+
+static std::wstring GetLatestWinPixGpuCapturerPath_Cpp17()
+{
+	LPWSTR programFilesPath = nullptr;
+	SHGetKnownFolderPath(FOLDERID_ProgramFiles, KF_FLAG_DEFAULT, NULL, &programFilesPath);
+
+	std::filesystem::path pixInstallationPath = programFilesPath;
+	pixInstallationPath /= "Microsoft PIX";
+
+	std::wstring newestVersionFound;
+
+	for (auto const& directory_entry : std::filesystem::directory_iterator(pixInstallationPath))
+	{
+		if (directory_entry.is_directory())
+		{
+			if (newestVersionFound.empty() || newestVersionFound < directory_entry.path().filename().c_str())
+			{
+				newestVersionFound = directory_entry.path().filename().c_str();
+			}
+		}
+	}
+
+	if (newestVersionFound.empty())
+	{
+		// TODO: Error, no PIX installation found
+	}
+
+	return pixInstallationPath / newestVersionFound / L"WinPixGpuCapturer.dll";
+}
+
+static std::wstring GetLatestNvidiaNsightPath()
+{
+	LPWSTR programFilesPath = nullptr;
+	SHGetKnownFolderPath(FOLDERID_ProgramFiles, KF_FLAG_DEFAULT, NULL, &programFilesPath);
+
+	std::filesystem::path pixInstallationPath = programFilesPath;
+	pixInstallationPath /= "Microsoft PIX";
+
+	std::wstring newestVersionFound;
+
+	for (auto const& directory_entry : std::filesystem::directory_iterator(pixInstallationPath))
+	{
+		if (directory_entry.is_directory())
+		{
+			if (newestVersionFound.empty() || newestVersionFound < directory_entry.path().filename().c_str())
+			{
+				newestVersionFound = directory_entry.path().filename().c_str();
+			}
+		}
+	}
+
+	if (newestVersionFound.empty())
+	{
+		// TODO: Error, no PIX installation found
+	}
+
+	return pixInstallationPath / newestVersionFound / L"WinPixGpuCapturer.dll";
+}
+
 Window::Window(const std::string& name, unsigned int width, unsigned int height)
 	:m_Inst(GetModuleHandle(nullptr)), m_Name(name), m_Width(width), m_Height(height)
 {
 	//SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	HR CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+	// Check to see if a copy of WinPixGpuCapturer.dll has already been injected into the application.
+	// This may happen if the application is launched through the PIX UI. 
+	if (GetModuleHandleW(L"WinPixGpuCapturer.dll") == 0)
+	{
+		LoadLibraryW(GetLatestWinPixGpuCapturerPath_Cpp17().c_str());
+	}
 
 	WNDCLASSEX wc{};
 	HINSTANCE hInst = m_Inst;
@@ -210,7 +278,7 @@ LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 		m_Width = LOWORD(lParam);
 		m_Height = HIWORD(lParam);
-		m_OnResize(m_Width, m_Height);
+		//m_OnResize(m_Width, m_Height);
 		//m_Graphics->OnWindowResize(std::max(1u, m_Width), std::max(1u, m_Height));
 		ImGui::GetIO().DisplaySize = ImVec2((float)m_Width, (float)m_Height);
 		break;

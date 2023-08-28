@@ -29,9 +29,10 @@ RaytracedGeometryPipeline::RaytracedGeometryPipeline(Graphics& g)
 		params[0].InitAsConstantBufferView(0);
 		params[1].InitAsDescriptorTable(1, &ranges[0]);
 
-		m_GlobalSig = MakeShared<RootSig>(g, _countof(params), params);
+		auto pSig = MakeUnique<RootSig>(g, _countof(params), params);
 		auto sig = so.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-		sig->SetRootSignature(m_GlobalSig->Sig());
+		sig->SetRootSignature(**pSig);
+		SetGlobalSig(std::move(pSig));
 	}
 	{
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
@@ -40,13 +41,14 @@ RaytracedGeometryPipeline::RaytracedGeometryPipeline(Graphics& g)
 		CD3DX12_ROOT_PARAMETER1 params[1];
 		params[0].InitAsDescriptorTable(_countof(ranges), &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
 
-		m_RayGenSig = MakeShared<RootSig>(g, _countof(params), params, true);
+		auto pSig = MakeUnique<RootSig>(g, _countof(params), params, true);
 		auto sig = so.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-		sig->SetRootSignature(m_RayGenSig->Sig());
+		sig->SetRootSignature(**pSig);
 
 		auto ass = so.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 		ass->AddExport(rayGenEP);
 		ass->SetSubobjectToAssociate(*sig);
+		AddLocalSig(std::move(pSig));
 	}
 	{
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[4];
@@ -61,13 +63,14 @@ RaytracedGeometryPipeline::RaytracedGeometryPipeline(Graphics& g)
 		params[2].InitAsDescriptorTable(1, &ranges[2]);
 		params[3].InitAsDescriptorTable(1, &ranges[3]);
 
-		m_HitSig = MakeShared<RootSig>(g, _countof(params), params, true);
+		auto pSig = MakeUnique<RootSig>(g, _countof(params), params, true);
 		auto sig = so.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-		sig->SetRootSignature(m_HitSig->Sig());
+		sig->SetRootSignature(**pSig);
 
 		auto ass = so.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 		ass->AddExports(exports);
 		ass->SetSubobjectToAssociate(*sig);
+		AddLocalSig(std::move(pSig));
 	}
 	{
 		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
@@ -76,13 +79,14 @@ RaytracedGeometryPipeline::RaytracedGeometryPipeline(Graphics& g)
 		CD3DX12_ROOT_PARAMETER1 params[1];
 		params[0].InitAsDescriptorTable(_countof(ranges), &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
 
-		m_MissSig = MakeShared<RootSig>(g, _countof(params), params, true);
+		auto pSig = MakeUnique<RootSig>(g, _countof(params), params, true);
 		auto sig = so.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-		sig->SetRootSignature(m_MissSig->Sig());
+		sig->SetRootSignature(**pSig);
 
 		auto ass = so.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 		ass->AddExport(missEP);
 		ass->SetSubobjectToAssociate(*sig);
+		AddLocalSig(std::move(pSig));
 	}
 	{
 		auto config = so.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();

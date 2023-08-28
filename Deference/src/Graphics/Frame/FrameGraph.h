@@ -1,34 +1,31 @@
 #pragma once
 
+#include "Bindable/Heap/DescriptorHeap.h"
+#include "Bindable/Heap/RenderTarget.h"
+#include "Debug/Exception.h"
 #include "Pass.h"
+#include <vector>
 
 class Model;
+
+struct Scene
+{
+	std::vector<Shared<Model>> m_Models;
+	Shared<const Camera> m_Camera;
+};
 
 class FrameGraph
 {
 public:
-	FrameGraph();
-	void AddModel(Shared<Model> m);
-	void FinishScene(Graphics& g);
-
-	inline void SetCamera(Shared<Camera> cam) { m_Camera = cam; }
-
 	Shared<RenderTarget> Run(Graphics& g);
 	void ShowUI(Graphics& g);
 
 	inline auto GetCamera() const { return m_Camera; }
 	inline auto& GetModels() const { return m_Models; }
-	inline auto GetTLAS() const { return m_TLAS; }
 
 	void OnResize(Graphics& g, UINT w, UINT h);
 
-	struct MeshArguments
-	{
-		HGPU m_VertexBuffer;
-		HGPU m_IndexBuffer;
-		HGPU m_DiffuseMap;
-		HGPU m_NormalMap;
-	};
+	Shared<RenderTarget> GetTarget(const PassTargetName& name);
 
 	inline auto GetGlobalResource(const std::string& name)
 	{
@@ -38,31 +35,46 @@ public:
 		else
 			throw DefException("Cannot find global resource with name: " + name);
 	}
+
+	inline auto GetGlobalVectorResource(const std::string& name)
+	{
+		auto r = m_GlobalVectorResources.find(name);
+		if (r != m_GlobalVectorResources.end())
+			return r->second;
+		else
+			throw DefException("Cannot find global vector resource with name: " + name);
+	}
+
 protected:
+	FrameGraph(Scene& scene);
+
 	template<typename T>
 		requires Derived<Pass, T>
-	void AddPass(Graphics& g)
+	auto AddPass(Graphics& g, const std::string& name)
 	{
-		m_Passes.push_back(std::move(MakeShared<T>(g)));
+		auto p = MakeShared<T>(g, name, this);
+		m_Passes.emplace_back(std::move(name), p);
+		return std::move(p);
 	}
 
 	void AddGlobalResource(const std::string& name, Shared<Resource> r);
+	void AddGlobalVectorResource(const std::string& name, std::tuple<HCPU, UINT, UINT> range);
+
+	void Finish(Graphics& g);
+
+	virtual void RecordPasses(Graphics& g) = 0;
+	void FinishRecordingPasses();
 
 private:
-	void ConnectTargets(Shared<Pass> pass);
-	Shared<RenderTarget> GetTarget(const std::string& name);
+	std::vector<std::pair<std::string, Shared<Pass>>> m_Passes;
 
-private:
-	std::vector<Shared<Pass>> m_Passes;
-
-	std::vector<std::string> m_TargetNames;
+	std::vector<PassTargetName> m_TargetNames;
 	int m_CurrentTarget;
-	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_Targets;
 
 	std::vector<Shared<Model>> m_Models;
-	Shared<TLAS> m_TLAS;
-	Shared<Camera> m_Camera;
+	Shared<const Camera> m_Camera;
 
 	Unique<CPUShaderHeap> m_GlobalHeap;
 	std::unordered_map<std::string, Shared<Resource>> m_GlobalResources;
+	std::unordered_map<std::string, std::tuple<HCPU, UINT, UINT>> m_GlobalVectorResources;
 };

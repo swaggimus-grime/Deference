@@ -14,8 +14,4 @@ public:
 	static constexpr LPCWSTR closestEP = L"PrimaryClosestHit";
 	static constexpr LPCWSTR anyEP = L"PrimaryAnyHit";
 
-private:
-	Shared<RootSig> m_RayGenSig;
-	Shared<RootSig> m_HitSig;
-	Shared<RootSig> m_MissSig;
 };

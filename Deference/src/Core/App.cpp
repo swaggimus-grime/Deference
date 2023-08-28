@@ -11,12 +11,12 @@ App::App(const std::string& name, UINT32 width, UINT32 height)
 	m_Gfx = MakeUnique<Graphics>(m_Wnd->GetHandle(), width, height);
 
 	m_Cam = MakeShared<Camera>(*m_Gfx);
-	m_Cup = MakeShared<Model>(*m_Gfx, "models\\void\\scene.gltf");
+	m_Cup = MakeShared<Model>(*m_Gfx, "models\\hangar\\scene.gltf");
 
-	m_Graph = MakeUnique<PathTraceGraph>();
-	m_Graph->AddModel(m_Cup);
-	m_Graph->SetCamera(m_Cam);
-	m_Graph->FinishScene(*m_Gfx);
+	Scene scene;
+	scene.m_Camera = m_Cam->Share();
+	scene.m_Models.push_back(m_Cup);
+	m_Graph = MakeUnique<HybridGraph>(*m_Gfx, scene);
 
 	m_Wnd->SetOnResize([&](UINT w, UINT h) {
 		w = std::max(w, 1u);

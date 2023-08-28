@@ -11,9 +11,9 @@ ConstantBuffer::ConstantBuffer(Graphics& g, const ConstantBufferLayout& layout)
 	BeginUpdate();
 }
 
-void ConstantBuffer::CreateView(Graphics& g, HDESC h)
+void ConstantBuffer::CreateView(Graphics& g, HCPU h)
 {
-	SetHandle(h);
+	m_HCPU = h;
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 	desc.BufferLocation = m_Res->GetGPUVirtualAddress();
 	desc.SizeInBytes = m_Res->GetDesc().Width;

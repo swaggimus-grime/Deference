@@ -1,11 +1,11 @@
 Model Information:
-* title:	The Bathroom (Free)
-* source:	https://sketchfab.com/3d-models/the-bathroom-free-d5e5035dda434b8d9beaa7271f1c85fc
-* author:	Evan (https://sketchfab.com/Evanz)
+* title:	Modern Bathroom
+* source:	https://sketchfab.com/3d-models/modern-bathroom-9ba7e0a094694335bd8f4656611c0676
+* author:	dylanheyes (https://sketchfab.com/dylanheyes)
 
 Model License:
 * license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
 * requirements:	Author must be credited. Commercial use is allowed.
 
 If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
-This work is based on "The Bathroom (Free)" (https://sketchfab.com/3d-models/the-bathroom-free-d5e5035dda434b8d9beaa7271f1c85fc) by Evan (https://sketchfab.com/Evanz) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+This work is based on "Modern Bathroom" (https://sketchfab.com/3d-models/modern-bathroom-9ba7e0a094694335bd8f4656611c0676) by dylanheyes (https://sketchfab.com/dylanheyes) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

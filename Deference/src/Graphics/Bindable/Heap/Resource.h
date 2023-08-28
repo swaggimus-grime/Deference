@@ -25,15 +25,13 @@ public:
 		g.CL().ResourceBarrier(i, barriers.data());
 	}
 
+	static void CopyViews(Graphics& g, HCPU dest, HCPU src, UINT num, D3D12_DESCRIPTOR_HEAP_TYPE type);
+
 	inline auto GetHCPU() const { return m_HCPU; }
-
 	virtual void CreateView(Graphics& g, HCPU h) = 0;
-
-	void CopyView(Graphics& g, HCPU hcpu);
 
 protected:
 	Resource();
-	inline void SetHCPU(HCPU h) { m_HCPU = h; }
 
 protected:
 	ComPtr<ID3D12Resource> m_Res;

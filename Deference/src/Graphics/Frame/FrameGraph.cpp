@@ -1,61 +1,16 @@
 #include "FrameGraph.h"
+#include "Entity/Model.h"
 #include <imgui.h>
 
-FrameGraph::FrameGraph()
-	:m_CurrentTarget(0)
+FrameGraph::FrameGraph(Scene& scene)
+	:m_CurrentTarget(0), m_Camera(scene.m_Camera), m_Models(scene.m_Models)
 {
-}
-
-void FrameGraph::AddModel(Shared<Model> m)
-{
-	m_Models.push_back(std::move(m));
-}
-
-void FrameGraph::FinishScene(Graphics& g)
-{
-	UINT totalModelDescriptors = 0;
-
-	const auto& blass = ToVector(m_Models, [&](UINT i) {
-		const auto& m = m_Models[i];
-		totalModelDescriptors += m->GetMeshes().size() * sizeof(MeshArguments) / sizeof(HGPU);
-		return m->GetBLAS();
-	});
-
-	m_TLAS = MakeShared<TLAS>(g, std::move(blass));
-
-	m_GlobalHeap = MakeUnique<CPUShaderHeap>(g, m_HCPUs.size() + totalModelDescriptors);
-	AddGlobalResource("TLAS", m_TLAS);
-
-	for (auto& p : m_GlobalResources)
-		p.second->CreateView(g, m_GlobalHeap->Next().m_HCPU);
-	
-	for (auto& model : m_Models)
-	{
-		for (auto& mesh : model->GetMeshes())
-		{
-			mesh.m_VB->CreateView(g, m_GlobalHeap->Next().m_HCPU);
-			mesh.m_IB->CreateView(g, m_GlobalHeap->Next().m_HCPU);
-			mesh.m_DiffuseMap->CreateView(g, m_GlobalHeap->Next().m_HCPU);
-			mesh.m_NormalMap->CreateView(g, m_GlobalHeap->Next().m_HCPU);
-		}
-	}
-
-	for (auto& pass : m_Passes)
-	{
-		ConnectTargets(pass);
-		pass->OnAdd(g);
-		for (auto& out : pass->GetOutTargets())
-		{
-			m_TargetNames.push_back(out.first);
-			m_Targets.push_back(out);
-		}
-	}
 }
 
 Shared<RenderTarget> FrameGraph::Run(Graphics& g)
 {
 	for (auto& p : m_Passes)
-		p->Run(g);
+		p.second->Run(g);
 
 	return GetTarget(m_TargetNames[m_CurrentTarget]);
 }
@@ -63,16 +18,18 @@ Shared<RenderTarget> FrameGraph::Run(Graphics& g)
 void FrameGraph::OnResize(Graphics& g, UINT w, UINT h)
 {
 	for (auto& p : m_Passes)
-		p->OnResize(g, w, h);
+		p.second->OnResize(g, w, h);
 }
 
 void FrameGraph::ShowUI(Graphics& g)
 {
 	ImGui::Begin("Frame Graph");
-	if (ImGui::BeginCombo("Current Target", m_TargetNames[m_CurrentTarget].c_str())) {
+	auto& current = m_TargetNames[m_CurrentTarget];
+	if (ImGui::BeginCombo("Current Target", (current.Pass + '.' + current.Target).c_str())) {
 		for (int i = 0; i < m_TargetNames.size(); ++i) {
 			const bool isSelected = (m_CurrentTarget == i);
-			if (ImGui::Selectable(m_TargetNames[i].c_str(), isSelected)) {
+			auto& selected = m_TargetNames[i];
+			if (ImGui::Selectable((selected.Pass + '.' + selected.Target).c_str(), isSelected)) {
 				m_CurrentTarget = i;
 			}
 
@@ -85,7 +42,7 @@ void FrameGraph::ShowUI(Graphics& g)
 	ImGui::End();
 
 	for (auto& pass : m_Passes)
-		pass->ShowGUI();
+		pass.second->ShowGUI();
 }
 
 void FrameGraph::AddGlobalResource(const std::string& name, Shared<Resource> r)
@@ -93,17 +50,38 @@ void FrameGraph::AddGlobalResource(const std::string& name, Shared<Resource> r)
 	m_GlobalResources.insert({ std::move(name), std::move(r) });
 }
 
-void FrameGraph::ConnectTargets(Shared<Pass> pass)
+void FrameGraph::AddGlobalVectorResource(const std::string& name, std::tuple<HCPU, UINT, UINT> range)
 {
-	if (m_Passes.empty())
-		return;
-
-	for (auto& in : pass->GetInTargets())
-		in.second = GetTarget(in.first);
+	m_GlobalVectorResources.insert({ std::move(name), std::move(range) });
 }
 
-Shared<RenderTarget> FrameGraph::GetTarget(const std::string& name)
+void FrameGraph::Finish(Graphics& g)
 {
-	auto it = std::find_if(m_Targets.begin(), m_Targets.end(), [&](const auto& p) { return name == p.first; });
-	return it->second;
+	m_GlobalHeap = MakeUnique<CPUShaderHeap>(g, m_GlobalResources.size() + 1000);
+
+	for (auto& p : m_GlobalResources)
+		m_GlobalHeap->Add(g, p.second);
+
+	RecordPasses(g);
+}
+
+void FrameGraph::FinishRecordingPasses()
+{
+	for (auto& pass : m_Passes)
+	{
+		for (const auto& name : pass.second->GetOutTargets())
+			m_TargetNames.emplace_back(pass.second->GetName(), name.first);
+	}
+}
+
+Shared<RenderTarget> FrameGraph::GetTarget(const PassTargetName& name)
+{
+	auto it = std::find_if(m_Passes.begin(), m_Passes.end(),
+		[&](const auto& p) {
+			return p.first == name.Pass;
+		});
+	if (it != m_Passes.end())
+		return it->second->GetOutTarget(name.Target);
+	else
+		throw DefException("Cannot find target " + name.Pass + "." + name.Target);
 }

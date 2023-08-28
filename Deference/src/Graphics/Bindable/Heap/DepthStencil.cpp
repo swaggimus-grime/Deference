@@ -19,9 +19,9 @@ DepthStencil::DepthStencil(Graphics& g)
     );
 }
 
-void DepthStencil::CreateView(Graphics& g, HDESC h)
+void DepthStencil::CreateView(Graphics& g, HCPU h)
 {
-    SetHandle(h);
+    m_HCPU = h;
     D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
     desc.Format = m_Res->GetDesc().Format;
     desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;

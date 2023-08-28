@@ -1,0 +1,11 @@
+Model Information:
+* title:	Subway train interior
+* source:	https://sketchfab.com/3d-models/subway-train-interior-f90d26d89ad44da4af508648f870a816
+* author:	Lukas Hahn 3D (https://sketchfab.com/specter)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Subway train interior" (https://sketchfab.com/3d-models/subway-train-interior-f90d26d89ad44da4af508648f870a816) by Lukas Hahn 3D (https://sketchfab.com/specter) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -6,18 +6,19 @@
 #include "Entity/Camera.h"
 #include <ranges>
 
-RaytracedGeometryPass::RaytracedGeometryPass(Graphics& g, FrameGraph* parent)
-	:RaytracePass(parent)
+RaytracedGeometryPass::RaytracedGeometryPass(Graphics& g, const std::string& name, FrameGraph* parent)
+	:RaytracePass(std::move(name), parent)
 {	
 	AddOutTarget("Position");
 	AddOutTarget("Normal");
 	AddOutTarget("Albedo");
 
-	GetGlobalResource("Env");
+	QueryGlobalResource("Env");
+	QueryGlobalVectorResource("Models");
 
 	ConstantBufferLayout layout;
-	layout.Add<CONSTANT_TYPE::XMMATRIX>("viewInv");
-	layout.Add<CONSTANT_TYPE::XMMATRIX>("projInv");
+	layout.Add<CONSTANT_TYPE::XMMATRIX>("projToWorld");
+	layout.Add<CONSTANT_TYPE::XMMATRIX>("worldToProj");
 	layout.Add<CONSTANT_TYPE::XMFLOAT3>("wPos");
 	m_Transform = MakeShared<ConstantBuffer>(g, std::move(layout));
 	AddResource(m_Transform);
@@ -25,74 +26,65 @@ RaytracedGeometryPass::RaytracedGeometryPass(Graphics& g, FrameGraph* parent)
 
 void RaytracedGeometryPass::Run(Graphics& g)
 {
-	(*m_Transform)["viewInv"] = XMMatrixTranspose(m_Cam->ViewInv());
-	(*m_Transform)["projInv"] = XMMatrixTranspose(m_Cam->ProjInv());
-	(*m_Transform)["wPos"] = m_Cam->Pos();
+	const auto& cam = m_Parent->GetCamera();
+	(*m_Transform)["projToWorld"] = XMMatrixTranspose(cam->ProjToWorld());
+	(*m_Transform)["worldToProj"] = XMMatrixTranspose(cam->WorldToProj());
+	(*m_Transform)["wPos"] = cam->Pos();
+
+	auto& outs = GetOutTargets();
+	const auto& targets =
+		std::views::iota(outs.begin(), outs.end()) |
+		std::views::transform([&](const auto& it) {
+		return it->second;
+			}) |
+		std::ranges::to<std::vector>();
+	const auto& uas =
+		std::views::iota(m_Outputs.begin(), m_Outputs.end()) |
+		std::views::transform([&](const auto& it) {
+		return it->second;
+			}) |
+		std::ranges::to<std::vector>();
 
 	m_Pipeline->Bind(g);
 	m_GPUHeap->Bind(g);
 	g.CL().SetComputeRootConstantBufferView(0, m_Transform->GetGPUAddress());
-	g.CL().SetComputeRootDescriptorTable(1, GetOutputs()[0]->GetHGPU());
+	g.CL().SetComputeRootDescriptorTable(1, GetResource(uas[0]));
 
 	m_Pipeline->Dispatch(g);
 
-	auto& outs = GetOutTargets();
-	const auto& targets =
-	std::views::iota(0u, (UINT)outs.size()) |
-	std::views::transform([&](UINT i) {
-	return outs.at(i).second;
-		}) |
-	std::ranges::to<std::vector>();
-
 	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
-	Resource::Transition(g, m_Outputs, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	Resource::Transition(g, uas, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	
 	for (UINT i = 0; i < targets.size(); i++)
-		g.CL().CopyResource(**targets[i], **m_Outputs[i]);
+		g.CL().CopyResource(**targets[i], **uas[i]);
 	
 	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	Resource::Transition(g, m_Outputs, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	Resource::Transition(g, uas, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	
 	g.Flush();
 }
 
-void RaytracedGeometryPass::OnAdd(Graphics& g)
+void RaytracedGeometryPass::Finish(Graphics& g)
 {
-	__super::OnAdd(g);
+	__super::Finish(g);
 
 	m_Pipeline = MakeUnique<RaytracedGeometryPipeline>(g);
 	{
 		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(HGPU));
-		auto scene = m_TLAS->GetHGPU();
-		table->Add(RaytracedGeometryPipeline::rayGenEP, &scene, sizeof(HGPU)); //scene
+		table->Add(RaytracedGeometryPipeline::rayGenEP, (void*)&GetGlobalResource("TLAS"), sizeof(HGPU)); //scene
 		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::RAY_GEN, std::move(table));
 	}
 	{
 		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(HGPU));	
-		auto env = m_Environment->GetHGPU();
-		table->Add(RaytracedGeometryPipeline::missEP, &env, sizeof(HGPU));
+		table->Add(RaytracedGeometryPipeline::missEP, (void*)&GetGlobalResource("Env"), sizeof(HGPU));
 		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::MISS, std::move(table));
 	}
 	{
-		std::vector<HitArguments> argsList;
-		for (auto& model : m_Models)
-		{
-			for (auto& mesh : model->GetMeshes())
-			{
-				HitArguments args
-				{
-					.m_VertexBuffer = mesh.m_VB->GetHGPU(),
-					.m_IndexBuffer = mesh.m_IB->GetHGPU(),
-					.m_DiffuseMap = mesh.m_DiffuseMap->GetHGPU(),
-					.m_NormalMap = mesh.m_NormalMap->GetHGPU()
-				};
-
-				argsList.push_back(std::move(args));
-			}
-		}
-		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), argsList.size(), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(HitArguments));
-		for (auto& a : argsList)
-			table->Add(RaytracedGeometryPipeline::hitGroup, &a, sizeof(HitArguments));
+		const auto& entries = GetGlobalVectorResource("Models");
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), entries.size(), D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(HGPU) * entries[0].size());
+		for (auto& entry : entries)
+			table->Add(RaytracedGeometryPipeline::hitGroup, (void*)entry.data(), entry.size() * sizeof(HGPU));
+		
 		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::HIT, std::move(table));
 	}
 

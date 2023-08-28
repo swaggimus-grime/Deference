@@ -7,7 +7,6 @@
 #include "UnorderedAccess.h"
 #include "AccelStruct.h"
 #include "ConstantBuffer.h"
-#include "Sampler.h"
 #include <map>
 
 template<D3D12_DESCRIPTOR_HEAP_TYPE T>
@@ -16,7 +15,7 @@ class DescriptorHeap : public Bindable
 public:
 	DescriptorHeap(Graphics& g, unsigned int numDescs, bool shaderVisible)
 		:m_IncSize(g.Device().GetDescriptorHandleIncrementSize(T)),
-		m_MaxNumDescs(numDescs)
+		m_MaxNumDescs(numDescs), m_HeapIdx(0)
 	{
 		BR (numDescs > 0);
 		D3D12_DESCRIPTOR_HEAP_DESC dd = {};
@@ -26,7 +25,7 @@ public:
 		HR g.Device().CreateDescriptorHeap(&dd, IID_PPV_ARGS(&m_Heap));
 
 		m_CPUStart = m_Heap->GetCPUDescriptorHandleForHeapStart();
-		m_CPUHandle = m_CPUStart;
+		m_HCPU = m_CPUStart;
 	}
 
 	inline auto CPUStart() const { return m_CPUStart; }
@@ -37,26 +36,31 @@ public:
 			m_Heap.GetAddressOf());
 	}
 
-	inline void Reset() { m_CPUHandle = m_CPUStart; }
+	inline void Reset() { m_HCPU = m_CPUStart; m_HeapIdx = 0; }
 
 	inline auto* operator*() const { return m_Heap.Get(); }
 
 	inline UINT GetIncSize() const { return m_IncSize; }
 
-	virtual HDESC Next()
+	inline UINT NumDescriptors() const { return m_HeapIdx; }
+
+protected:
+	template<typename R>
+	void Add(Graphics& g, Shared<R> r)
 	{
-		HCPU ret = m_CPUHandle;
-		m_CPUHandle.ptr += m_IncSize;
-		return { ret, 0 };
+		r->CreateView(g, m_HCPU);
+		m_HeapIdx++;
+		m_HCPU.ptr += m_IncSize;
 	}
 
-private:
+	HCPU m_CPUStart;
+	HCPU m_HCPU;
+	UINT m_HeapIdx;
 	const UINT m_IncSize;
+
+private:
 	ComPtr<ID3D12DescriptorHeap> m_Heap;
 	const UINT m_MaxNumDescs;
-
-	D3D12_CPU_DESCRIPTOR_HANDLE m_CPUStart;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_CPUHandle;
 };
 
 class RenderTargetHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_RTV>
@@ -65,6 +69,13 @@ public:
 	RenderTargetHeap(Graphics& g, UINT numTargets);
 	virtual void Bind(Graphics& g) override;
 	virtual void BindWithDepth(Graphics& g, DepthStencil& depth);
+
+	template<typename R>
+		requires Derived<RenderTarget, R>
+	void Add(Graphics& g, Shared<R> r)
+	{
+		__super::Add(g, r);
+	}
 
 private:
 	UINT m_NumTargets;
@@ -76,6 +87,12 @@ public:
 	DepthStencilHeap(Graphics& g, UINT numTargets = 1);
 	virtual void Bind(Graphics& g) override;
 
+	template<typename R>
+		requires Derived<DepthStencil, R>
+	void Add(Graphics& g, Shared<R> r)
+	{
+		__super::Add(g, r);
+	}
 };
 
 class CPUShaderHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV>
@@ -83,6 +100,12 @@ class CPUShaderHeap : public DescriptorHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_U
 public:
 	CPUShaderHeap(Graphics& g, UINT numDescs);
 	
+	template<typename R>
+		requires NotSame<RenderTarget, R> && NotSame<DepthStencil, R>
+	void Add(Graphics& g, Shared<R> r)
+	{
+		__super::Add(g, r);
+	}
 };
 
 template<D3D12_DESCRIPTOR_HEAP_TYPE T>
@@ -91,26 +114,15 @@ class GPUVisibleHeap : public DescriptorHeap<T>
 public:
 	inline auto GPUStart() const { return m_GPUStart; }
 
-	virtual HDESC Next() override
-	{
-		auto desc = DescriptorHeap<T>::Next();
-		desc.m_HGPU = m_GPUHandle;
-		m_GPUHandle.ptr += DescriptorHeap<T>::GetIncSize();
-
-		return desc;
-	}
-
 protected:
 	GPUVisibleHeap(Graphics& g, UINT numDescs)
 		:DescriptorHeap<T>(g, numDescs, true)
 	{
 		m_GPUStart = (**this)->GetGPUDescriptorHandleForHeapStart();
-		m_GPUHandle = m_GPUStart;
 	}
 
-private:
+protected:
 	HGPU m_GPUStart;
-	HGPU m_GPUHandle;
 };
 
 class GPUShaderHeap : public GPUVisibleHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV>
@@ -118,11 +130,41 @@ class GPUShaderHeap : public GPUVisibleHeap<D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_U
 public:
 	GPUShaderHeap(Graphics& g, UINT numDescs);
 	
+	template<typename R>
+		requires Derived<Resource, R>
+	HGPU Add(Graphics& g, Shared<R> r)
+	{
+		HGPU hgpu{ m_GPUStart.ptr + (m_HCPU.ptr - m_CPUStart.ptr) };
+		__super::Add(g, r);
+
+		return hgpu;
+	}
+
+	HGPU AddTarget(Graphics& g, Shared<Target> r)
+	{
+		HGPU hgpu{ m_GPUStart.ptr + (m_HCPU.ptr - m_CPUStart.ptr) };
+		r->CreateShaderView(g, m_HCPU);
+		m_HCPU.ptr += m_IncSize;
+
+		return hgpu;
+	}
+
+	template<typename R>
+		requires Derived<Resource, R>
+	HGPU Copy(Graphics& g, Shared<R> r)
+	{
+		g.Device().CopyDescriptorsSimple(1, m_HCPU, r->GetHCPU(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		HGPU hgpu{ m_GPUStart.ptr + (m_HCPU.ptr - m_CPUStart.ptr) };
+		m_HCPU.ptr += m_IncSize;
+		return hgpu;
+	}
+
+	std::vector<std::vector<HGPU>> Copy(Graphics& g, HCPU src, UINT num, UINT stride);
 };
 
 class SamplerHeap : public GPUVisibleHeap<D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER>
 {
 public:
 	SamplerHeap(Graphics& g, UINT numDescs);
-
+	HGPU Add(Graphics& g);
 };

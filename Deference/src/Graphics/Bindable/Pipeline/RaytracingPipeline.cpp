@@ -67,7 +67,7 @@ ComPtr<IDxcBlob> RaytracingPipeline::CreateLibrary(const std::wstring& path)
 
 void RaytracingPipeline::Bind(Graphics& g)
 {
-	g.CL().SetComputeRootSignature(m_GlobalSig->Sig());
+	g.CL().SetComputeRootSignature(**m_GlobalSig);
 	g.CL().SetPipelineState1(m_State.Get());
 }
 

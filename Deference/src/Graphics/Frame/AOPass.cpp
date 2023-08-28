@@ -4,15 +4,12 @@
 #include "Entity/Camera.h"
 #include <imgui.h>
 
-AOPass::AOPass(Graphics& g, FrameGraph* parent)
-	:m_FrameCount(0)
+AOPass::AOPass(Graphics& g, const std::string& name, FrameGraph* parent)
+	:RaytracePass(std::move(name), parent), m_FrameCount(0)
 {
-	m_TLAS = parent->GetTLAS();
-	AddResource(m_TLAS);
-
 	AddInTarget("Position");
 	AddInTarget("Normal");
-	AddOutTarget("AO");
+	AddOutTarget("Target");
 
 	ConstantBufferLayout layout;
 	layout.Add<CONSTANT_TYPE::FLOAT>("radius");
@@ -21,17 +18,16 @@ AOPass::AOPass(Graphics& g, FrameGraph* parent)
 	layout.Add<CONSTANT_TYPE::UINT>("rayCount");
 	m_Constants = MakeShared<ConstantBuffer>(g, std::move(layout));
 	AddResource(m_Constants);
-	(*m_Constants)["radius"] = 100.f;
+	(*m_Constants)["radius"] = 20.f;
 	(*m_Constants)["minT"] = 0.001f;
 	(*m_Constants)["rayCount"] = 1;
 }
 
-void AOPass::OnAdd(Graphics& g)
+void AOPass::Finish(Graphics& g)
 {
-	__super::OnAdd(g);
+	__super::Finish(g);
 
 	m_Pipeline = MakeUnique<AOPipeline>(g);
-
 	{
 		struct RayGenArgs
 		{
@@ -41,11 +37,11 @@ void AOPass::OnAdd(Graphics& g)
 			HGPU m_Constants;
 			HGPU m_Output;
 		} args;
-		args.m_Pos = GetInTarget("Position")->GetShaderHGPU();
-		args.m_Norm = GetInTarget("Normal")->GetShaderHGPU();
-		args.m_Scene = m_TLAS->GetHGPU();
-		args.m_Constants = m_Constants->GetHGPU();
-		args.m_Output = GetOutput("AO")->GetHGPU();
+		args.m_Pos = GetResource(GetInTarget("Position"));
+		args.m_Norm = GetResource(GetInTarget("Normal"));
+		args.m_Scene = GetGlobalResource("TLAS");
+		args.m_Constants = GetResource(m_Constants);
+		args.m_Output = GetResource(GetOutput("Target"));
 
 		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 1, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(RayGenArgs));
 		table->Add(AOPipeline::rayGenEP, &args, sizeof(RayGenArgs));
@@ -65,7 +61,36 @@ void AOPass::OnAdd(Graphics& g)
 
 void AOPass::Run(Graphics& g)
 {
-	__super::Run(g);
+	m_Pipeline->Bind(g);
+	m_GPUHeap->Bind(g);
+
+	m_Pipeline->Dispatch(g);
+
+	auto& outs = GetOutTargets();
+	const auto& targets =
+		std::views::iota(outs.begin(), outs.end()) |
+		std::views::transform([&](const auto& it) {
+		return it->second;
+			}) |
+		std::ranges::to<std::vector>();
+
+	const auto& uas =
+		std::views::iota(m_Outputs.begin(), m_Outputs.end()) |
+		std::views::transform([&](const auto& it) {
+		return it->second;
+			}) |
+		std::ranges::to<std::vector>();
+
+	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+	Resource::Transition(g, uas, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+	for (UINT i = 0; i < targets.size(); i++)
+		g.CL().CopyResource(**targets[i], **uas[i]);
+
+	Resource::Transition(g, targets, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	Resource::Transition(g, uas, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	g.Flush();
 	(*m_Constants)["frameCount"] = m_FrameCount++;
 }
 
