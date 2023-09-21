@@ -6,6 +6,7 @@ struct PointLight
     float3 pos;
     float intensity;
     float3 color;
+    float emissive;
 };
 
 struct LightData
@@ -18,7 +19,7 @@ struct LightData
 LightData GetLightData(float3 vPos, float3 lPos)
 {
     LightData data;
-    float3 vToL = lPos - vPos;
+    float3 vToL = vPos + lPos;
     data.distToLight = length(vToL);
     data.dirToL = normalize(vToL);
     data.vToL = vToL;

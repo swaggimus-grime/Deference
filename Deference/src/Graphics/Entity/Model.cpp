@@ -32,7 +32,12 @@ Model::Model(Graphics& g, const std::string& filePath)
         
         VertexStream stream(std::move(layout), mesh->mNumVertices);
         for (UINT vert = 0; vert < mesh->mNumVertices; vert++) {
-            stream.Pos(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mVertices[vert].x);
+            stream.Pos(vert) = *reinterpret_cast<XMFLOAT3*>(&mesh->mVertices[vert].x) / 10.f;
+            if (mesh->HasVertexColors(0))
+                stream.Color(vert) = *reinterpret_cast<XMFLOAT4*>(&mesh->mColors[vert][0].r);
+            else
+                stream.Color(vert) = XMFLOAT4(0.f, 0.f, 0.f, 0.f);
+
             for (UINT i = 0; i < 8; i++)
             {
                 if (mesh->HasTextureCoords(i))
@@ -85,6 +90,19 @@ Model::Model(Graphics& g, const std::string& filePath)
         m.m_DiffuseMap = getTexture(aiTextureType_DIFFUSE);
         m.m_NormalMap = getTexture(aiTextureType_NORMALS);
         m.m_SpecularMap = getTexture(aiTextureType_SPECULAR);
+        m.m_EmissiveMap = getTexture(aiTextureType_EMISSIVE);
+        ConstantBufferLayout layout;
+        layout.Add<CONSTANT_TYPE::XMFLOAT4>("albedo");
+        layout.Add<CONSTANT_TYPE::XMFLOAT4>("specular");
+        layout.Add<CONSTANT_TYPE::XMFLOAT4>("emissive");
+        m.m_Materials = MakeShared<ConstantBuffer>(g, std::move(layout));
+        aiColor4D col;
+        aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &col);
+        (*m.m_Materials)["albedo"] = XMFLOAT4(col.r, col.g, col.b, col.a);
+        aiGetMaterialColor(mat, AI_MATKEY_COLOR_SPECULAR, &col);
+        (*m.m_Materials)["specular"] = XMFLOAT4(col.r, col.g, col.b, col.a);
+        aiGetMaterialColor(mat, AI_MATKEY_COLOR_EMISSIVE, &col);
+        (*m.m_Materials)["emissive"] = XMFLOAT4(col.r, col.g, col.b, col.a);
         m_Meshes.push_back(std::move(m));
     }
 

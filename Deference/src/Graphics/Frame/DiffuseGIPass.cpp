@@ -13,6 +13,7 @@ DiffuseGIPass::DiffuseGIPass(Graphics& g, const std::string& name, FrameGraph* p
 	AddInTarget("Normal");
 	AddInTarget("Albedo");
 	AddInTarget("Specular");
+	AddInTarget("Emissive");
 	AddOutTarget("Target");
 
 	QueryGlobalResource("Env");
@@ -23,10 +24,12 @@ DiffuseGIPass::DiffuseGIPass(Graphics& g, const std::string& name, FrameGraph* p
 		layout.Add<CONSTANT_TYPE::XMFLOAT3>("pos");
 		layout.Add<CONSTANT_TYPE::FLOAT>("intensity");
 		layout.Add<CONSTANT_TYPE::XMFLOAT3>("color");
+		layout.Add<CONSTANT_TYPE::FLOAT>("emissive");
 		m_Light = MakeShared<ConstantBuffer>(g, std::move(layout));
 		(*m_Light)["pos"] = XMFLOAT3{ 0, 0.f, 0.f };
 		(*m_Light)["color"] = XMFLOAT3{ 1, 1, 1 };
 		(*m_Light)["intensity"] = 5.f;
+		(*m_Light)["emissive"] = 1.f;
 		AddResource(m_Light);
 	}
 	{
@@ -77,14 +80,15 @@ void DiffuseGIPass::ShowGUI()
 		ImGui::BeginGroup();
 		ImGui::Text("Direct Light");
 
-		ImGui::SliderFloat3("Position", ((*m_Light)["pos"]), -30.f, 30.f);
+		ImGui::SliderFloat3("Position", ((*m_Light)["pos"]), -50.f, 50.f);
 		ImGui::SliderFloat3("Color", (*m_Light)["color"], 0.f, 1.f);
 		ImGui::SliderFloat("Intensity", (*m_Light)["intensity"], 0.f, 10.f);
+		ImGui::SliderFloat("Emissive", (*m_Light)["emissive"], 0.f, 10.f);
 		ImGui::EndGroup();
 
 		ImGui::BeginGroup();
 		ImGui::Text("Indirect Light");
-		ImGui::SliderInt("Max Recursion", ((*m_Constants)["maxRec"]), 1, 10);
+		ImGui::SliderInt("Max Recursion", ((*m_Constants)["maxRec"]), 1, 30);
 		ImGui::EndGroup();
 
 		ImGui::End();
@@ -111,10 +115,11 @@ void DiffuseGIPass::Run(Graphics& g)
 	g.CL().SetComputeRootDescriptorTable(1, GetResource(GetInTarget("Normal")));
 	g.CL().SetComputeRootDescriptorTable(2, GetResource(GetInTarget("Albedo")));
 	g.CL().SetComputeRootDescriptorTable(3, GetResource(GetInTarget("Specular")));
-	g.CL().SetComputeRootDescriptorTable(4, GetGlobalResource("TLAS"));
-	g.CL().SetComputeRootDescriptorTable(5, GetResource(GetOutput("Target")));
-	g.CL().SetComputeRootConstantBufferView(6, m_Light->GetGPUAddress());
-	g.CL().SetComputeRootConstantBufferView(7, m_Constants->GetGPUAddress());
+	g.CL().SetComputeRootDescriptorTable(4, GetResource(GetInTarget("Emissive")));
+	g.CL().SetComputeRootDescriptorTable(5, GetGlobalResource("TLAS"));
+	g.CL().SetComputeRootDescriptorTable(6, GetResource(GetOutput("Target")));
+	g.CL().SetComputeRootConstantBufferView(7, m_Light->GetGPUAddress());
+	g.CL().SetComputeRootConstantBufferView(8, m_Constants->GetGPUAddress());
 
 	m_Pipeline->Dispatch(g);
 
@@ -124,7 +129,7 @@ void DiffuseGIPass::Run(Graphics& g)
 	const auto& targets =
 		std::views::iota(outs.begin(), outs.end()) |
 		std::views::transform([&](const auto& it) {
-			return it->second;
+			return std::get<2>(*it);
 		}) |
 		std::ranges::to<std::vector>();
 	const auto& uas =

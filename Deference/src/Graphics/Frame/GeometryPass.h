@@ -10,5 +10,6 @@ public:
 
 private:
 	SamplerHeap m_SamplerHeap;
+	Shared<ConstantBuffer> m_Camera;
 	Shared<ConstantBuffer> m_Transform;
 };

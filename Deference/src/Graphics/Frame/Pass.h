@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Bindable/Heap/DescriptorHeap.h"
+#include "Swapchain.h"
 
 class Graphics;
 class FrameGraph;
@@ -40,10 +41,11 @@ public:
 	inline const auto& GetOutTarget(const std::string& target) const {
 		auto it = std::find_if(m_OutTargets.begin(), m_OutTargets.end(),
 			[&](const auto& p) {
-				return p.first == target;
+				const auto& [name, format, t] = p;
+				return name == target;
 			});
 		if (it != m_OutTargets.end())
-			return it->second;
+			return std::get<2>(*it);
 		else
 			throw DefException("Cannot find out target with name " + target);
 	}
@@ -80,8 +82,8 @@ protected:
 		return it->second;
 	}
 
-	inline void AddOutTarget(std::string&& target) { 
-		m_OutTargets.emplace_back(std::move(target), nullptr);
+	inline void AddOutTarget(std::string&& target, DXGI_FORMAT fmt = Swapchain::s_Format) {
+		m_OutTargets.emplace_back(std::move(target), fmt, nullptr);
 	}
 
 	inline void AddInTarget(std::string&& target) {
@@ -107,5 +109,5 @@ private:
 
 	std::string m_Name;
 	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_InTargets;
-	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_OutTargets;
+	std::vector<std::tuple<std::string, DXGI_FORMAT, Shared<RenderTarget>>> m_OutTargets;
 };

@@ -24,8 +24,9 @@ void Pass::Finish(Graphics& g)
 	m_TargetHeap = MakeUnique<RenderTargetHeap>(g, m_OutTargets.size());
 	for (auto& t : m_OutTargets)
 	{
-		t.second = MakeShared<RenderTarget>(g);
-		m_TargetHeap->Add(g, t.second);
+		auto& target = std::get<2>(t);
+		target = MakeShared<RenderTarget>(g, std::get<1>(t));
+		m_TargetHeap->Add(g, target);
 	}
 
 	UINT totalVectorResources = 0;
@@ -65,8 +66,8 @@ void Pass::OnResize(Graphics& g, UINT w, UINT h)
 {
 	m_Viewport->Resize(w, h);
 
-	for (auto& t : m_OutTargets)
-		t.second->Resize(g, w, h);
+	/*for (auto& t : m_OutTargets)
+		t.second->Resize(g, w, h);*/
 
 	m_GPUHeap->Reset();
 	//auto& ins = GetInTargets();

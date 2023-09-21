@@ -8,13 +8,17 @@ struct VertexIn
     float3 norm : NORMAL;
     float3 tan : TANGENT;
     float3 bitan : BITANGENT;
+    float4 color : COLOR;
 };
 
 struct VertexOut
 {
     float4 pos : SV_Position;
+    linear float3 wPos : POSITION;
     float2 tex : TEXCOORD;
-    float3x3 TBN : TANGENT_SPACE;
+    float3 norm : NORMAL;
+    float3 tan : TANGENT;
+    float4 color : COLOR;
 };
 
 struct ScreenVertexOut
@@ -30,6 +34,7 @@ struct GeometryVertex
     float3 norm;
     float3 tan;
     float3 bitan;
+    float4 color;
 };
 
 #endif

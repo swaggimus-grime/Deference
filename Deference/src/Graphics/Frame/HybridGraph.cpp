@@ -13,7 +13,7 @@ HybridGraph::HybridGraph(Graphics& g, Scene& scene)
 		for (auto& mesh : model->GetMeshes())
 			meshes.push_back(std::move(mesh));
 
-	m_ModelHeap = MakeUnique<CPUShaderHeap>(g, meshes.size() * 5);
+	m_ModelHeap = MakeUnique<CPUShaderHeap>(g, meshes.size() * 6);
 
 	for (auto& mesh : meshes)
 	{
@@ -22,9 +22,10 @@ HybridGraph::HybridGraph(Graphics& g, Scene& scene)
 		m_ModelHeap->Add(g, mesh.m_DiffuseMap);
 		m_ModelHeap->Add(g, mesh.m_NormalMap);
 		m_ModelHeap->Add(g, mesh.m_SpecularMap);
+		m_ModelHeap->Add(g, mesh.m_EmissiveMap);
 	}
 
-	AddGlobalVectorResource("Models", { m_ModelHeap->CPUStart(), m_ModelHeap->NumDescriptors(), 5 });
+	AddGlobalVectorResource("Models", { m_ModelHeap->CPUStart(), m_ModelHeap->NumDescriptors(), 6 });
 	AddGlobalResource("Env", MakeShared<EnvironmentMap>(g, L"textures\\MonValley_G_DirtRoad_3k.hdr"));
 	AddGlobalResource("TLAS", MakeShared<TLAS>(g,
 		std::views::iota(0u, (UINT)scene.m_Models.size()) |
@@ -46,6 +47,7 @@ void HybridGraph::RecordPasses(Graphics& g)
 		pass->Link("Geometry", "Normal");
 		pass->Link("Geometry", "Albedo");
 		pass->Link("Geometry", "Specular");
+		pass->Link("Geometry", "Emissive");
 		pass->Finish(g);
 	}
 	{

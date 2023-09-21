@@ -11,7 +11,7 @@ void RasterPass::Run(Graphics& g)
 	BindBindables(g);
 	auto& outs = GetOutTargets();
 	for (auto& out : outs)
-		out.second->Clear(g);
+		std::get<2>(out)->Clear(g);
 	m_Depth->Clear(g);
 	m_TargetHeap->BindWithDepth(g, *m_Depth);
 	m_Pipeline->Bind(g);

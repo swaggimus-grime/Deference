@@ -5,5 +5,5 @@
 class GeometryPipeline : public Pipeline
 {
 public:
-	GeometryPipeline(Graphics& g);
+	GeometryPipeline(Graphics& g, std::vector<DXGI_FORMAT> rtFormats);
 };

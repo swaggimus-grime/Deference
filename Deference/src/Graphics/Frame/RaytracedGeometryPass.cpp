@@ -35,7 +35,7 @@ void RaytracedGeometryPass::Run(Graphics& g)
 	const auto& targets =
 		std::views::iota(outs.begin(), outs.end()) |
 		std::views::transform([&](const auto& it) {
-		return it->second;
+		return std::get<2>(*it);
 			}) |
 		std::ranges::to<std::vector>();
 	const auto& uas =

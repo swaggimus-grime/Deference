@@ -11,7 +11,7 @@ App::App(const std::string& name, UINT32 width, UINT32 height)
 	m_Gfx = MakeUnique<Graphics>(m_Wnd->GetHandle(), width, height);
 
 	m_Cam = MakeShared<Camera>(*m_Gfx);
-	m_Cup = MakeShared<Model>(*m_Gfx, "models\\hangar\\scene.gltf");
+	m_Cup = MakeShared<Model>(*m_Gfx, "models\\room\\scene.gltf");
 
 	Scene scene;
 	scene.m_Camera = m_Cam->Share();

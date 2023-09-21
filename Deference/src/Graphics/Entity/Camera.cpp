@@ -30,7 +30,7 @@ void Camera::Update()
 
 void Camera::OnResize(UINT w, UINT h)
 {
-	m_Proj = XMMatrixPerspectiveFovLH(pi / 2.f, static_cast<FLOAT>(w) / h, 0.001f, 1000.0f);
+	m_Proj = XMMatrixPerspectiveFovLH(pi / 2.f, static_cast<FLOAT>(w) / h, 0.001f, 4000.0f);
 	m_ProjInv = XMMatrixInverse(nullptr, m_Proj);
 
 	m_ImgPlaneSize.y = 2.f * std::tan(0.5f * pi / 2.f);

@@ -20,5 +20,5 @@ ToneMapPipeline::ToneMapPipeline(Graphics& g)
     rootParameters[1].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
 
     auto sig = MakeShared<RootSig>(g, _countof(rootParameters), rootParameters);
-    Create(g, std::move(sig), vs, ps, std::move(layout), 1);
+    Create(g, std::move(sig), vs, ps, std::move(layout), { Swapchain::s_Format });
 }

@@ -10,7 +10,7 @@ D3D_ROOT_SIGNATURE_VERSION Graphics::ROOT_SIG_VERSION = D3D_ROOT_SIGNATURE_VERSI
 Graphics::Graphics(HWND hWnd, UINT width, UINT height)
     :m_Width(width), m_Height(height), m_Resized(false)
 {
-#ifdef DEBUG
+#ifdef _DEBUG
     {
         ComPtr<ID3D12Debug> debug;
         ComPtr<ID3D12Debug1> debug1;

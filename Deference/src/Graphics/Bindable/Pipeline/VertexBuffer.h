@@ -19,6 +19,7 @@ public:
 	VertexStream(const InputLayout& layout, UINT numVertices);
 
 	GET_ATTRIB(Pos, POS)
+	GET_ATTRIB(Color, COLOR)
 	GET_ATTRIB(Tex, TEX)
 	GET_ATTRIB(Norm, NORM)
 	GET_ATTRIB(Tan, TAN)

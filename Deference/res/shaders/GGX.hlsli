@@ -19,13 +19,15 @@ float3 shootIndirectRay(float3 orig, float3 dir, float minT, uint seed, uint rec
 {
 	// Setup shadow ray and the default ray payload
     RayDesc rayColor = { orig, minT, dir, 1.0e+38f };
-    IndirectPayload load = { float3(0, 0, 0), seed, recDepth + 1 };
+    IndirectPayload load;
+    load.color = float3(0, 0, 0);
+    load.rndSeed = seed;
+    load.recDepth = recDepth + 1;
 
 	// Trace our indirect ray.  Use hit group #1 and miss shader #1 (of 2)
-    TraceRay(scene, RAY_FLAG_NONE, 0xFF, 1, 2, 1, rayColor, load);
+    TraceRay(scene, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, 0xFF, 1, 2, 1, rayColor, load);
     return load.color;
 }
-
 
 /** Returns a relative luminance of an input linear RGB color in the ITU-R BT.709 color space
     \param RGBColor linear HDR RGB color in the ITU-R BT.709 color space
@@ -98,18 +100,17 @@ float3 ggxDirect(inout uint rndSeed, float3 hit, float3 N, float3 V,
 	// Pick a random light from our scene to shoot a shadow ray towards
     //int lightToSample = min(int(nextRand(rndSeed) * gLightsCount),
     //                         gLightsCount - 1);
-
-	
     LightData l = GetLightData(hit, pointLight.pos);
 
 	// Compute our lambertion term (N dot L)
     float NdotL = saturate(dot(N, l.vToL));
 
 	// Shoot our shadow ray to our randomly selected light
-    float shadowMult = /*float(gLightsCount) **/shadowRayVisibility(hit, l.dirToL, 0.0001, l.distToLight);
+    //float shadowMult = /*float(gLightsCount) **/shadowRayVisibility(hit, l.dirToL, 0.0001, l.distToLight);
 
+    //return shadowMult * float3(1, 1, 1); //pointLight.intensity * dif;
 	// Compute half vectors and additional dot products for GGX
-    float3 H = normalize(V + l.vToL);
+    float3 H = normalize(l.dirToL + V);
     float NdotH = saturate(dot(N, H));
     float LdotH = saturate(dot(l.vToL, H));
     float NdotV = saturate(dot(N, V));
@@ -124,8 +125,7 @@ float3 ggxDirect(inout uint rndSeed, float3 hit, float3 N, float3 V,
     float3 ggxTerm = D * G * F / (4 * NdotV /* * NdotL */);
 
 	// Compute our final color (combining diffuse lobe plus specular GGX lobe)
-    return shadowMult * pointLight.intensity * ( /* NdotL * */ggxTerm +
-                                           NdotL * dif / M_PI);
+    return pointLight.intensity * pointLight.color * ( /* NdotL * */ggxTerm + NdotL * dif / M_PI);
 }
 
 float3 ggxIndirect(inout uint rndSeed, float3 hit, float3 N, float3 V, float3 dif, float3 spec, float rough, uint rayDepth)

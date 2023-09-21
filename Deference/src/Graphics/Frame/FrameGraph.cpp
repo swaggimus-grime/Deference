@@ -3,7 +3,7 @@
 #include <imgui.h>
 
 FrameGraph::FrameGraph(Scene& scene)
-	:m_CurrentTarget(0), m_Camera(scene.m_Camera), m_Models(scene.m_Models)
+	:m_CurrentTarget(5), m_Camera(scene.m_Camera), m_Models(scene.m_Models)
 {
 }
 
@@ -70,7 +70,7 @@ void FrameGraph::FinishRecordingPasses()
 	for (auto& pass : m_Passes)
 	{
 		for (const auto& name : pass.second->GetOutTargets())
-			m_TargetNames.emplace_back(pass.second->GetName(), name.first);
+			m_TargetNames.emplace_back(pass.second->GetName(), std::get<0>(name));
 	}
 }
 

@@ -18,5 +18,6 @@ AccumPipeline::AccumPipeline(Graphics& g)
     rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
     rootParameters[1].InitAsConstants(1, 0, 0, D3D12_SHADER_VISIBILITY_PIXEL);
 
-    Create(g, MakeShared<RootSig>(g, _countof(rootParameters), rootParameters), vs, ps, layout, layout.NumElements());
+    Create(g, MakeShared<RootSig>(g, _countof(rootParameters), rootParameters), vs, ps, layout, 
+        {Swapchain::s_Format, Swapchain::s_Format });
 }

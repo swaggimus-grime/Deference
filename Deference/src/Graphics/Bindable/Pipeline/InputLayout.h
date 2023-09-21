@@ -11,7 +11,7 @@ enum class VERTEX_ATTRIBUTES
 	NORM = 0x2,
 	TAN = 0x4,
 	BITAN = 0x8,
-	COLOR = 0x10
+	COLOR = 0x16
 };
 
 template<VERTEX_ATTRIBUTES> struct Map;
@@ -44,6 +44,12 @@ template<> struct Map<VERTEX_ATTRIBUTES::BITAN> {
 	using type = XMFLOAT3;
 	static constexpr auto name = "BITANGENT";
 	static constexpr DXGI_FORMAT format = DXGI_FORMAT_R32G32B32_FLOAT;
+};
+
+template<> struct Map<VERTEX_ATTRIBUTES::COLOR> {
+	using type = XMFLOAT4;
+	static constexpr auto name = "COLOR";
+	static constexpr DXGI_FORMAT format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 };
 
 inline VERTEX_ATTRIBUTES operator&(VERTEX_ATTRIBUTES a, VERTEX_ATTRIBUTES b)

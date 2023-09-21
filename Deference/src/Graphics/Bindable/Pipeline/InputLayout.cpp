@@ -15,6 +15,7 @@ InputLayout::InputLayout(const VERTEX_ATTRIBUTES& attributes)
     CHECK_ATTRIB(NORM)
     CHECK_ATTRIB(TAN)
     CHECK_ATTRIB(BITAN)
+    CHECK_ATTRIB(COLOR)
 
     m_Layout.NumElements = m_Elements.size();
     m_Layout.pInputElementDescs = m_Elements.data();
@@ -28,7 +29,7 @@ VERTEX_ATTRIBUTES InputLayout::MapConfigToAttribs(INPUT_LAYOUT_CONFIG config)
     switch (config)
     {
     case GEOMETRY_PIPELINE:
-        return POS | TEX | NORM | TAN | BITAN;
+        return POS | TEX | NORM | TAN | BITAN | COLOR;
     case SCREEN:
         return POS | TEX;
     default:

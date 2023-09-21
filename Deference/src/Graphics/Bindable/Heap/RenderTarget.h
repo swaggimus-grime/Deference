@@ -5,11 +5,12 @@
 #include "Graphics.h"
 #include "Target.h"
 #include "DepthStencil.h"
+#include "Swapchain.h"
 
 class RenderTarget : public Target
 {
 public:
-	RenderTarget(Graphics& g);
+	RenderTarget(Graphics& g, DXGI_FORMAT fmt = Swapchain::s_Format);
 	RenderTarget(const ComPtr<ID3D12Resource>& res);
 
 	virtual void CreateView(Graphics& g, HCPU h) override;

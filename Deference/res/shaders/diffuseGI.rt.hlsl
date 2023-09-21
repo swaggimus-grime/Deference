@@ -1,12 +1,13 @@
-Texture2D<float4> pos : register(t0);
-Texture2D<float4> norm : register(t1);
-Texture2D<float4> diff : register(t2);
-Texture2D<float4> spec : register(t3);
+Texture2D pos : register(t0);
+Texture2D norm : register(t1);
+Texture2D diff : register(t2);
+Texture2D spec : register(t3);
+Texture2D emissive : register(t4);
 
 RWTexture2D<float4> output : register(u0);
 
-RaytracingAccelerationStructure scene : register(t4);
-Texture2D<float4> env : register(t5);
+RaytracingAccelerationStructure scene : register(t5);
+Texture2D env : register(t6);
 
 struct ggxConstants
 {
@@ -42,10 +43,10 @@ void ShadowMiss(inout ShadowRayPayload rayData)
 [shader("miss")]
 void IndirectMiss(inout IndirectPayload rayData)
 {
-    float2 dims;
-    env.GetDimensions(dims.x, dims.y);
-    float2 uv = worldDirToPolorCoords(WorldRayDirection());
-    rayData.color = env[uint2(uv * dims)].rgb;
+    //float2 dims;
+    //env.GetDimensions(dims.x, dims.y);
+    //float2 uv = worldDirToPolorCoords(WorldRayDirection());
+    //rayData.color = env[uint2(uv * dims)].rgb;
 }
 
 // Identical to any hit shaders for most other rays we've defined
@@ -65,13 +66,13 @@ void IndirectClosest(inout IndirectPayload rayData,
     ShadingData shadeData = getShadingData(PrimitiveIndex(), attribs);
 
     // Add emissive color
-    rayData.color = float3(0, 0, 0);
+    rayData.color = shadeData.emissive * pointLight.emissive;
 
     float3 v = normalize(constants.camPos - shadeData.wPos);
     rayData.color += ggxDirect(rayData.rndSeed, shadeData.wPos, shadeData.normal, 
-        v, shadeData.diffuse, shadeData.specular, 0.0);
+        v, shadeData.diffuse, shadeData.specular, shadeData.roughness);
 
-    if (rayData.recDepth < constants.maxRec && nextRand(rayData.rndSeed) > 0.5f)
+    if (rayData.recDepth < constants.maxRec /*&& nextRand(rayData.rndSeed) > 0.5f*/)
     {
         rayData.color += ggxIndirect(rayData.rndSeed, shadeData.wPos, shadeData.normal, v,
 			shadeData.diffuse, shadeData.specular, shadeData.roughness, rayData.recDepth);
@@ -90,26 +91,26 @@ void DiffuseAndHardShadow()
     float4 diffuse = diff[launchIndex];
     float4 specular = spec[launchIndex];
     
+    float3 v = normalize(constants.camPos - wPos.xyz);
+    
     uint randSeed = initRand(launchIndex.x + launchIndex.y * launchDim.x, constants.frameCount);
-
-	// If we don't hit any geometry, our difuse material contains our background color.
-    float3 shadeColor = float3(0.0, 0.0, 0.0);
-
+    
+    // If we don't hit any geometry, our difuse material contains our background color.
+    float3 shadeColor = emissive[launchIndex].rgb * pointLight.emissive;
+    
     if (wPos.w != 0.0f)
     { 
-        float3 v = normalize(constants.camPos - wPos.xyz);
         float roughness = specular.a * specular.a;
-        
-        float3 directColor;
+    
         shadeColor += ggxDirect(randSeed, wPos.xyz, wNorm.xyz, v,
-				               diffuse.rgb, specular.rgb, roughness);
-        
+    			               diffuse.rgb, specular.rgb, roughness);
+    
         if(constants.maxRec > 0)
             shadeColor += ggxIndirect(randSeed, wPos.xyz, wNorm.xyz, v, 
                 diffuse.rgb, specular.rgb, roughness, 0);
+        //shadeColor += pointLight.intensity * max(dot(normalize(normalize(pointLight.pos - wPos.xyz) + v), wNorm.xyz), 0) * diffuse.xyz;
     }
     
     bool colorsNan = any(isnan(shadeColor));
-    
     output[launchIndex] = float4(colorsNan ? float3(0, 0, 0) : shadeColor, 1.0f);
 }

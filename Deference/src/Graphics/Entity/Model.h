@@ -26,6 +26,8 @@ public:
 		Shared<Texture2D> m_DiffuseMap;
 		Shared<Texture2D> m_NormalMap;
 		Shared<Texture2D> m_SpecularMap;
+		Shared<Texture2D> m_EmissiveMap;
+		Shared<ConstantBuffer> m_Materials;
 	};
 
 private:

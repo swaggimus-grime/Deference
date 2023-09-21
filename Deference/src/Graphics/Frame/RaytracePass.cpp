@@ -12,7 +12,7 @@ void RaytracePass::Finish(Graphics& g)
 	{
 		auto out = MakeShared<UnorderedAccess>(g);
 		AddResource(out);
-		m_Outputs.insert({ name.first, std::move(out) });
+		m_Outputs.insert({ std::get<0>(name), std::move(out)});
 	}
 
 	Pass::Finish(g);

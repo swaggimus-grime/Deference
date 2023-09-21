@@ -8,6 +8,7 @@ ByteAddressBuffer gIndices : register(t1, space1);
 Texture2D<float4> dmap : register(t2, space1);
 Texture2D<float4> nmap : register(t3, space1);
 Texture2D<float4> smap : register(t4, space1);
+Texture2D<float4> emap : register(t5, space1);
 
 struct ShadingData
 {
@@ -17,6 +18,7 @@ struct ShadingData
     float opacity;
     float3 specular;
     float roughness;
+    float3 emissive;
 };
 
 float2 BarycentricLerp2(in float2 v0, in float2 v1, in float2 v2, in BuiltInTriangleIntersectionAttributes attribs)
@@ -55,19 +57,38 @@ ShadingData getShadingData(uint primIdx, BuiltInTriangleIntersectionAttributes a
     );
     
     ShadingData data;
-    data.wPos = v.pos; //mul(v.pos, ObjectToWorld3x4());
-    data.normal = v.norm;
-    
+    data.wPos = WorldRayOrigin() + WorldRayDirection() * RayTCurrent(); //mul(v.pos, ObjectToWorld3x4());
+   
     float2 texDims;
+    {
+        v.norm = normalize(v.norm);
+        data.normal = v.norm;
+        
+        nmap.GetDimensions(texDims.x, texDims.y);
+        float3 norm = nmap[uint2(floor(v.tex * texDims))];
+        if(any(norm))
+        {
+            norm = norm * 2 - 1;
+            float3 tan = normalize(v.tan - dot(v.tan, v.norm) * v.norm);
+            float3 bitan = cross(v.norm, tan);
+            float3x3 texSpace = float3x3(tan, bitan, v.norm);
+            data.normal = normalize(mul(norm, texSpace));
+        }
+    }
+    
     dmap.GetDimensions(texDims.x, texDims.y);
-    float4 diffuse = dmap.Load(int3(floor(v.tex * texDims), 0));
+    float4 diffuse = dmap[uint2(floor(v.tex * texDims))];
     data.diffuse = diffuse.rgb;
     data.opacity = diffuse.a;
     
     smap.GetDimensions(texDims.x, texDims.y);
-    float4 specular = smap.Load(int3(floor(v.tex * texDims), 0));
+    float4 specular = smap[uint2(floor(v.tex * texDims))];
     data.specular = specular.rgb;
     data.roughness = specular.a * specular.a;
+    
+    emap.GetDimensions(texDims.x, texDims.y);
+    float4 emissive = emap[uint2(floor(v.tex * texDims))];
+    data.emissive = emissive.rgb;
     
     return data;
 }

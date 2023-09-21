@@ -11,6 +11,7 @@ DiffusePass::DiffusePass(Graphics& g, const std::string& name, FrameGraph* paren
 	AddInTarget("Position");
 	AddInTarget("Normal");
 	AddInTarget("Albedo");
+	AddInTarget("Emissive");
 	AddOutTarget("Target");
 
 	ConstantBufferLayout layout;
@@ -35,7 +36,7 @@ void DiffusePass::Run(Graphics& g)
 	const auto& targets =
 	std::views::iota(outs.begin(), outs.end()) |
 	std::views::transform([&](const auto& it) {
-		return it->second;
+		return std::get<2>(*it);
 	}) |
 	std::ranges::to<std::vector>();
 
@@ -69,6 +70,7 @@ void DiffusePass::Finish(Graphics& g)
 			HGPU m_Pos;
 			HGPU m_Norm;
 			HGPU m_Albedo;
+			HGPU m_Emissive;
 			HGPU m_Scene;
 			HGPU m_Light;
 			HGPU m_Output;
@@ -77,6 +79,7 @@ void DiffusePass::Finish(Graphics& g)
 		args.m_Pos = GetResource(GetInTarget("Position"));
 		args.m_Norm = GetResource(GetInTarget("Normal"));
 		args.m_Albedo = GetResource(GetInTarget("Albedo"));
+		args.m_Emissive = GetResource(GetInTarget("Emissive"));
 		args.m_Scene = GetGlobalResource("TLAS");
 		args.m_Light = GetResource(m_Light);
 		args.m_Output = GetResource(GetOutput("Diffuse"));

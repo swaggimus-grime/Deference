@@ -11,7 +11,8 @@ public:
 	virtual void Bind(Graphics& g) override;
 
 protected:
-	void Create(Graphics& g, Shared<RootSig> sig, const VertexShader& vs, const PixelShader& ps, const InputLayout& layout, UINT numRTs);
+	void Create(Graphics& g, Shared<RootSig> sig, const VertexShader& vs, const PixelShader& ps, 
+		const InputLayout& layout, std::vector<DXGI_FORMAT> rtFormats);
 
 private:
 	ComPtr<ID3D12PipelineState> m_State;
