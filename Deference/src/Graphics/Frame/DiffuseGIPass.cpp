@@ -28,7 +28,7 @@ DiffuseGIPass::DiffuseGIPass(Graphics& g, const std::string& name, FrameGraph* p
 		m_Light = MakeShared<ConstantBuffer>(g, std::move(layout));
 		(*m_Light)["pos"] = XMFLOAT3{ 0, 0.f, 0.f };
 		(*m_Light)["color"] = XMFLOAT3{ 1, 1, 1 };
-		(*m_Light)["intensity"] = 5.f;
+		(*m_Light)["intensity"] = 1.f;
 		(*m_Light)["emissive"] = 1.f;
 		AddResource(m_Light);
 	}
@@ -37,8 +37,10 @@ DiffuseGIPass::DiffuseGIPass(Graphics& g, const std::string& name, FrameGraph* p
 		layout.Add<CONSTANT_TYPE::XMFLOAT3>("camPos");
 		layout.Add<CONSTANT_TYPE::UINT>("maxRec");
 		layout.Add<CONSTANT_TYPE::UINT>("frameCount");
+		layout.Add<CONSTANT_TYPE::FLOAT>("minT");
 		m_Constants = MakeShared<ConstantBuffer>(g, std::move(layout));
 		(*m_Constants)["maxRec"] = 1;
+		(*m_Light)["minT"] = 0.0001f;
 		AddResource(m_Constants);
 	}
 }
@@ -55,8 +57,8 @@ void DiffuseGIPass::Finish(Graphics& g)
 		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::RAY_GEN, std::move(table));
 	}
 	{
-		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 2, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(HGPU));
-		table->Add(DiffuseGIPipeline::indirectMiss, (void*)&GetGlobalResource("Env"), sizeof(HGPU));
+		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), 2, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+		table->Add(DiffuseGIPipeline::indirectMiss);
 		table->Add(DiffuseGIPipeline::shadowMiss);
 		m_Pipeline->SubmitTable(SHADER_TABLE_TYPE::MISS, std::move(table));
 	}
@@ -79,8 +81,7 @@ void DiffuseGIPass::ShowGUI()
 	{
 		ImGui::BeginGroup();
 		ImGui::Text("Direct Light");
-
-		ImGui::SliderFloat3("Position", ((*m_Light)["pos"]), -50.f, 50.f);
+		ImGui::SliderFloat3("Position", ((*m_Light)["pos"]), -5000.f, 5000.f);
 		ImGui::SliderFloat3("Color", (*m_Light)["color"], 0.f, 1.f);
 		ImGui::SliderFloat("Intensity", (*m_Light)["intensity"], 0.f, 10.f);
 		ImGui::SliderFloat("Emissive", (*m_Light)["emissive"], 0.f, 10.f);
@@ -89,10 +90,10 @@ void DiffuseGIPass::ShowGUI()
 		ImGui::BeginGroup();
 		ImGui::Text("Indirect Light");
 		ImGui::SliderInt("Max Recursion", ((*m_Constants)["maxRec"]), 1, 30);
+		ImGui::SliderFloat("minT", (*m_Constants)["minT"], 0.f, 1.f);
 		ImGui::EndGroup();
-
-		ImGui::End();
 	}
+	ImGui::End();
 }
 
 void DiffuseGIPass::Run(Graphics& g)
@@ -117,9 +118,10 @@ void DiffuseGIPass::Run(Graphics& g)
 	g.CL().SetComputeRootDescriptorTable(3, GetResource(GetInTarget("Specular")));
 	g.CL().SetComputeRootDescriptorTable(4, GetResource(GetInTarget("Emissive")));
 	g.CL().SetComputeRootDescriptorTable(5, GetGlobalResource("TLAS"));
-	g.CL().SetComputeRootDescriptorTable(6, GetResource(GetOutput("Target")));
-	g.CL().SetComputeRootConstantBufferView(7, m_Light->GetGPUAddress());
-	g.CL().SetComputeRootConstantBufferView(8, m_Constants->GetGPUAddress());
+	g.CL().SetComputeRootDescriptorTable(6, GetGlobalResource("Env"));
+	g.CL().SetComputeRootDescriptorTable(7, GetResource(GetOutput("Target")));
+	g.CL().SetComputeRootConstantBufferView(8, m_Light->GetGPUAddress());
+	g.CL().SetComputeRootConstantBufferView(9, m_Constants->GetGPUAddress());
 
 	m_Pipeline->Dispatch(g);
 

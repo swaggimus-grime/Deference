@@ -53,9 +53,9 @@ GeometryBuffer main(VertexOut input)
         }
     }
     
-    //float3 v = normalize(cam.pos - input.wPos);
-    //if (dot(input.norm, v) < 0)
-    //    input.norm = -input.norm;
+    float3 v = normalize(cam.pos - input.wPos);
+    if (dot(input.norm, v) < 0)
+        input.norm = -input.norm;
     
     float4 spec;
     spec = smap.Sample(smp, input.tex);

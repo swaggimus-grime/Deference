@@ -5,6 +5,7 @@
 #include "Debug/Exception.h"
 #include "Pass.h"
 #include <vector>
+#include "BBox.h"
 
 class Model;
 
@@ -12,6 +13,7 @@ struct Scene
 {
 	std::vector<Shared<Model>> m_Models;
 	Shared<const Camera> m_Camera;
+	BBox m_BBox;
 };
 
 class FrameGraph

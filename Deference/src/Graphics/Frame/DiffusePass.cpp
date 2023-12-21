@@ -102,16 +102,15 @@ void DiffusePass::Finish(Graphics& g)
 
 void DiffusePass::ShowGUI()
 {
-	if (ImGui::Begin("Diffuse Pass"))
-	{
-		ImGui::BeginGroup();
-		ImGui::Text("Point Light");
+	ImGui::Begin("Diffuse Pass");
 
-		ImGui::SliderFloat3("Position", ((*m_Light)["pos"]), -10.f, 10.f);
-		ImGui::SliderFloat3("Color", (*m_Light)["color"], 0.f, 1.f);
-		ImGui::SliderFloat("Intensity", (*m_Light)["intensity"], 0.f, 5.f);
-		ImGui::EndGroup();
+	ImGui::BeginGroup();
+	ImGui::Text("Point Light");
 
-		ImGui::End();
-	}
+	ImGui::SliderFloat3("Position", ((*m_Light)["pos"]), -10.f, 10.f);
+	ImGui::SliderFloat3("Color", (*m_Light)["color"], 0.f, 1.f);
+	ImGui::SliderFloat("Intensity", (*m_Light)["intensity"], 0.f, 5.f);
+	ImGui::EndGroup();
+
+	ImGui::End();
 }

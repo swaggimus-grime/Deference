@@ -1,0 +1,11 @@
+Model Information:
+* title:	Time-Room
+* source:	https://sketchfab.com/3d-models/time-room-89ae1391a06f4aef9c9913944d0c4b1c
+* author:	Claudio (https://sketchfab.com/Claudio.Cotto)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Time-Room" (https://sketchfab.com/3d-models/time-room-89ae1391a06f4aef9c9913944d0c4b1c) by Claudio (https://sketchfab.com/Claudio.Cotto) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

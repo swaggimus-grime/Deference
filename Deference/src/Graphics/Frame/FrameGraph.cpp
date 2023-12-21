@@ -3,7 +3,7 @@
 #include <imgui.h>
 
 FrameGraph::FrameGraph(Scene& scene)
-	:m_CurrentTarget(5), m_Camera(scene.m_Camera), m_Models(scene.m_Models)
+	:m_CurrentTarget(2), m_Camera(scene.m_Camera), m_Models(scene.m_Models)
 {
 }
 
@@ -23,21 +23,24 @@ void FrameGraph::OnResize(Graphics& g, UINT w, UINT h)
 
 void FrameGraph::ShowUI(Graphics& g)
 {
-	ImGui::Begin("Frame Graph");
-	auto& current = m_TargetNames[m_CurrentTarget];
-	if (ImGui::BeginCombo("Current Target", (current.Pass + '.' + current.Target).c_str())) {
-		for (int i = 0; i < m_TargetNames.size(); ++i) {
-			const bool isSelected = (m_CurrentTarget == i);
-			auto& selected = m_TargetNames[i];
-			if (ImGui::Selectable((selected.Pass + '.' + selected.Target).c_str(), isSelected)) {
-				m_CurrentTarget = i;
+	if (ImGui::Begin("Frame Graph")) 
+	{
+		auto& current = m_TargetNames[m_CurrentTarget];
+		if (ImGui::BeginCombo("Current Target", (current.Pass + '.' + current.Target).c_str())) {
+			for (int i = 0; i < m_TargetNames.size(); ++i) {
+				const bool isSelected = (m_CurrentTarget == i);
+				auto& selected = m_TargetNames[i];
+				if (ImGui::Selectable((selected.Pass + '.' + selected.Target).c_str(), isSelected)) {
+					m_CurrentTarget = i;
+				}
+
+				if (isSelected) {
+					ImGui::SetItemDefaultFocus();
+				}
 			}
 
-			if (isSelected) {
-				ImGui::SetItemDefaultFocus();
-			}
+			ImGui::EndCombo();
 		}
-		ImGui::EndCombo();
 	}
 	ImGui::End();
 

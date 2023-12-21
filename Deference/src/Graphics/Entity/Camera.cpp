@@ -5,11 +5,16 @@
 constexpr float pi = std::numbers::pi_v<float>;
 
 Camera::Camera(Graphics& g, const XMFLOAT3& pos)
-	:m_Pos(pos), m_LookSpeed(0.006f), m_MoveSpeed(1.f),
+	:m_Pos(pos), m_LookSpeed(0.006f), m_MoveSpeed(0.1f),
 	m_Pitch(0.f), m_Yaw(0.f)
 {
 	Update();
 	OnResize(g.Width(), g.Height());
+}
+
+inline float focalLengthToFovY(float focalLength, float frameHeight)
+{
+    return 2.0f * atan(0.5f * frameHeight / focalLength);
 }
 
 void Camera::Update()
@@ -21,20 +26,33 @@ void Camera::Update()
 	m_View = XMMatrixLookAtLH(pos, pos + look, XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 	m_ViewInv = XMMatrixInverse(nullptr, m_View);
 
-	auto dirDU = XMVector3Normalize(XMVector3Cross(look, XMVectorSet(0, 1, 0, 0))) * m_ImgPlaneSize.x;
-	XMStoreFloat3(&m_DirDU, dirDU);
-	auto dirDV = XMVector3Normalize(XMVector3Cross(dirDU, look)) * m_ImgPlaneSize.y;
-	XMStoreFloat3(&m_DirDV, dirDV);
-	XMStoreFloat3(&m_DirTopLeft, look - 0.5f * dirDU - 0.5f * dirDV);
+    // Interpret focal length of 0 as 0 FOV. Technically 0 FOV should be focal length of infinity.
+    const float fovY = m_FocalLength == 0.0f ? 0.0f : focalLengthToFovY(m_FocalLength, m_FrameHeight);
+
+    //// Build jitter matrix
+    //// (jitterX and jitterY are expressed as subpixel quantities divided by the screen resolution
+    ////  for instance to apply an offset of half pixel along the X axis we set jitterX = 0.5f / Width)
+    //XMMATRIX jitterMat(1.0f, 0.0f, 0.0f, 0.0f,
+    //    0.0f, 1.0f, 0.0f, 0.0f,
+    //    0.0f, 0.0f, 1.0f, 0.0f,
+    //    2.0f * m_Jitter.x, 2.0f * m_Jitter.y, 0.0f, 1.0f);
+    //// Apply jitter matrix to the projection matrix
+    //m_Proj = m_Proj * jitterMat;
+
+    // Ray tracing related vectors
+    m_W = XMVectorScale(XMVector3Normalize(look), m_FocalDistance);
+    m_U = XMVector3Normalize(XMVector3Cross(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), m_W));
+    m_V = XMVector3Normalize(XMVector3Cross(m_W, m_U));
+    const float ulen = m_FocalDistance * tanf(fovY * 0.5f) * m_AspectRatio;
+    m_U *= ulen;
+    const float vlen = m_FocalDistance * tanf(fovY * 0.5f);
+    m_V *= vlen;
 }
 
 void Camera::OnResize(UINT w, UINT h)
 {
 	m_Proj = XMMatrixPerspectiveFovLH(pi / 2.f, static_cast<FLOAT>(w) / h, 0.001f, 4000.0f);
 	m_ProjInv = XMMatrixInverse(nullptr, m_Proj);
-
-	m_ImgPlaneSize.y = 2.f * std::tan(0.5f * pi / 2.f);
-	m_ImgPlaneSize.x = m_ImgPlaneSize.y * static_cast<float>(w) / h;
 }
 
 void Camera::Rotate(float dx, float dy)
@@ -65,9 +83,7 @@ void Camera::Move(const XMFLOAT3& delta)
 
 void Camera::ShowUI()
 {
-	if (ImGui::Begin("Camera"))
-	{
-		ImGui::SliderFloat("Move Speed", &m_MoveSpeed, 1.f, 100.f);
-		ImGui::End();
-	}
+	if(ImGui::Begin("Camera"))
+		ImGui::SliderFloat("Move Speed", &m_MoveSpeed, 0.1f, 1.f, "%.1f");
+	ImGui::End();
 }

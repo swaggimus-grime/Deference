@@ -9,27 +9,54 @@
 RaytracedGeometryPass::RaytracedGeometryPass(Graphics& g, const std::string& name, FrameGraph* parent)
 	:RaytracePass(std::move(name), parent)
 {	
-	AddOutTarget("Position");
-	AddOutTarget("Normal");
+	AddOutTarget("Position", DXGI_FORMAT_R32G32B32A32_FLOAT);
+	AddOutTarget("Normal", DXGI_FORMAT_R32G32B32A32_FLOAT);
 	AddOutTarget("Albedo");
+	AddOutTarget("Specular");
+	AddOutTarget("Emissive");
 
 	QueryGlobalResource("Env");
 	QueryGlobalVectorResource("Models");
 
 	ConstantBufferLayout layout;
-	layout.Add<CONSTANT_TYPE::XMMATRIX>("projToWorld");
-	layout.Add<CONSTANT_TYPE::XMMATRIX>("worldToProj");
-	layout.Add<CONSTANT_TYPE::XMFLOAT3>("wPos");
+	layout.Add<CONSTANT_TYPE::XMFLOAT3>("u");
+	layout.Add<CONSTANT_TYPE::FLOAT>("lensRadius");
+	layout.Add<CONSTANT_TYPE::XMFLOAT3>("v");
+	layout.Add<CONSTANT_TYPE::FLOAT>("focalLength");
+	layout.Add<CONSTANT_TYPE::XMFLOAT3>("w");
+	layout.Add<CONSTANT_TYPE::UINT>("frameCount");
+	layout.Add<CONSTANT_TYPE::XMFLOAT4>("wPos");
+	layout.Add<CONSTANT_TYPE::XMFLOAT2>("jitter");
 	m_Transform = MakeShared<ConstantBuffer>(g, std::move(layout));
 	AddResource(m_Transform);
+
+	auto now = std::chrono::high_resolution_clock::now();
+	auto msTime = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+	m_Rng = std::mt19937(uint32_t(msTime.time_since_epoch().count()));
 }
 
 void RaytracedGeometryPass::Run(Graphics& g)
 {
+	static const float kMSAA[8][2] = { { 1,-3 },{ -1,3 },{ 5,1 },{ -3,-5 },{ -5,5 },{ -7,-1 },{ 3,7 },{ 7,-7 } };
+
+	(*m_Transform)["frameCount"] = m_FrameCount++;
+	(*m_Transform)["lensRadius"] = 0.f;
+	(*m_Transform)["focalLength"] = m_FocalLength;
+
+	// Compute our jitter, either (0,0) as the center or some computed random/MSAA offset
+	float xOff = 0.0f, yOff = 0.0f;
+	xOff = kMSAA[m_FrameCount % 8][0] * 0.0625f;
+	yOff = kMSAA[m_FrameCount % 8][1] * 0.0625f;
+
 	const auto& cam = m_Parent->GetCamera();
-	(*m_Transform)["projToWorld"] = XMMatrixTranspose(cam->ProjToWorld());
-	(*m_Transform)["worldToProj"] = XMMatrixTranspose(cam->WorldToProj());
+
+	m_LensRadius = m_FocalLength / (2.0f * m_FStop);
+
+	XMStoreFloat3((*m_Transform)["u"], cam->U());
+	XMStoreFloat3((*m_Transform)["v"], cam->V());
+	XMStoreFloat3((*m_Transform)["w"], cam->W());
 	(*m_Transform)["wPos"] = cam->Pos();
+	(*m_Transform)["jitter"] = XMFLOAT2{ xOff + 0.5f, yOff + 0.5f };
 
 	auto& outs = GetOutTargets();
 	const auto& targets =
@@ -48,7 +75,11 @@ void RaytracedGeometryPass::Run(Graphics& g)
 	m_Pipeline->Bind(g);
 	m_GPUHeap->Bind(g);
 	g.CL().SetComputeRootConstantBufferView(0, m_Transform->GetGPUAddress());
-	g.CL().SetComputeRootDescriptorTable(1, GetResource(uas[0]));
+	g.CL().SetComputeRootDescriptorTable(1, GetResource(GetOutput("Position")));
+	g.CL().SetComputeRootDescriptorTable(2, GetResource(GetOutput("Normal")));
+	g.CL().SetComputeRootDescriptorTable(3, GetResource(GetOutput("Albedo")));
+	g.CL().SetComputeRootDescriptorTable(4, GetResource(GetOutput("Specular")));
+	g.CL().SetComputeRootDescriptorTable(5, GetResource(GetOutput("Emissive")));
 
 	m_Pipeline->Dispatch(g);
 

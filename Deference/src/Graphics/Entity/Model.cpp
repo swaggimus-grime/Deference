@@ -9,6 +9,16 @@
 #include "Bindable/Heap/AccelStruct.h"
 #include <ranges>
 
+aiVector3D max(const aiVector3D& v1, const aiVector3D& v2)
+{
+    return v1.Length() > v2.Length() ? v1 : v2;
+}
+
+aiVector3D min(const aiVector3D& v1, const aiVector3D& v2)
+{
+    return v1.Length() <= v2.Length() ? v1 : v2;
+}
+
 Model::Model(Graphics& g, const std::string& filePath)
     :m_World(XMMatrixIdentity())
 {
@@ -19,8 +29,12 @@ Model::Model(Graphics& g, const std::string& filePath)
         aiProcess_PreTransformVertices |
         aiProcess_FlipUVs |
         aiProcess_GenNormals |
-        aiProcess_CalcTangentSpace);
+        aiProcess_CalcTangentSpace |
+        aiProcess_GenBoundingBoxes);
     BR (scene && !(scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) && scene->mRootNode);
+
+    aiVector3D modelMax;
+    aiVector3D modelMin;
 
     INT texIdx = 0;
     const auto dir = filePath.substr(0, filePath.find_last_of('\\'));
@@ -84,6 +98,11 @@ Model::Model(Graphics& g, const std::string& filePath)
             return MakeShared<Texture2D>(g, std::wstring(texPath.begin(), texPath.end()));
         };
 
+        const auto bb = mesh->mAABB;
+
+        modelMin = min(modelMin, bb.mMin);
+        modelMax = max(modelMax, bb.mMax);
+
         Mesh m;
         m.m_VB = MakeShared<VertexBuffer>(g, std::move(stream));
         m.m_IB = MakeShared<IndexBuffer>(g, indices.size(), indices.data());
@@ -105,6 +124,9 @@ Model::Model(Graphics& g, const std::string& filePath)
         (*m.m_Materials)["emissive"] = XMFLOAT4(col.r, col.g, col.b, col.a);
         m_Meshes.push_back(std::move(m));
     }
+
+    std::memcpy(&m_BBox.min, &modelMin, sizeof(XMFLOAT3));
+    std::memcpy(&m_BBox.max, &modelMax, sizeof(XMFLOAT3));
 
     const auto& pairs =
         std::views::iota(0u, (UINT)m_Meshes.size()) |

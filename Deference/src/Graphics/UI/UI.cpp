@@ -16,8 +16,8 @@ namespace UI
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-		//.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 		ImGui::StyleColorsDark();
 	}
 
@@ -43,7 +43,7 @@ namespace UI
 		ImGui_ImplWin32_NewFrame();
 		ImGui_ImplDX12_NewFrame();
 		ImGui::NewFrame();
-		//ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 		ID3D12DescriptorHeap* heaps[] = { m_UIHeap.Get() };
 		g.CL().SetDescriptorHeaps(1, heaps);
 	}
@@ -53,5 +53,7 @@ namespace UI
 		ImGui::EndFrame();
 		ImGui::Render();
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), &g.CL());
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
 	}
 }

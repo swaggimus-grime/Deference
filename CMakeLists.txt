@@ -8,8 +8,7 @@ set(CMAKE_BUILD_TYPE "Debug")
 set(WIN32 true)
 
 project ("Deference")
-
-# Include sub-projects.
+# Include sub-prs.
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     option(GIT_SUBMODULE "Check submodules during build" ON)
@@ -18,23 +17,26 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     endif()
 endif()
 
-function(add_git_submodule dir)
-    message(STATUS "Submodule update ${dir}")
+function(add_git_submodule dir branch)
     execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive ${dir}
                     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                     RESULT_VARIABLE GIT_SUBMOD_RESULT)
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
         message(FATAL_ERROR "git submodule update --init --recursive ${dir} failed with ${GIT_SUBMOD_RESULT}")
     endif()
+
+    execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${branch}
+                    WORKING_DIRECTORY ${dir}
+                    )
 endfunction(add_git_submodule)
 
 set(DXTEX_DIR ${PROJECT_SOURCE_DIR}/tools/DirectXTex)
 set(ASSIMP_DIR ${PROJECT_SOURCE_DIR}/tools/assimp)
 set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/tools/imgui)
 
-#add_git_submodule(${DXTEX_DIR})
-#add_git_submodule(${ASSIMP_DIR})
-#add_git_submodule(${IMGUI_DIR})
+add_git_submodule(${DXTEX_DIR} "master")
+add_git_submodule(${ASSIMP_DIR} "master")
+add_git_submodule(${IMGUI_DIR} "docking")
 
 add_subdirectory(${DXTEX_DIR})
 add_subdirectory(${ASSIMP_DIR})

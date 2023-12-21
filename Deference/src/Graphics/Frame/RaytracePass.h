@@ -15,6 +15,6 @@ protected:
 
 protected:
 	Unique<RaytracingPipeline> m_Pipeline;
-	std::unordered_map<std::string, Shared<UnorderedAccess>> m_Outputs;
+	std::vector<std::pair<std::string, Shared<UnorderedAccess>>> m_Outputs;
 	Shared<TLAS> m_TLAS;
 };

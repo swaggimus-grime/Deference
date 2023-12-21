@@ -110,7 +110,7 @@ Window::Window(const std::string& name, unsigned int width, unsigned int height)
 
 	ImGui_ImplWin32_Init(m_Handle);
 	ShowWindow(m_Handle, SW_SHOW);
-	m_Input.SetCursor(false);
+	ShowCursor(true);
 	GetClipCursor(&m_OrigClipRect);
 }
 
@@ -270,7 +270,7 @@ LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 		return true;
 
-	//const auto& guiIO = ImGui::GetIO();
+	const auto& guiIO = ImGui::GetIO();
 	switch (msg) {
 	case WM_CLOSE:
 		PostQuitMessage(0);
@@ -303,8 +303,8 @@ LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		m_Input.OnWheelDelta(wp.x, wp.y);
 		break;
 	case WM_LBUTTONDOWN:
-		/*if (guiIO.WantCaptureMouse)
-			break;*/
+		if (guiIO.WantCaptureMouse)
+			break;
 		m_Input.OnMouseLPressed();
 		break;
 	case WM_LBUTTONUP:

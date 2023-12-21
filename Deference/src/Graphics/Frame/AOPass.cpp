@@ -101,7 +101,6 @@ void AOPass::ShowGUI()
 		ImGui::SliderFloat("Radius", ((*m_Constants)["radius"]), 10.f, 1000.f);
 		ImGui::SliderFloat("MinT", (*m_Constants)["minT"], 0.001f, 1.f);
 		ImGui::SliderInt("Ray Count", (*m_Constants)["rayCount"], 1, 100);
-
-		ImGui::End();
 	}
+	ImGui::End();
 }

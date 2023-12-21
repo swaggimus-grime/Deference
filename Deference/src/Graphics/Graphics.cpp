@@ -114,6 +114,8 @@ Graphics::~Graphics()
     HR m_Fence->SetEventOnCompletion(m_FenceValue, m_FenceEvent);
     if (::WaitForSingleObject(m_FenceEvent, 3000) == WAIT_FAILED)
         HR GetLastError();
+
+    ImGui_ImplDX12_Shutdown();
 }
 
 void Graphics::OnResize(UINT w, UINT h)

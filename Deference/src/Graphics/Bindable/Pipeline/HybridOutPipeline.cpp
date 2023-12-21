@@ -17,5 +17,5 @@ HybridOutPipeline::HybridOutPipeline(Graphics& g)
     rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
 
     auto sig = MakeShared<RootSig>(g, _countof(rootParameters), rootParameters);
-    Create(g, std::move(sig), vs, ps, std::move(layout), { Swapchain::s_Format });
+    Create(g, std::move(sig), vs, ps, std::move(layout), { DXGI_FORMAT_R32G32B32A32_FLOAT });
 }

@@ -13,6 +13,8 @@ public:
 	void Update();
 	void OnResize(UINT w, UINT h);
 
+	inline void SetMoveSpeed(float speed) { m_MoveSpeed = speed; }
+
 	inline XMFLOAT3 Pos() const { return m_Pos; }
 	inline float Pitch() const { return m_Pitch; }
 	inline float Yaw() const { return m_Yaw; }
@@ -23,10 +25,9 @@ public:
 	inline XMMATRIX ProjInv() const { return m_ProjInv; }
 	inline XMMATRIX WorldToProj() const { return m_View * m_Proj; }
 	inline XMMATRIX ProjToWorld() const { return XMMatrixInverse(nullptr, m_View * m_Proj); }
-
-	inline XMFLOAT4 DirDU() const { return XMFLOAT4(m_DirDU.x, m_DirDU.y, m_DirDU.z, 0.f); }
-	inline XMFLOAT4 DirDV() const { return XMFLOAT4(m_DirDV.x, m_DirDV.y, m_DirDV.z, 0.f); }
-	inline XMFLOAT4 DirTopLeft() const { return XMFLOAT4(m_DirTopLeft.x, m_DirTopLeft.y, m_DirTopLeft.z, 0.f); }
+	inline auto U() const { return m_U; }
+	inline auto V() const { return m_V; }
+	inline auto W() const { return m_W; }
 
 	inline auto Share() const { return shared_from_this(); }
 	void Rotate(float dx, float dy);
@@ -40,10 +41,14 @@ private:
 	XMMATRIX m_Proj;
 	XMMATRIX m_ProjInv;
 
-	XMFLOAT3 m_DirDU;
-	XMFLOAT3 m_DirDV;
-	XMFLOAT3 m_DirTopLeft;
-	XMFLOAT2 m_ImgPlaneSize;
+	float m_FocalLength = 21.f;
+	float m_FocalDistance = 1000.f;
+	float m_FrameHeight = 24.f;
+	float m_AspectRatio = 1.77f;
+	XMFLOAT2 m_Jitter{ 0, 0 };
+	XMVECTOR m_U;
+	XMVECTOR m_V;
+	XMVECTOR m_W;
 
 	XMFLOAT3 m_Pos;
 	float m_Pitch;

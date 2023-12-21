@@ -1,4 +1,6 @@
-
+[submodule "tools/imgui"]
+	path = tools/imgui
+	url = https://github.com/ocornut/imgui.git
 [submodule "tools/DirectXTex"]
 	path = tools/DirectXTex
 	url = https://github.com/microsoft/DirectXTex.git

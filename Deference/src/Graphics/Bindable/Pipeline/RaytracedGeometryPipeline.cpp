@@ -22,12 +22,20 @@ RaytracedGeometryPipeline::RaytracedGeometryPipeline(Graphics& g)
 		hg->SetHitGroupExport(hitGroup);
 	}
 	{
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
-		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 3, 0);
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[5];
+		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2);
+		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 3);
+		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 4);
 
-		CD3DX12_ROOT_PARAMETER1 params[2];
+		CD3DX12_ROOT_PARAMETER1 params[6];
 		params[0].InitAsConstantBufferView(0);
 		params[1].InitAsDescriptorTable(1, &ranges[0]);
+		params[2].InitAsDescriptorTable(1, &ranges[1]);
+		params[3].InitAsDescriptorTable(1, &ranges[2]);
+		params[4].InitAsDescriptorTable(1, &ranges[3]);
+		params[5].InitAsDescriptorTable(1, &ranges[4]);
 
 		auto pSig = MakeUnique<RootSig>(g, _countof(params), params);
 		auto sig = so.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
@@ -51,17 +59,21 @@ RaytracedGeometryPipeline::RaytracedGeometryPipeline(Graphics& g)
 		AddLocalSig(std::move(pSig));
 	}
 	{
-		CD3DX12_DESCRIPTOR_RANGE1 ranges[4];
+		CD3DX12_DESCRIPTOR_RANGE1 ranges[6];
 		ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 1); //Vbuff
 		ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 1); //IBuff
 		ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 1); //Diff Map
 		ranges[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3, 1); //Norm Map
+		ranges[4].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 1); //Spec Map
+		ranges[5].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 1); //Emissive Map
 
-		CD3DX12_ROOT_PARAMETER1 params[4];
+		CD3DX12_ROOT_PARAMETER1 params[6];
 		params[0].InitAsDescriptorTable(1, &ranges[0]);
 		params[1].InitAsDescriptorTable(1, &ranges[1]);
 		params[2].InitAsDescriptorTable(1, &ranges[2]);
 		params[3].InitAsDescriptorTable(1, &ranges[3]);
+		params[4].InitAsDescriptorTable(1, &ranges[4]);
+		params[5].InitAsDescriptorTable(1, &ranges[5]);
 
 		auto pSig = MakeUnique<RootSig>(g, _countof(params), params, true);
 		auto sig = so.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();

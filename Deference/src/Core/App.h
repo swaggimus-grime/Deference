@@ -20,4 +20,8 @@ private:
 	Shared<Camera> m_Cam;
 	Unique<FrameGraph> m_Graph;
 	Shared<Model> m_Cup;
+
+	XMFLOAT3 m_CamSpeed;
+	float m_Diag;
+
 };

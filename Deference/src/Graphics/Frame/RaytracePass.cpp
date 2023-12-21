@@ -8,11 +8,11 @@ RaytracePass::RaytracePass(const std::string& name, FrameGraph* parent)
 
 void RaytracePass::Finish(Graphics& g)
 {
-	for (const auto& name : GetOutTargets())
+	for (const auto& tuple : GetOutTargets())
 	{
-		auto out = MakeShared<UnorderedAccess>(g);
+		auto out = MakeShared<UnorderedAccess>(g, std::get<1>(tuple));
 		AddResource(out);
-		m_Outputs.insert({ std::get<0>(name), std::move(out)});
+		m_Outputs.emplace_back(std::get<0>(tuple), std::move(out));
 	}
 
 	Pass::Finish(g);
@@ -27,5 +27,5 @@ void RaytracePass::OnResize(Graphics& g, UINT w, UINT h)
 
 Shared<UnorderedAccess> RaytracePass::GetOutput(const std::string& name)
 {
-	return m_Outputs[name];
+	return std::find_if(m_Outputs.begin(), m_Outputs.end(), [&](const auto& p) {return name == p.first; })->second;
 }

@@ -8,8 +8,10 @@ class Graphics;
 class UnorderedAccess : public Resource
 {
 public:
-	UnorderedAccess(Graphics& g);
+	UnorderedAccess(Graphics& g, DXGI_FORMAT format);
 	void CreateView(Graphics& g, HCPU h);
 	void Resize(Graphics& g, UINT w, UINT h);
 
+private:
+	DXGI_FORMAT m_Format;
 };

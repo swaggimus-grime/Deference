@@ -1,13 +1,13 @@
 #include "UnorderedAccess.h"
 #include "Graphics.h"
-#include "Swapchain.h"
 
-UnorderedAccess::UnorderedAccess(Graphics& g)
+UnorderedAccess::UnorderedAccess(Graphics& g, DXGI_FORMAT format)
+    :m_Format(format)
 {
     D3D12_RESOURCE_DESC desc = {};
     desc.DepthOrArraySize = 1;
     desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    desc.Format = Swapchain::s_Format;
+    desc.Format = m_Format;
     desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     desc.Width = g.Width();
     desc.Height = g.Height();
@@ -36,7 +36,7 @@ void UnorderedAccess::Resize(Graphics& g, UINT w, UINT h)
     D3D12_RESOURCE_DESC desc = {};
     desc.DepthOrArraySize = 1;
     desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    desc.Format = Swapchain::s_Format;
+    desc.Format = m_Format;
     desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     desc.Width = w;
     desc.Height = h;

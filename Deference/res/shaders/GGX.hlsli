@@ -6,7 +6,14 @@
 #include "Light.hlsli"
 #include "Shadow.hlsli"
 
-// From Falcor
+struct ggxConstants
+{
+    float3 camPos;
+    uint maxRec;
+    uint frameCount;
+    float minT;
+};
+ConstantBuffer<ggxConstants> ggx : register(b1);
 
 struct IndirectPayload
 {
@@ -25,7 +32,7 @@ float3 shootIndirectRay(float3 orig, float3 dir, float minT, uint seed, uint rec
     load.recDepth = recDepth + 1;
 
 	// Trace our indirect ray.  Use hit group #1 and miss shader #1 (of 2)
-    TraceRay(scene, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, 0xFF, 1, 2, 1, rayColor, load);
+    TraceRay(scene, RAY_FLAG_NONE, 0xFF, 1, 2, 1, rayColor, load);
     return load.color;
 }
 
@@ -103,16 +110,16 @@ float3 ggxDirect(inout uint rndSeed, float3 hit, float3 N, float3 V,
     LightData l = GetLightData(hit, pointLight.pos);
 
 	// Compute our lambertion term (N dot L)
-    float NdotL = saturate(dot(N, l.vToL));
+    float NdotL = saturate(dot(N, l.dirToL));
 
 	// Shoot our shadow ray to our randomly selected light
-    //float shadowMult = /*float(gLightsCount) **/shadowRayVisibility(hit, l.dirToL, 0.0001, l.distToLight);
+    float shadowMult = shadowRayVisibility(hit, l.dirToL, ggx.minT, l.distToLight);
 
     //return shadowMult * float3(1, 1, 1); //pointLight.intensity * dif;
 	// Compute half vectors and additional dot products for GGX
-    float3 H = normalize(l.dirToL + V);
+    float3 H = normalize(V + l.dirToL);
     float NdotH = saturate(dot(N, H));
-    float LdotH = saturate(dot(l.vToL, H));
+    float LdotH = saturate(dot(l.dirToL, H));
     float NdotV = saturate(dot(N, V));
 
 	// Evaluate terms for our GGX BRDF model
@@ -125,7 +132,7 @@ float3 ggxDirect(inout uint rndSeed, float3 hit, float3 N, float3 V,
     float3 ggxTerm = D * G * F / (4 * NdotV /* * NdotL */);
 
 	// Compute our final color (combining diffuse lobe plus specular GGX lobe)
-    return pointLight.intensity * pointLight.color * ( /* NdotL * */ggxTerm + NdotL * dif / M_PI);
+    return shadowMult * pointLight.intensity * pointLight.color * ( /* NdotL * */ggxTerm + NdotL * dif / M_PI);
 }
 
 float3 ggxIndirect(inout uint rndSeed, float3 hit, float3 N, float3 V, float3 dif, float3 spec, float rough, uint rayDepth)

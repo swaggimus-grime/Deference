@@ -11,12 +11,19 @@ App::App(const std::string& name, UINT32 width, UINT32 height)
 	m_Gfx = MakeUnique<Graphics>(m_Wnd->GetHandle(), width, height);
 
 	m_Cam = MakeShared<Camera>(*m_Gfx);
-	m_Cup = MakeShared<Model>(*m_Gfx, "models\\room\\scene.gltf");
+	m_Cup = MakeShared<Model>(*m_Gfx, "models\\hangar\\scene.gltf");
 
 	Scene scene;
 	scene.m_Camera = m_Cam->Share();
 	scene.m_Models.push_back(m_Cup);
-	m_Graph = MakeUnique<HybridGraph>(*m_Gfx, scene);
+	scene.m_BBox = m_Cup->GetBBox();
+
+	m_CamSpeed = scene.m_BBox.Dim();
+	m_Diag = scene.m_BBox.DiagonalLength();
+
+	//m_Cam->SetMoveSpeed(m_Diag);
+
+	m_Graph = MakeUnique<PathTraceGraph>(*m_Gfx, scene);
 
 	m_Wnd->SetOnResize([&](UINT w, UINT h) {
 		w = std::max(w, 1u);
@@ -48,6 +55,8 @@ INT App::Run()
 			sem.acquire();
 			g.BeginFrame();
 
+
+			m_Cam->Update();
 			auto target = m_Graph->Run(g);
 			target->Bind(g);
 			UI::BeginFrame(g);
@@ -59,6 +68,8 @@ INT App::Run()
 			g.EndFrame();
 		}
 	});
+
+	const float camSpeed = length(m_CamSpeed) / m_Diag;
 
 	std::optional<INT> ret;
 	while (!ret) {
@@ -72,23 +83,23 @@ INT App::Run()
 		auto& g = m_Gfx;
 		auto& cam = m_Cam;
 		if (input.IsPressed('W'))
-			cam->Move(XMFLOAT3(0.f, 0.f, deltaTime));
+			cam->Move(XMFLOAT3(0.f, 0.f, deltaTime * m_Diag));
 		if (input.IsPressed('S'))
-			cam->Move(XMFLOAT3(0.f, 0.f, -deltaTime));
+			cam->Move(XMFLOAT3(0.f, 0.f, -deltaTime * m_Diag));
 		if (input.IsPressed('A'))
-			cam->Move(XMFLOAT3(-deltaTime, 0.f, 0.f));
+			cam->Move(XMFLOAT3(-deltaTime * m_Diag, 0.f, 0.f));
 		if (input.IsPressed('D'))
-			cam->Move(XMFLOAT3(deltaTime, 0.f, 0.f));
+			cam->Move(XMFLOAT3(deltaTime * m_Diag, 0.f, 0.f));
 		if (input.IsPressed('Q'))
-			cam->Move(XMFLOAT3(0.f, deltaTime, 0.f));
+			cam->Move(XMFLOAT3(0.f, deltaTime * m_Diag, 0.f));
 		if (input.IsPressed('E'))
-			cam->Move(XMFLOAT3(0.f, -deltaTime, 0.f));
+			cam->Move(XMFLOAT3(0.f, -deltaTime * m_Diag, 0.f));
 		if (input.IsPressed(VK_ESCAPE))
 			PostQuitMessage(0);
 
 		while (const auto key = input.ReadKey()) {
 			switch (*key) {
-			case VK_TAB:
+			/*case VK_TAB:
 				if (m_Wnd->GetInput().RawDeltaEnabled()) {
 					m_Wnd->ClipCursor(false);
 					m_Wnd->GetInput().SetCursor(false);
@@ -97,14 +108,15 @@ INT App::Run()
 					m_Wnd->ClipCursor(true);
 					m_Wnd->GetInput().SetCursor(true);
 				}
-				break;
+				break;*/
 			}
 		}
 
 		while (const auto delta = input.ReadMouseDelta())
-			cam->Rotate((float)delta->x, (float)delta->y);
-
-		cam->Update();
+		{
+			if(input.IsMouseLPressed())
+				cam->Rotate((float)delta->x, (float)delta->y);
+		}
 	}
 
 	running = false;
