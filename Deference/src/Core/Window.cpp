@@ -76,10 +76,10 @@ Window::Window(const std::string& name, unsigned int width, unsigned int height)
 
 	// Check to see if a copy of WinPixGpuCapturer.dll has already been injected into the application.
 	// This may happen if the application is launched through the PIX UI. 
-	if (GetModuleHandleW(L"WinPixGpuCapturer.dll") == 0)
+	/*if (GetModuleHandleW(L"WinPixGpuCapturer.dll") == 0)
 	{
 		LoadLibraryW(GetLatestWinPixGpuCapturerPath_Cpp17().c_str());
-	}
+	}*/
 
 	WNDCLASSEX wc{};
 	HINSTANCE hInst = m_Inst;
@@ -116,10 +116,10 @@ Window::Window(const std::string& name, unsigned int width, unsigned int height)
 
 Window::~Window()
 {
-	UnregisterClass(m_Name.c_str(), m_Inst);
 	ImGui_ImplWin32_Shutdown();
 	UI::Shutdown();
 	DestroyWindow(m_Handle);
+	UnregisterClass(m_Name.c_str(), m_Inst);
 }
 
  std::optional<INT> Window::Update()
@@ -270,7 +270,6 @@ LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 		return true;
 
-	const auto& guiIO = ImGui::GetIO();
 	switch (msg) {
 	case WM_CLOSE:
 		PostQuitMessage(0);
@@ -278,23 +277,15 @@ LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_SIZE:
 		m_Width = LOWORD(lParam);
 		m_Height = HIWORD(lParam);
-		//m_OnResize(m_Width, m_Height);
-		//m_Graphics->OnWindowResize(std::max(1u, m_Width), std::max(1u, m_Height));
-		ImGui::GetIO().DisplaySize = ImVec2((float)m_Width, (float)m_Height);
+		m_OnResize(m_Width, m_Height);
 		break;
 	case WM_KEYDOWN:
-		//if (guiIO.WantCaptureKeyboard)
-		//	break;
 		m_Input.OnKeyPressed(static_cast<UINT>(wParam));
 		break;
 	case WM_KEYUP:
-		/*if (guiIO.WantCaptureKeyboard)
-			break;*/
 		m_Input.OnKeyReleased(static_cast<UINT>(wParam));
 		break;
 	case WM_MOUSEMOVE:
-		/*if (guiIO.WantCaptureMouse)
-			break;*/
 		POINTS mp = MAKEPOINTS(lParam);
 		m_Input.OnMouseMoved(mp.x, mp.y);
 		break;
@@ -303,13 +294,9 @@ LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		m_Input.OnWheelDelta(wp.x, wp.y);
 		break;
 	case WM_LBUTTONDOWN:
-		if (guiIO.WantCaptureMouse)
-			break;
 		m_Input.OnMouseLPressed();
 		break;
 	case WM_LBUTTONUP:
-		/*if (guiIO.WantCaptureMouse)
-			break;*/
 		m_Input.OnMouseLReleased();
 		break;
 	case WM_INPUT:

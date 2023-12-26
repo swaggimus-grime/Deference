@@ -2,6 +2,8 @@
 
 DepthStencil::DepthStencil(Graphics& g)
 {
+    m_Format = DXGI_FORMAT_D32_FLOAT;
+
     D3D12_CLEAR_VALUE clear = {};
     clear.Format = DXGI_FORMAT_D32_FLOAT;
     clear.DepthStencil.Depth = 1.0f;

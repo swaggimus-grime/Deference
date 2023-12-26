@@ -25,11 +25,13 @@ DiffuseGIPass::DiffuseGIPass(Graphics& g, const std::string& name, FrameGraph* p
 		layout.Add<CONSTANT_TYPE::FLOAT>("intensity");
 		layout.Add<CONSTANT_TYPE::XMFLOAT3>("color");
 		layout.Add<CONSTANT_TYPE::FLOAT>("emissive");
+		layout.Add<CONSTANT_TYPE::UINT>("on");
 		m_Light = MakeShared<ConstantBuffer>(g, std::move(layout));
 		(*m_Light)["pos"] = XMFLOAT3{ 0, 0.f, 0.f };
 		(*m_Light)["color"] = XMFLOAT3{ 1, 1, 1 };
 		(*m_Light)["intensity"] = 1.f;
 		(*m_Light)["emissive"] = 1.f;
+		(*m_Light)["on"] = 1u;
 		AddResource(m_Light);
 	}
 	{
@@ -38,9 +40,12 @@ DiffuseGIPass::DiffuseGIPass(Graphics& g, const std::string& name, FrameGraph* p
 		layout.Add<CONSTANT_TYPE::UINT>("maxRec");
 		layout.Add<CONSTANT_TYPE::UINT>("frameCount");
 		layout.Add<CONSTANT_TYPE::FLOAT>("minT");
+		layout.Add<CONSTANT_TYPE::UINT>("on");
 		m_Constants = MakeShared<ConstantBuffer>(g, std::move(layout));
 		(*m_Constants)["maxRec"] = 1;
-		(*m_Light)["minT"] = 0.0001f;
+		(*m_Constants)["minT"] = 0.001f;
+		(*m_Constants)["on"] = 1u;
+
 		AddResource(m_Constants);
 	}
 }
@@ -48,6 +53,7 @@ DiffuseGIPass::DiffuseGIPass(Graphics& g, const std::string& name, FrameGraph* p
 void DiffuseGIPass::Finish(Graphics& g)
 {
 	__super::Finish(g);
+
 	m_Pipeline = MakeUnique<DiffuseGIPipeline>(g);
 
 	const auto& entries = GetGlobalVectorResource("Models");
@@ -81,7 +87,8 @@ void DiffuseGIPass::ShowGUI()
 	{
 		ImGui::BeginGroup();
 		ImGui::Text("Direct Light");
-		ImGui::SliderFloat3("Position", ((*m_Light)["pos"]), -5000.f, 5000.f);
+		ImGui::Checkbox("On", (*m_Light)["on"]);
+		ImGui::SliderFloat3("Position", (*m_Light)["pos"], -5000.f, 5000.f);
 		ImGui::SliderFloat3("Color", (*m_Light)["color"], 0.f, 1.f);
 		ImGui::SliderFloat("Intensity", (*m_Light)["intensity"], 0.f, 10.f);
 		ImGui::SliderFloat("Emissive", (*m_Light)["emissive"], 0.f, 10.f);
@@ -89,8 +96,9 @@ void DiffuseGIPass::ShowGUI()
 
 		ImGui::BeginGroup();
 		ImGui::Text("Indirect Light");
+		ImGui::Checkbox("On", (*m_Constants)["on"]);
 		ImGui::SliderInt("Max Recursion", ((*m_Constants)["maxRec"]), 1, 30);
-		ImGui::SliderFloat("minT", (*m_Constants)["minT"], 0.f, 1.f);
+		ImGui::SliderFloat("minT", (*m_Constants)["minT"], 0.001f, 1.f);
 		ImGui::EndGroup();
 	}
 	ImGui::End();
@@ -98,34 +106,34 @@ void DiffuseGIPass::ShowGUI()
 
 void DiffuseGIPass::Run(Graphics& g)
 {
-	//auto& ins = GetInTargets();
-	//const auto& inTargets =
-	//	std::views::iota(0u, (UINT)ins.size()) |
-	//	std::views::transform([&](UINT i) {
-	//	return ins.at(i).second;
-	//		}) |
-	//	std::ranges::to<std::vector>();
-
-	//Resource::Transition(g, inTargets, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	(*m_Constants)["camPos"] = m_Parent->GetCamera()->Pos();
 	(*m_Constants)["frameCount"] = m_FrameCount++;
 
+	auto& ins = GetInTargets();
+	const auto& inTargets =
+		std::views::iota(ins.begin(), ins.end()) |
+		std::views::transform([&](const auto& it) {
+		return std::get<1>(*it);
+			}) |
+		std::ranges::to<std::vector>();
+
+	Resource::Transition(g, inTargets, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
 	m_Pipeline->Bind(g);
 	m_GPUHeap->Bind(g);
-	g.CL().SetComputeRootDescriptorTable(0, GetResource(GetInTarget("Position")));
-	g.CL().SetComputeRootDescriptorTable(1, GetResource(GetInTarget("Normal")));
-	g.CL().SetComputeRootDescriptorTable(2, GetResource(GetInTarget("Albedo")));
-	g.CL().SetComputeRootDescriptorTable(3, GetResource(GetInTarget("Specular")));
-	g.CL().SetComputeRootDescriptorTable(4, GetResource(GetInTarget("Emissive")));
+	for(UINT i = 0; i < inTargets.size(); i++)
+		g.CL().SetComputeRootDescriptorTable(i, GetResource(inTargets[i]));
+
 	g.CL().SetComputeRootDescriptorTable(5, GetGlobalResource("TLAS"));
 	g.CL().SetComputeRootDescriptorTable(6, GetGlobalResource("Env"));
-	g.CL().SetComputeRootDescriptorTable(7, GetResource(GetOutput("Target")));
+	auto target = GetOutput("Target");
+	g.CL().SetComputeRootDescriptorTable(7, GetResource(target));
 	g.CL().SetComputeRootConstantBufferView(8, m_Light->GetGPUAddress());
 	g.CL().SetComputeRootConstantBufferView(9, m_Constants->GetGPUAddress());
 
 	m_Pipeline->Dispatch(g);
 
-	//Resource::Transition(g, inTargets, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	Resource::Transition(g, inTargets, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	auto& outs = GetOutTargets();
 	const auto& targets =

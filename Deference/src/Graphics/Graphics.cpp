@@ -110,11 +110,7 @@ Graphics::Graphics(HWND hWnd, UINT width, UINT height)
 
 Graphics::~Graphics()
 {
-    HR m_CQ->Signal(m_Fence.Get(), ++m_FenceValue);
-    HR m_Fence->SetEventOnCompletion(m_FenceValue, m_FenceEvent);
-    if (::WaitForSingleObject(m_FenceEvent, 3000) == WAIT_FAILED)
-        HR GetLastError();
-
+    Flush();
     ImGui_ImplDX12_Shutdown();
 }
 

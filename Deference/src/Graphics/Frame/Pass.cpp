@@ -14,6 +14,8 @@ void Pass::Link(const std::string& otherPass, const std::string& otherTarget, st
 		});
 	if (it != m_InTargets.end())
 		it->second = m_Parent->GetTarget(PassTargetName(std::move(otherPass), std::move(otherTarget)));
+	else
+		throw new DefException("Cannot find pass with name " + otherPass);
 }
 
 void Pass::Finish(Graphics& g)
@@ -66,13 +68,8 @@ void Pass::OnResize(Graphics& g, UINT w, UINT h)
 {
 	m_Viewport->Resize(w, h);
 
-	/*for (auto& t : m_OutTargets)
-		t.second->Resize(g, w, h);*/
-
-	m_GPUHeap->Reset();
-	//auto& ins = GetInTargets();
-	/*for (auto& in : ins)
-		in.second->CreateShaderResourceView(g, m_GPUHeap->Next());*/
+	for (auto& t : m_OutTargets)
+		std::get<2>(t)->Resize(g, w, h);
 }
 
 void Pass::AddResource(Shared<Resource> r)

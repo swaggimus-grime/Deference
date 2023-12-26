@@ -52,7 +52,6 @@ void ToneMapPass::ShowGUI()
 		ImGui::Text("Options");
 		ImGui::Checkbox("On", static_cast<bool*>((*m_Options)["On"]));
 		ImGui::EndGroup();
-
-		ImGui::End();
 	}
+	ImGui::End();
 }

@@ -44,13 +44,14 @@ public:
 
 	inline UINT NumDescriptors() const { return m_HeapIdx; }
 
+	inline void IncrementHandle() { m_HCPU.ptr += m_IncSize; m_HeapIdx++; }
+
 protected:
 	template<typename R>
 	void Add(Graphics& g, Shared<R> r)
 	{
 		r->CreateView(g, m_HCPU);
-		m_HeapIdx++;
-		m_HCPU.ptr += m_IncSize;
+		IncrementHandle();
 	}
 
 	HCPU m_CPUStart;

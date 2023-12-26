@@ -2,6 +2,7 @@
 #include <thread>
 #include "UI/UI.h"
 #include <semaphore>
+#include <imgui.h>
 
 App::App(const std::string& name, UINT32 width, UINT32 height)
 {
@@ -21,8 +22,6 @@ App::App(const std::string& name, UINT32 width, UINT32 height)
 	m_CamSpeed = scene.m_BBox.Dim();
 	m_Diag = scene.m_BBox.DiagonalLength();
 
-	//m_Cam->SetMoveSpeed(m_Diag);
-
 	m_Graph = MakeUnique<PathTraceGraph>(*m_Gfx, scene);
 
 	m_Wnd->SetOnResize([&](UINT w, UINT h) {
@@ -31,6 +30,7 @@ App::App(const std::string& name, UINT32 width, UINT32 height)
 		m_Gfx->OnResize(w, h);
 		m_Cam->OnResize(w, h);
 		m_Graph->OnResize(*m_Gfx, w, h);
+		UI::OnResize(*m_Gfx, w, h);
 	});
 
 	m_Gfx->Flush();
@@ -46,22 +46,30 @@ INT App::Run()
 	const auto startTime = steady_clock::now();
 	float prevTime = 0.f;
 	bool running = true;
+	bool viewportActive = false;
 
-	std::binary_semaphore sem(0);
+	std::binary_semaphore sem(1);
 
 	std::thread renderer([&]() {
 		auto& g = *m_Gfx;
 		while (running) {
 			sem.acquire();
 			g.BeginFrame();
-
-
 			m_Cam->Update();
 			auto target = m_Graph->Run(g);
 			target->Bind(g);
+
 			UI::BeginFrame(g);
-			m_Cam->ShowUI();
 			m_Graph->ShowUI(g);
+			m_Cam->ShowUI();
+
+			if (ImGui::Begin("Viewport"))
+			{
+				viewportActive = ImGui::IsItemActive();
+				UI::DrawTarget(g, target);
+			}
+			ImGui::End();
+
 			UI::EndFrame(g);
 
 			g.CopyToCurrentBB(target);
@@ -114,7 +122,7 @@ INT App::Run()
 
 		while (const auto delta = input.ReadMouseDelta())
 		{
-			if(input.IsMouseLPressed())
+			if(ImGui::IsMouseDown(ImGuiMouseButton_Left) && viewportActive)
 				cam->Rotate((float)delta->x, (float)delta->y);
 		}
 	}

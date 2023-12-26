@@ -1,6 +1,7 @@
 #include "PathTraceGraph.h"
 #include "DiffuseGIPass.h"
 #include "Entity/Model.h"
+#include "CopyPass.h"
 
 PathTraceGraph::PathTraceGraph(Graphics& g, Scene& scene)
 	:FrameGraph(scene)
@@ -24,7 +25,9 @@ PathTraceGraph::PathTraceGraph(Graphics& g, Scene& scene)
 	}
 
 	AddGlobalVectorResource("Models", { m_ModelHeap->CPUStart(), m_ModelHeap->NumDescriptors(), 6 });
-	AddGlobalResource("Env", MakeShared<EnvironmentMap>(g, L"textures\\MonValley_G_DirtRoad_3k.hdr"));
+	auto env = MakeShared<EnvironmentMap>(g, L"textures\\MonValley_G_DirtRoad_3k.hdr");
+	env->Transition(g, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	AddGlobalResource("Env", env);
 	AddGlobalResource("TLAS", MakeShared<TLAS>(g,
 		std::views::iota(0u, (UINT)scene.m_Models.size()) |
 		std::views::transform([&](UINT i) {
@@ -54,14 +57,13 @@ void PathTraceGraph::RecordPasses(Graphics& g)
 		pass->Finish(g);
 	}
 	{
-		auto pass = AddPass<AOPass>(g, "AO");
-		pass->Link("Geometry", "Position");
-		pass->Link("Geometry", "Normal");
+		auto pass = AddPass<ToneMapPass>(g, "Tonemap");
+		pass->Link("GI accum", "Target", "HDR");
 		pass->Finish(g);
 	}
 	{
-		auto pass = AddPass<AccumPass>(g, "AO accum");
-		pass->Link("AO", "Target");
+		auto pass = AddPass<CopyPass>(g, "Copy");
+		pass->Link("Tonemap", "SDR", "Target");
 		pass->Finish(g);
 	}
 

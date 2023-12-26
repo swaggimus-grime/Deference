@@ -1,9 +1,10 @@
 #include "FrameGraph.h"
 #include "Entity/Model.h"
 #include <imgui.h>
+#include <DirectXTex/DirectXTex.h>
 
 FrameGraph::FrameGraph(Scene& scene)
-	:m_CurrentTarget(2), m_Camera(scene.m_Camera), m_Models(scene.m_Models)
+	:m_CurrentTarget(0), m_Camera(scene.m_Camera), m_Models(scene.m_Models)
 {
 }
 
@@ -73,7 +74,8 @@ void FrameGraph::FinishRecordingPasses()
 	for (auto& pass : m_Passes)
 	{
 		for (const auto& name : pass.second->GetOutTargets())
-			m_TargetNames.emplace_back(pass.second->GetName(), std::get<0>(name));
+			if(std::get<1>(name) == DXGI_FORMAT_R8G8B8A8_UNORM)
+				m_TargetNames.emplace_back(pass.second->GetName(), std::get<0>(name));
 	}
 }
 

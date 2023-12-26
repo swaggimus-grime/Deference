@@ -119,11 +119,12 @@ void DiffuseAndHardShadow()
         shadeColor = pointLight.emissive * pixelEmissive.rgb;
 
 		// (Optionally) do explicit direct lighting to a random light in the scene
-        shadeColor += ggxDirect(randSeed, worldPos.xyz, worldNorm.xyz, V,
+        if(pointLight.on)
+            shadeColor += ggxDirect(randSeed, worldPos.xyz, worldNorm.xyz, V,
 				               difMatlColor.rgb, specMatlColor.rgb, roughness);
 
 		// (Optionally) do indirect lighting for global illumination
-        if (ggx.maxRec > 0)
+        if (ggx.on && ggx.maxRec > 0)
             shadeColor += ggxIndirect(randSeed, worldPos.xyz, worldNorm.xyz, V, difMatlColor.rgb, specMatlColor.rgb, roughness, 0);
     }
 	

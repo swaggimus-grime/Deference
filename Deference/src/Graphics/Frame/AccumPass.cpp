@@ -27,7 +27,7 @@ void AccumPass::ShowGUI()
 
 void AccumPass::OnResize(Graphics& g, UINT w, UINT h)
 {
-	ScreenPass::OnResize(g, w, h);
+	__super::OnResize(g, w, h);
 	m_PrevFrame->Resize(g, w, h);
 	m_PrevFrame->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }

@@ -3,6 +3,8 @@
 
 RenderTarget::RenderTarget(Graphics& g, DXGI_FORMAT fmt)
 {
+    m_Format = fmt;
+
     const auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
     const D3D12_RESOURCE_DESC res = CD3DX12_RESOURCE_DESC::Tex2D(fmt,
         static_cast<UINT64>(g.Width()),
@@ -62,13 +64,13 @@ void RenderTarget::BindWithDepth(Graphics& g, DepthStencil& ds)
 void RenderTarget::Resize(Graphics& g, UINT w, UINT h)
 {
     const auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-    const D3D12_RESOURCE_DESC res = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM,
+    const D3D12_RESOURCE_DESC res = CD3DX12_RESOURCE_DESC::Tex2D(m_Format,
         static_cast<UINT64>(w),
         static_cast<UINT>(h),
         1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 
     D3D12_CLEAR_VALUE clearValue = {};
-    clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    clearValue.Format = m_Format;
     XMFLOAT4 col = { 0.f, 0.f, 0.f, 1.f };
     std::memcpy(clearValue.Color, &col, sizeof(XMFLOAT4));
 
@@ -83,4 +85,7 @@ void RenderTarget::Resize(Graphics& g, UINT w, UINT h)
 
     if(GetHCPU().ptr != 0)
         g.Device().CreateRenderTargetView(m_Res.Get(), nullptr, GetHCPU());
+
+    if (m_ShaderHCPU.ptr != 0)
+        CreateShaderView(g, m_ShaderHCPU);
 }

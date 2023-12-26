@@ -11,9 +11,9 @@ RaytracedGeometryPass::RaytracedGeometryPass(Graphics& g, const std::string& nam
 {	
 	AddOutTarget("Position", DXGI_FORMAT_R32G32B32A32_FLOAT);
 	AddOutTarget("Normal", DXGI_FORMAT_R32G32B32A32_FLOAT);
-	AddOutTarget("Albedo");
-	AddOutTarget("Specular");
-	AddOutTarget("Emissive");
+	AddOutTarget("Albedo", DXGI_FORMAT_R32G32B32A32_FLOAT);
+	AddOutTarget("Specular", DXGI_FORMAT_R32G32B32A32_FLOAT);
+	AddOutTarget("Emissive", DXGI_FORMAT_R32G32B32A32_FLOAT);
 
 	QueryGlobalResource("Env");
 	QueryGlobalVectorResource("Models");

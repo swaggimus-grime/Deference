@@ -20,7 +20,7 @@ void RaytracePass::Finish(Graphics& g)
 
 void RaytracePass::OnResize(Graphics& g, UINT w, UINT h)
 {
-	Pass::OnResize(g, w, h);
+	__super::OnResize(g, w, h);
 	for(auto& out : m_Outputs)
 		out.second->Resize(g, w, h);
 }

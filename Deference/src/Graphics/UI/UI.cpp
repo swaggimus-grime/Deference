@@ -7,7 +7,10 @@ namespace UI
 {
 	namespace
 	{
-		ComPtr<ID3D12DescriptorHeap> m_UIHeap;
+		Unique<GPUShaderHeap> m_UIHeap;
+		Unique<RenderTargetHeap> m_TargetHeap;
+		Shared<RenderTarget> m_Target;
+		HGPU m_TargetHandle;
 	}
 
 	void Init()
@@ -23,14 +26,18 @@ namespace UI
 
 	void InitGraphics(Graphics& g)
 	{
-		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		desc.NumDescriptors = 1;
-		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		HR g.Device().CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_UIHeap));
+		m_UIHeap = MakeUnique<GPUShaderHeap>(g, 2);
+		m_TargetHeap = MakeUnique<RenderTargetHeap>(g, 1);
 		
-		ImGui_ImplDX12_Init(&g.Device(), Graphics::s_NumInFlightFrames, Swapchain::s_Format, m_UIHeap.Get(),
-			m_UIHeap->GetCPUDescriptorHandleForHeapStart(), m_UIHeap->GetGPUDescriptorHandleForHeapStart());
+		ImGui_ImplDX12_Init(&g.Device(), Graphics::s_NumInFlightFrames, Swapchain::s_Format, **m_UIHeap,
+			m_UIHeap->CPUStart(), m_UIHeap->GPUStart());
+
+		m_Target = MakeShared<RenderTarget>(g);
+		m_TargetHeap->Add(g, m_Target);
+		m_UIHeap->IncrementHandle();
+		m_TargetHandle = m_UIHeap->AddTarget(g, m_Target);
+
+		m_Target->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
 
 	void Shutdown()
@@ -38,13 +45,21 @@ namespace UI
 		ImGui::DestroyContext();
 	}
 
+	void OnResize(Graphics& g, UINT width, UINT height)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = ImVec2(width, height);
+		m_Target->Resize(g, width, height);
+		m_Target->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
+
 	void BeginFrame(Graphics& g)
 	{
 		ImGui_ImplWin32_NewFrame();
 		ImGui_ImplDX12_NewFrame();
 		ImGui::NewFrame();
-		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
-		ID3D12DescriptorHeap* heaps[] = { m_UIHeap.Get() };
+		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+		ID3D12DescriptorHeap* heaps[] = { **m_UIHeap };
 		g.CL().SetDescriptorHeaps(1, heaps);
 	}
 
@@ -55,5 +70,21 @@ namespace UI
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), &g.CL());
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
+	}
+
+	void DrawTarget(Graphics& g, Shared<Target> target)
+	{
+		m_Target->Transition(g, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST);
+		target->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+		g.CL().CopyResource(**m_Target, **target);
+
+		m_Target->Transition(g, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		target->Transition(g, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+		auto pos = ImGui::GetWindowPos();
+		ImGui::GetWindowDrawList()->AddImage(
+			(ImTextureID)m_TargetHandle.ptr, pos, {pos.x + g.Width(), pos.y + g.Height()},
+			ImVec2(0, 0), ImVec2(1, 1));
 	}
 }

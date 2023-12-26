@@ -58,7 +58,7 @@ void Swapchain::Present()
 
 void Swapchain::OnResize(Graphics& g, UINT w, UINT h)
 {
-    g.Wait();
+    g.Flush();
     m_BackBuffs.clear();
     HR m_SC->ResizeBuffers(m_NumBuffs, w, h, s_Format, m_AllowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
 

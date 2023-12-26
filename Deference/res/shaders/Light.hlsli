@@ -7,6 +7,7 @@ struct PointLight
     float intensity;
     float3 color;
     float emissive;
+    uint on;
 };
 
 struct LightData

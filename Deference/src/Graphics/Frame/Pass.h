@@ -79,6 +79,10 @@ protected:
 		[&](const auto& p) {
 			return p.first == r;
 		});
+
+		if (it == m_Resources.end())
+			throw new DefException("Failed to find resource!");
+
 		return it->second;
 	}
 
