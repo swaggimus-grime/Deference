@@ -2,9 +2,9 @@
 
 #include "Window.h"
 #include "Graphics.h"
-#include "Graphics/Entity/Camera.h"
+#include "Graphics/Scene/Camera.h"
 #include "Graphics/Frame/FrameGraph.h"
-#include "Graphics/Entity/Model.h"
+#include "Graphics/Scene/Model.h"
 
 class App {
 public:
@@ -17,11 +17,12 @@ public:
 private:
 	Unique<Window> m_Wnd;
 	Unique<Graphics> m_Gfx;
-	Shared<Camera> m_Cam;
 	Unique<FrameGraph> m_Graph;
-	Shared<Model> m_Cup;
+
+	Shared<Scene> m_Scene;
+
+	std::function<void(Model&)> m_OnModelLoad;
 
 	XMFLOAT3 m_CamSpeed;
 	float m_Diag;
-
 };

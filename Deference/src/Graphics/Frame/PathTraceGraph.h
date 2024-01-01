@@ -5,10 +5,10 @@
 class PathTraceGraph : public FrameGraph
 {
 public:
-	PathTraceGraph(Graphics& g, Scene& scene);
+	PathTraceGraph(Graphics& g);
 
 protected:
-	virtual void RecordPasses(Graphics& g) override;
+	virtual void PrepLoadScene(Graphics& g) override;
 
 private:
 	Unique<CPUShaderHeap> m_ModelHeap;

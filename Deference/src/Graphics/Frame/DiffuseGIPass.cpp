@@ -2,7 +2,7 @@
 #include "Bindable/Heap/AccelStruct.h"
 #include "Bindable/Heap/UnorderedAccess.h"
 #include "Bindable/Pipeline/DiffuseGIPipeline.h"
-#include "Entity/Camera.h"
+#include "Scene/Camera.h"
 #include <imgui.h>
 #include "VecOps.h"
 
@@ -14,7 +14,7 @@ DiffuseGIPass::DiffuseGIPass(Graphics& g, const std::string& name, FrameGraph* p
 	AddInTarget("Albedo");
 	AddInTarget("Specular");
 	AddInTarget("Emissive");
-	AddOutTarget("Target");
+	AddOutTarget(g, "Target");
 
 	QueryGlobalResource("Env");
 	QueryGlobalVectorResource("Models");
@@ -50,10 +50,8 @@ DiffuseGIPass::DiffuseGIPass(Graphics& g, const std::string& name, FrameGraph* p
 	}
 }
 
-void DiffuseGIPass::Finish(Graphics& g)
+void DiffuseGIPass::OnSceneLoad(Graphics& g)
 {
-	__super::Finish(g);
-
 	m_Pipeline = MakeUnique<DiffuseGIPipeline>(g);
 
 	const auto& entries = GetGlobalVectorResource("Models");
@@ -70,7 +68,7 @@ void DiffuseGIPass::Finish(Graphics& g)
 	}
 	{
 		auto table = MakeShared<ShaderBindTable>(g, m_Pipeline.get(), entries.size() * 2, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES + sizeof(HGPU) * entries[0].size());
-		
+
 		for (UINT i = 0; i < entries.size(); i++)
 		{
 			table->Add(DiffuseGIPipeline::shadowGroup);
@@ -83,12 +81,18 @@ void DiffuseGIPass::Finish(Graphics& g)
 
 void DiffuseGIPass::ShowGUI()
 {
+	auto scene = m_Parent->GetScene();
 	if (ImGui::Begin("Diffuse Pass"))
 	{
 		ImGui::BeginGroup();
 		ImGui::Text("Direct Light");
 		ImGui::Checkbox("On", (*m_Light)["on"]);
-		ImGui::SliderFloat3("Position", (*m_Light)["pos"], -5000.f, 5000.f);
+		ImGui::Text("Position");
+		auto dim = scene.GetModel().GetBBox().Dim();
+		XMFLOAT3& pos = (*m_Light)["pos"];
+		ImGui::SliderFloat("X", &pos.x, -dim.x, dim.x);
+		ImGui::SliderFloat("Y", &pos.y, -dim.y, dim.y);
+		ImGui::SliderFloat("Z", &pos.z, -dim.z, dim.z);
 		ImGui::SliderFloat3("Color", (*m_Light)["color"], 0.f, 1.f);
 		ImGui::SliderFloat("Intensity", (*m_Light)["intensity"], 0.f, 10.f);
 		ImGui::SliderFloat("Emissive", (*m_Light)["emissive"], 0.f, 10.f);
@@ -106,7 +110,7 @@ void DiffuseGIPass::ShowGUI()
 
 void DiffuseGIPass::Run(Graphics& g)
 {
-	(*m_Constants)["camPos"] = m_Parent->GetCamera()->Pos();
+	(*m_Constants)["camPos"] = m_Parent->GetScene().GetCamera().Pos();
 	(*m_Constants)["frameCount"] = m_FrameCount++;
 
 	auto& ins = GetInTargets();
@@ -122,7 +126,7 @@ void DiffuseGIPass::Run(Graphics& g)
 	m_Pipeline->Bind(g);
 	m_GPUHeap->Bind(g);
 	for(UINT i = 0; i < inTargets.size(); i++)
-		g.CL().SetComputeRootDescriptorTable(i, GetResource(inTargets[i]));
+		g.CL().SetComputeRootDescriptorTable(i, GetTargetResource(inTargets[i]));
 
 	g.CL().SetComputeRootDescriptorTable(5, GetGlobalResource("TLAS"));
 	g.CL().SetComputeRootDescriptorTable(6, GetGlobalResource("Env"));
@@ -139,13 +143,13 @@ void DiffuseGIPass::Run(Graphics& g)
 	const auto& targets =
 		std::views::iota(outs.begin(), outs.end()) |
 		std::views::transform([&](const auto& it) {
-			return std::get<2>(*it);
+			return it->second;
 		}) |
 		std::ranges::to<std::vector>();
 	const auto& uas =
 		std::views::iota(m_Outputs.begin(), m_Outputs.end()) |
 		std::views::transform([&](const auto& it) {
-		return it->second;
+			return it->second;
 			}) |
 		std::ranges::to<std::vector>();
 

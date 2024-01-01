@@ -6,16 +6,12 @@ RaytracePass::RaytracePass(const std::string& name, FrameGraph* parent)
 	QueryGlobalResource("TLAS");
 }
 
-void RaytracePass::Finish(Graphics& g)
+void RaytracePass::AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt)
 {
-	for (const auto& tuple : GetOutTargets())
-	{
-		auto out = MakeShared<UnorderedAccess>(g, std::get<1>(tuple));
-		AddResource(out);
-		m_Outputs.emplace_back(std::get<0>(tuple), std::move(out));
-	}
-
-	Pass::Finish(g);
+	__super::AddOutTarget(g, target, fmt);
+	auto out = MakeShared<UnorderedAccess>(g, fmt);
+	AddResource(out);
+	m_Outputs.emplace_back(std::move(target), std::move(out));
 }
 
 void RaytracePass::OnResize(Graphics& g, UINT w, UINT h)

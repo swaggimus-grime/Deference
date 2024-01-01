@@ -11,7 +11,7 @@ public:
 
 protected:
 	RaytracePass(const std::string& name, FrameGraph* parent);
-	virtual void Finish(Graphics& g) override;
+	virtual void AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt = Swapchain::s_Format) override;
 
 protected:
 	Unique<RaytracingPipeline> m_Pipeline;

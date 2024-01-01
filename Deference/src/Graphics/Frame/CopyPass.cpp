@@ -1,7 +1,7 @@
 #include "CopyPass.h"
 #include "Bindable/Pipeline/VertexBuffer.h"
 #include "Bindable/Pipeline/IndexBuffer.h"
-#include "Entity/Camera.h"
+#include "Scene/Camera.h"
 #include "FrameGraph.h"
 #include "VecOps.h"
 
@@ -9,7 +9,7 @@ CopyPass::CopyPass(Graphics& g, const std::string& name, FrameGraph* parent)
 	:ScreenPass(g, std::move(name), parent)
 {
 	AddInTarget("Target");
-	AddOutTarget("Target");
+	AddOutTarget(g, "Target");
 }
 
 void CopyPass::Run(Graphics& g)

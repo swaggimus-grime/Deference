@@ -6,7 +6,7 @@ ToneMapPass::ToneMapPass(Graphics& g, const std::string& name, FrameGraph* paren
 	:ScreenPass(g, std::move(name), parent), m_SamplerHeap(g, 1)
 {
 	AddInTarget("HDR");
-	AddOutTarget("SDR");
+	AddOutTarget(g, "SDR");
 
 	ConstantBufferLayout layout;
 	layout.Add<CONSTANT_TYPE::INT>("On");

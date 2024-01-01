@@ -150,6 +150,13 @@ public:
 		return hgpu;
 	}
 
+	void ReturnTo(HGPU hgpu)
+	{
+		UINT bytes = (hgpu.ptr - m_GPUStart.ptr);
+		m_HCPU.ptr = m_CPUStart.ptr + bytes;
+		m_HeapIdx = bytes / m_IncSize;
+	}
+
 	template<typename R>
 		requires Derived<Resource, R>
 	HGPU Copy(Graphics& g, Shared<R> r)

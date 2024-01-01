@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Scene/Scene.h"
 #include "Bindable/Heap/DescriptorHeap.h"
 #include "Bindable/Heap/RenderTarget.h"
 #include "Debug/Exception.h"
@@ -9,23 +10,18 @@
 
 class Model;
 
-struct Scene
-{
-	std::vector<Shared<Model>> m_Models;
-	Shared<const Camera> m_Camera;
-	BBox m_BBox;
-};
-
 class FrameGraph
 {
 public:
+	FrameGraph() : m_CurrentTarget(0) {}
 	Shared<RenderTarget> Run(Graphics& g);
 	void ShowUI(Graphics& g);
 
-	inline auto GetCamera() const { return m_Camera; }
-	inline auto& GetModels() const { return m_Models; }
-
 	void OnResize(Graphics& g, UINT w, UINT h);
+	void LoadScene(Graphics& g, const Shared<Scene>& scene);
+	void Compile(Graphics& g);
+
+	inline const Scene& GetScene() const { return *m_Scene; }
 
 	Shared<RenderTarget> GetTarget(const PassTargetName& name);
 
@@ -48,8 +44,6 @@ public:
 	}
 
 protected:
-	FrameGraph(Scene& scene);
-
 	template<typename T>
 		requires Derived<Pass, T>
 	auto AddPass(Graphics& g, const std::string& name)
@@ -62,10 +56,7 @@ protected:
 	void AddGlobalResource(const std::string& name, Shared<Resource> r);
 	void AddGlobalVectorResource(const std::string& name, std::tuple<HCPU, UINT, UINT> range);
 
-	void Finish(Graphics& g);
-
-	virtual void RecordPasses(Graphics& g) = 0;
-	void FinishRecordingPasses();
+	virtual void PrepLoadScene(Graphics& g) = 0;
 
 private:
 	std::vector<std::pair<std::string, Shared<Pass>>> m_Passes;
@@ -73,8 +64,7 @@ private:
 	std::vector<PassTargetName> m_TargetNames;
 	int m_CurrentTarget;
 
-	std::vector<Shared<Model>> m_Models;
-	Shared<const Camera> m_Camera;
+	Shared<Scene> m_Scene;
 
 	Unique<CPUShaderHeap> m_GlobalHeap;
 	std::unordered_map<std::string, Shared<Resource>> m_GlobalResources;

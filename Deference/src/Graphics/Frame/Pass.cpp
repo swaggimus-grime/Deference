@@ -18,38 +18,34 @@ void Pass::Link(const std::string& otherPass, const std::string& otherTarget, st
 		throw new DefException("Cannot find pass with name " + otherPass);
 }
 
-void Pass::Finish(Graphics& g)
+void Pass::Compile(Graphics& g)
 {
-	m_Viewport = MakeShared<Viewport>(g);
-	AddBindable(m_Viewport);
-
 	m_TargetHeap = MakeUnique<RenderTargetHeap>(g, m_OutTargets.size());
 	for (auto& t : m_OutTargets)
-	{
-		auto& target = std::get<2>(t);
-		target = MakeShared<RenderTarget>(g, std::get<1>(t));
-		m_TargetHeap->Add(g, target);
-	}
+		m_TargetHeap->Add(g, t.second);
 
-	UINT totalVectorResources = 0;
+	for (auto& in : m_InTargets)
+		m_TargetResources.emplace_back(in.second, HGPU{ 0 });
+}
+
+void Pass::BuildGlobalResources(Graphics& g)
+{
+	UINT totalGlobalResources = m_GlobalResources.size();
 	for (auto& p : m_GlobalVectorResources)
 	{
 		auto [hcpu, num, stride] = m_Parent->GetGlobalVectorResource(p.first);
-		totalVectorResources += num;
+		totalGlobalResources += num;
 	}
 
 	m_GPUHeap = MakeUnique<GPUShaderHeap>(g, 
 		m_InTargets.size() + m_Resources.size() + m_TargetResources.size() + 
-		m_GlobalResources.size() + totalVectorResources);
+		totalGlobalResources);
 
 	for (auto& r : m_Resources)
 		r.second = m_GPUHeap->Add(g, r.first);
 
-	for (auto& in : m_InTargets)
-		m_Resources.emplace_back(in.second, m_GPUHeap->AddTarget(g, in.second));
-	
-	for(auto& t : m_TargetResources)
-		m_Resources.emplace_back(t, m_GPUHeap->AddTarget(g, t));
+	for (auto& r : m_TargetResources)
+		r.second = m_GPUHeap->AddTarget(g, r.first);
 
 	for (auto& p : m_GlobalResources)
 	{
@@ -59,17 +55,15 @@ void Pass::Finish(Graphics& g)
 
 	for (auto& p : m_GlobalVectorResources)
 	{
-		auto[hcpu, num, stride] = m_Parent->GetGlobalVectorResource(p.first);
+		auto [hcpu, num, stride] = m_Parent->GetGlobalVectorResource(p.first);
 		p.second = m_GPUHeap->Copy(g, hcpu, num, stride);
 	}
 }
 
 void Pass::OnResize(Graphics& g, UINT w, UINT h)
 {
-	m_Viewport->Resize(w, h);
-
 	for (auto& t : m_OutTargets)
-		std::get<2>(t)->Resize(g, w, h);
+		t.second->Resize(g, w, h);
 }
 
 void Pass::AddResource(Shared<Resource> r)
@@ -79,7 +73,7 @@ void Pass::AddResource(Shared<Resource> r)
 
 void Pass::AddTargetResource(Shared<Target> r)
 {
-	m_TargetResources.push_back(std::move(r));
+	m_TargetResources.emplace_back(std::move(r), HGPU{0});
 }
 
 void Pass::QueryGlobalResource(const std::string& name)

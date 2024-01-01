@@ -6,13 +6,11 @@
 #include <unordered_map>
 #include <functional>
 
-class Camera;
 class Context;
 class Pipeline;
 class RootSig;
 class RenderTarget;
 class Swapchain;
-class Camera;
 
 class Graphics {
 public:
@@ -45,9 +43,6 @@ public:
 
 	static D3D_ROOT_SIGNATURE_VERSION ROOT_SIG_VERSION;
 
-	inline void SetCamera(Shared<Camera> cam) { m_Cam = std::move(cam); }
-	inline auto GetCamera() const { return m_Cam; }
-
 	static constexpr UINT s_NumInFlightFrames = 2;
 
 private:
@@ -66,8 +61,6 @@ private:
 	ComPtr<ID3D12Fence> m_Fence;
 	HANDLE m_FenceEvent;
 	UINT64 m_FenceValue = 0;
-
-	Shared<Camera> m_Cam;
 
 	std::function<void(UINT, UINT)> m_OnResize;
 	bool m_Resized;

@@ -41,17 +41,21 @@ public:
 	inline const auto& GetOutTarget(const std::string& target) const {
 		auto it = std::find_if(m_OutTargets.begin(), m_OutTargets.end(),
 			[&](const auto& p) {
-				const auto& [name, format, t] = p;
-				return name == target;
+				return p.first == target;
 			});
 		if (it != m_OutTargets.end())
-			return std::get<2>(*it);
+			return it->second;
 		else
 			throw DefException("Cannot find out target with name " + target);
 	}
 
+	inline auto& GetGlobalResources() const { return m_GlobalResources; }
+	inline auto& GetGlobalVectorResources() const { return m_GlobalVectorResources; }
+
 	void Link(const std::string& otherPass, const std::string& otherTarget, std::optional<std::string> targetName = {});
-	virtual void Finish(Graphics& g);
+	void Compile(Graphics& g);
+	void BuildGlobalResources(Graphics& g);
+	virtual void OnSceneLoad(Graphics& g) {}
 	virtual void Run(Graphics& g) = 0;
 	virtual void ShowGUI() {}
 	virtual void OnResize(Graphics& g, UINT w, UINT h);
@@ -86,8 +90,21 @@ protected:
 		return it->second;
 	}
 
-	inline void AddOutTarget(std::string&& target, DXGI_FORMAT fmt = Swapchain::s_Format) {
-		m_OutTargets.emplace_back(std::move(target), fmt, nullptr);
+	inline const auto& GetTargetResource(const Shared<Target>& r)
+	{
+		auto it = std::find_if(m_TargetResources.begin(), m_TargetResources.end(),
+			[&](const auto& p) {
+				return p.first == r;
+			});
+
+		if (it == m_TargetResources.end())
+			throw new DefException("Failed to find target resource!");
+
+		return it->second;
+	}
+
+	inline virtual void AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt = Swapchain::s_Format) {
+		m_OutTargets.emplace_back(std::move(target), MakeShared<RenderTarget>(g, fmt));
 	}
 
 	inline void AddInTarget(std::string&& target) {
@@ -103,15 +120,14 @@ protected:
 	FrameGraph* m_Parent;
 
 private:
-	Shared<Viewport> m_Viewport;
 	std::vector<Shared<Bindable>> m_Bindables;
 
 	std::vector<std::pair<Shared<Resource>, HGPU>> m_Resources;
-	std::vector<Shared<Target>> m_TargetResources;
+	std::vector<std::pair<Shared<Target>, HGPU>> m_TargetResources;
 	std::unordered_map<std::string, HGPU> m_GlobalResources;
 	std::unordered_map<std::string, std::vector<std::vector<HGPU>>> m_GlobalVectorResources;
 
 	std::string m_Name;
 	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_InTargets;
-	std::vector<std::tuple<std::string, DXGI_FORMAT, Shared<RenderTarget>>> m_OutTargets;
+	std::vector<std::pair<std::string, Shared<RenderTarget>>> m_OutTargets;
 };

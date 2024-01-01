@@ -2,7 +2,7 @@
 #include "Bindable/Pipeline/AccumPipeline.h"
 #include "Bindable/Pipeline/VertexBuffer.h"
 #include "Bindable/Pipeline/IndexBuffer.h"
-#include "Entity/Camera.h"
+#include "Scene/Camera.h"
 #include "FrameGraph.h"
 #include "VecOps.h"
 
@@ -10,7 +10,7 @@ AccumPass::AccumPass(Graphics& g, const std::string& name, FrameGraph* parent)
 	:ScreenPass(g, std::move(name), parent),  m_NumPassedFrames(0), m_PrevFrameHeap(g, 1)
 {
 	AddInTarget("Target");
-	AddOutTarget("Target");
+	AddOutTarget(g, "Target");
 
 	m_Pipeline = MakeUnique<AccumPipeline>(g);
 	m_PrevCamHash = { 0, 0, 0 };
@@ -36,8 +36,8 @@ void AccumPass::Run(Graphics& g)
 {
 	__super::Run(g);
 
-	const auto& cam = m_Parent->GetCamera();
-	XMFLOAT3 currentCamHash = cam->Pos() * cam->Pitch() * cam->Yaw();
+	const auto& cam = m_Parent->GetScene().GetCamera();
+	XMFLOAT3 currentCamHash = cam.Pos() * cam.Pitch() * cam.Yaw();
 	if (m_PrevCamHash != currentCamHash)
 	{
 		m_PrevCamHash = std::move(currentCamHash);

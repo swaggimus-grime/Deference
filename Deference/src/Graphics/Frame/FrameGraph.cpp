@@ -1,12 +1,7 @@
 #include "FrameGraph.h"
-#include "Entity/Model.h"
+#include "Scene/Model.h"
 #include <imgui.h>
 #include <DirectXTex/DirectXTex.h>
-
-FrameGraph::FrameGraph(Scene& scene)
-	:m_CurrentTarget(0), m_Camera(scene.m_Camera), m_Models(scene.m_Models)
-{
-}
 
 Shared<RenderTarget> FrameGraph::Run(Graphics& g)
 {
@@ -20,6 +15,23 @@ void FrameGraph::OnResize(Graphics& g, UINT w, UINT h)
 {
 	for (auto& p : m_Passes)
 		p.second->OnResize(g, w, h);
+}
+
+void FrameGraph::LoadScene(Graphics& g, const Shared<Scene>& scene)
+{
+	m_Scene = scene;
+	PrepLoadScene(g);
+
+	m_GlobalHeap = MakeUnique<CPUShaderHeap>(g, m_GlobalResources.size() + 1000);
+
+	for (auto& p : m_GlobalResources)
+		m_GlobalHeap->Add(g, p.second);
+
+	for (auto& p : m_Passes)
+	{
+		p.second->BuildGlobalResources(g);
+		p.second->OnSceneLoad(g);
+	}
 }
 
 void FrameGraph::ShowUI(Graphics& g)
@@ -51,31 +63,22 @@ void FrameGraph::ShowUI(Graphics& g)
 
 void FrameGraph::AddGlobalResource(const std::string& name, Shared<Resource> r)
 {
-	m_GlobalResources.insert({ std::move(name), std::move(r) });
+	m_GlobalResources[std::move(name)] = std::move(r);
 }
 
 void FrameGraph::AddGlobalVectorResource(const std::string& name, std::tuple<HCPU, UINT, UINT> range)
 {
-	m_GlobalVectorResources.insert({ std::move(name), std::move(range) });
+	m_GlobalVectorResources[std::move(name)] = std::move(range);
 }
 
-void FrameGraph::Finish(Graphics& g)
-{
-	m_GlobalHeap = MakeUnique<CPUShaderHeap>(g, m_GlobalResources.size() + 1000);
-
-	for (auto& p : m_GlobalResources)
-		m_GlobalHeap->Add(g, p.second);
-
-	RecordPasses(g);
-}
-
-void FrameGraph::FinishRecordingPasses()
+void FrameGraph::Compile(Graphics& g)
 {
 	for (auto& pass : m_Passes)
 	{
+		pass.second->Compile(g);
 		for (const auto& name : pass.second->GetOutTargets())
-			if(std::get<1>(name) == DXGI_FORMAT_R8G8B8A8_UNORM)
-				m_TargetNames.emplace_back(pass.second->GetName(), std::get<0>(name));
+			if(name.second->GetFormat() == Swapchain::s_Format)
+				m_TargetNames.emplace_back(pass.second->GetName(), name.first);
 	}
 }
 

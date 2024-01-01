@@ -13,7 +13,7 @@ public:
 	RaytracedGeometryPass(Graphics& g, const std::string& name, FrameGraph* parent);
 	virtual void Run(Graphics& g) override;
 	virtual void ShowGUI() override;
-	virtual void Finish(Graphics& g) override;
+	virtual void OnSceneLoad(Graphics& g) override;
 
 private:
 	Shared<ConstantBuffer> m_Transform;

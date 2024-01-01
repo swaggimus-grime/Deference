@@ -15,4 +15,5 @@ protected:
 private:
 	DepthStencilHeap m_DepthHeap;
 	Shared<DepthStencil> m_Depth;
+	Shared<Viewport> m_Viewport;
 };
