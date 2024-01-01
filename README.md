@@ -11,11 +11,11 @@ Run the executable binary located within the binary directory(out/build/x64-debu
 
 ## Controls
 - WASD: move camera
-- Tab: toggle camera look with mouse
+- Left Mouse Click: Drag to look around
 - Esc: Quit application
 
-## Hybrid rendering with a frame graph
-The frame graph currently uses a rasterized geometry pass for filling in position, normal, and albedo information. Subsequent passes will use this information for lighting/shadows. This hybrid approach not only performs better in real-time compared to path tracing, but it's also easier to implement as uploading vertex, index, and material information to the raytracing shaders for a raytraced geometry pass relies on additional setup.
+## Rendering with a frame graph
+The frame graph currently uses a raytraced geometry pass for filling in position, normal, albedo, specular, and emissive information. Subsequent passes will use this information for lighting/shadows. Uses GGX lighting model.
 
 ## Screenshots 
 Normal map support  
@@ -29,6 +29,3 @@ Albedo channel
 
 Floating UI
 ![UI](https://github.com/swaggimus-grime/Deference/blob/657c017c2ac29cd386dcd2c3f7f336db578b5cb7/screenshots/ui.png)
-
-Hybrid output
-![Hybrid output](https://github.com/swaggimus-grime/Deference/blob/657c017c2ac29cd386dcd2c3f7f336db578b5cb7/screenshots/hybrid.png)
