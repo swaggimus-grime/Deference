@@ -1,13 +1,12 @@
 [submodule "tools/imgui"]
 	path = tools/imgui
 	url = https://github.com/ocornut/imgui.git
-[submodule "tools/DirectXTex"]
-	path = tools/DirectXTex
-	url = https://github.com/microsoft/DirectXTex.git
 [submodule "tools/tinygltf"]
 	path = tools/tinygltf
 	url = https://github.com/syoyo/tinygltf.git
 [submodule "tools/DirectXTK12"]
 	path = tools/DirectXTK12
 	url = https://github.com/microsoft/DirectXTK12.git
-
+[submodule "tools/DirectXTex"]
+	path = tools/DirectXTex
+	url = https://github.com/microsoft/DirectXTex.git

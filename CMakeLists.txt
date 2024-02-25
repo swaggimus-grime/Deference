@@ -46,8 +46,8 @@ set(DXTK12_DIR ${PROJECT_SOURCE_DIR}/tools/DirectXTK12)
 set(TINYGLTF_DIR ${PROJECT_SOURCE_DIR}/tools/tinygltf)
 set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/tools/imgui)
 
+set_git_submodule(${DXTK12_DIR} "" "")
 set_git_submodule(${DXTEX_DIR} "" "")
-set_git_submodule(${DXTK12_DIR} "" "7d7e5b7")
 set_git_submodule(${TINYGLTF_DIR} "" "")
 set_git_submodule(${IMGUI_DIR} "docking" "")
 
