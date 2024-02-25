@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <d3d12.h>
 #include <wrl.h>
+#include "Handle.h"
 
 namespace Def
 {

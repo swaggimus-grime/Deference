@@ -17,14 +17,7 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     endif()
 endif()
 
-function(add_git_submodule dir branch release)
-    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive ${dir}
-                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
-    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-        message(FATAL_ERROR "git submodule update --init --recursive ${dir} failed with ${GIT_SUBMOD_RESULT}")
-    endif()
-
+function(set_git_submodule dir branch release)
     if("${branch}" STREQUAL "")
         message("${dir} on default branch")
     else()
@@ -39,17 +32,24 @@ function(add_git_submodule dir branch release)
                         WORKING_DIRECTORY ${dir})
     endif()
                
-endfunction(add_git_submodule)
+endfunction(set_git_submodule)
+
+execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive ${PROJECT_SOURCE_DIR}
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                RESULT_VARIABLE GIT_SUBMOD_RESULT)
+if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+    message(FATAL_ERROR "git submodule update --init --recursive ${PROJECT_SOURCE_DIR} failed with ${GIT_SUBMOD_RESULT}")
+endif()
 
 set(DXTEX_DIR ${PROJECT_SOURCE_DIR}/tools/DirectXTex)
 set(DXTK12_DIR ${PROJECT_SOURCE_DIR}/tools/DirectXTK12)
 set(TINYGLTF_DIR ${PROJECT_SOURCE_DIR}/tools/tinygltf)
 set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/tools/imgui)
 
-add_git_submodule(${DXTEX_DIR} "" "")
-add_git_submodule(${DXTK12_DIR} "" "7d7e5b7")
-add_git_submodule(${TINYGLTF_DIR} "" "")
-add_git_submodule(${IMGUI_DIR} "docking" "")
+set_git_submodule(${DXTEX_DIR} "" "")
+set_git_submodule(${DXTK12_DIR} "" "7d7e5b7")
+set_git_submodule(${TINYGLTF_DIR} "" "")
+set_git_submodule(${IMGUI_DIR} "docking" "")
 
 add_subdirectory(${DXTEX_DIR})
 add_subdirectory(${DXTK12_DIR})
