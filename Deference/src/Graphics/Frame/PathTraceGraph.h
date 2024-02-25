@@ -1,15 +1,12 @@
 #pragma once
 
-#include "FrameGraph.h"
+#include "RaytraceGraph.h"
 
-class PathTraceGraph : public FrameGraph
+namespace Def
 {
-public:
-	PathTraceGraph(Graphics& g);
-
-protected:
-	virtual void PrepLoadScene(Graphics& g) override;
-
-private:
-	Unique<CPUShaderHeap> m_ModelHeap;
-};
+	class PathTraceGraph : public RaytraceGraph
+	{
+	public:
+		PathTraceGraph(Graphics& g);
+	};
+}

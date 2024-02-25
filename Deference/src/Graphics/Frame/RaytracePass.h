@@ -1,20 +1,34 @@
 #pragma once
 
 #include "Pass.h"
+#include "Resource/UnorderedAccess.h"
+#include "Resource/RaytracingPipeline.h"
 
-class RaytracePass : public Pass
+namespace Def
 {
-public:
-	virtual void OnResize(Graphics& g, UINT w, UINT h) override;
-	inline const auto& GetOutputs() const { return m_Outputs; }
-	Shared<UnorderedAccess> GetOutput(const std::string& name);
+	class RaytracePass : public Pass
+	{
+	public:
+		virtual void OnResize(Graphics& g, UINT w, UINT h) override;
 
-protected:
-	RaytracePass(const std::string& name, FrameGraph* parent);
-	virtual void AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt = Swapchain::s_Format) override;
+	protected:
+		RaytracePass(const std::string& name, FrameGraph* parent);
+		virtual void AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt = Swapchain::s_Format) override;
+		void CopyUAVsToRTs(Graphics& g);
 
-protected:
-	Unique<RaytracingPipeline> m_Pipeline;
-	std::vector<std::pair<std::string, Shared<UnorderedAccess>>> m_Outputs;
-	Shared<TLAS> m_TLAS;
-};
+	protected:
+		struct HitEntry {
+			UINT m;
+			UINT istride;
+			HGPU v;
+			HGPU i;
+			HGPU uv;
+			HGPU n;
+			HGPU t;
+		};
+
+	protected:
+		Unique<RaytracingPipeline> m_Pipeline;
+		std::vector<std::pair<std::string, Shared<UnorderedAccess>>> m_UAVs;
+	};
+}

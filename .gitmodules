@@ -4,6 +4,15 @@
 [submodule "tools/DirectXTex"]
 	path = tools/DirectXTex
 	url = https://github.com/microsoft/DirectXTex.git
-[submodule "tools/assimp"]
-	path = tools/assimp
-	url = https://github.com/assimp/assimp.git
+[submodule "tools/tinygltf"]
+	path = tools/tinygltf
+	url = https://github.com/syoyo/tinygltf.git
+[submodule "tools/DirectXTK"]
+	path = tools/DirectXTK
+	url = https://github.com/microsoft/DirectXTK.git
+[submodule "tools/DirectXTK12"]
+	path = tools/DirectXTK12
+	url = https://github.com/microsoft/DirectXTK12.git
+[submodule "tools/DirectX-Headers"]
+	path = tools/DirectX-Headers
+	url = https://github.com/microsoft/DirectX-Headers.git

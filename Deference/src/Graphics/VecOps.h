@@ -1,6 +1,6 @@
 #pragma once
 
-namespace VecOps
+namespace Def
 {
 	static float length(const XMFLOAT3& v)
 	{

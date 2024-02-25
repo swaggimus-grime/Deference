@@ -4,7 +4,7 @@
 cmake_minimum_required (VERSION 3.18)
 set(CMAKE_CXX_STANDARD 23)
 
-set(CMAKE_BUILD_TYPE "Debug")
+#set(CMAKE_BUILD_TYPE "Debug")
 set(WIN32 true)
 
 project ("Deference")
@@ -17,7 +17,7 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     endif()
 endif()
 
-function(add_git_submodule dir branch)
+function(add_git_submodule dir branch release)
     execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive ${dir}
                     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                     RESULT_VARIABLE GIT_SUBMOD_RESULT)
@@ -25,19 +25,33 @@ function(add_git_submodule dir branch)
         message(FATAL_ERROR "git submodule update --init --recursive ${dir} failed with ${GIT_SUBMOD_RESULT}")
     endif()
 
-    execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${branch}
-                    WORKING_DIRECTORY ${dir}
-                    )
+    if("${branch}" STREQUAL "")
+        message("${dir} on default branch")
+    else()
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${branch}
+                        WORKING_DIRECTORY ${dir})
+    endif()
+
+    if("${release}" STREQUAL "")
+        message("${dir} on default release")
+    else()
+        execute_process(COMMAND ${GIT_EXECUTABLE} checkout ${release}
+                        WORKING_DIRECTORY ${dir})
+    endif()
+               
 endfunction(add_git_submodule)
 
 set(DXTEX_DIR ${PROJECT_SOURCE_DIR}/tools/DirectXTex)
-set(ASSIMP_DIR ${PROJECT_SOURCE_DIR}/tools/assimp)
+set(DXTK12_DIR ${PROJECT_SOURCE_DIR}/tools/DirectXTK12)
+set(TINYGLTF_DIR ${PROJECT_SOURCE_DIR}/tools/tinygltf)
 set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/tools/imgui)
 
-add_git_submodule(${DXTEX_DIR} "master")
-add_git_submodule(${ASSIMP_DIR} "master")
-add_git_submodule(${IMGUI_DIR} "docking")
+add_git_submodule(${DXTEX_DIR} "" "")
+add_git_submodule(${DXTK12_DIR} "" "7d7e5b7")
+add_git_submodule(${TINYGLTF_DIR} "" "")
+add_git_submodule(${IMGUI_DIR} "docking" "")
 
 add_subdirectory(${DXTEX_DIR})
-add_subdirectory(${ASSIMP_DIR})
+add_subdirectory(${DXTK12_DIR})
+add_subdirectory(${TINYGLTF_DIR})
 add_subdirectory("Deference")

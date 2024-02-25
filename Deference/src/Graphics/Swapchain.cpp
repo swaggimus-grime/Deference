@@ -1,76 +1,81 @@
 #include "Swapchain.h"
 #include "Graphics.h"
 
-Swapchain::Swapchain(Graphics& g, HWND hWnd, UINT numBuffs)
-    :m_NumBuffs(numBuffs), m_AllowTearing(true)
+namespace Def
 {
-    ComPtr<IDXGIFactory4> factory4;
-    if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory4))))
+    Swapchain::Swapchain(Graphics& g, HWND hWnd, UINT numBuffs)
+        :m_NumBuffs(numBuffs), m_AllowTearing(true)
     {
-        ComPtr<IDXGIFactory5> factory5;
-        if (SUCCEEDED(factory4.As(&factory5)))
+        ComPtr<IDXGIFactory4> factory4;
+        if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory4))))
         {
-            if (FAILED(factory5->CheckFeatureSupport(
-                DXGI_FEATURE_PRESENT_ALLOW_TEARING,
-                &m_AllowTearing, sizeof(m_AllowTearing))))
+            ComPtr<IDXGIFactory5> factory5;
+            if (SUCCEEDED(factory4.As(&factory5)))
             {
-                m_AllowTearing = false;
+                if (FAILED(factory5->CheckFeatureSupport(
+                    DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+                    &m_AllowTearing, sizeof(m_AllowTearing))))
+                {
+                    m_AllowTearing = false;
+                }
             }
+        }
+
+        ComPtr<IDXGISwapChain1> sc1;
+        DXGI_SWAP_CHAIN_DESC1 scd;
+        SecureZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC1));
+        scd.Width = g.Width();
+        scd.Height = g.Height();
+        scd.Format = s_Format;
+        scd.Stereo = FALSE;
+        scd.SampleDesc = { 1, 0 };
+        scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        scd.BufferCount = m_NumBuffs;
+        scd.Scaling = DXGI_SCALING_STRETCH;
+        scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        scd.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
+        scd.Flags = m_AllowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+        //scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+        HR factory4->CreateSwapChainForHwnd(&g.CQ(), hWnd, &scd, nullptr, nullptr, &sc1);
+        HR factory4->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
+        HR sc1.As(&m_SC);
+
+        m_RTs = MakeUnique<RenderTargetHeap>(g, m_NumBuffs);
+        for (int i = 0; i < m_NumBuffs; ++i)
+        {
+            ComPtr<ID3D12Resource> bb;
+            HR m_SC->GetBuffer(i, IID_PPV_ARGS(&bb));
+
+            auto rt = MakeShared<RenderTarget>(std::move(bb));
+            m_RTs->Add(g, rt);
+
+            m_BackBuffs.push_back(std::move(rt));
         }
     }
 
-    ComPtr<IDXGISwapChain1> sc1;
-    DXGI_SWAP_CHAIN_DESC1 scd;
-    SecureZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC1));
-    scd.Width = g.Width();
-    scd.Height = g.Height();
-    scd.Format = s_Format;
-    scd.Stereo = FALSE;
-    scd.SampleDesc = { 1, 0 };
-    scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    scd.BufferCount = m_NumBuffs;
-    scd.Scaling = DXGI_SCALING_STRETCH;
-    scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    scd.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-    scd.Flags = m_AllowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
-    //scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    HR factory4->CreateSwapChainForHwnd(&g.CQ(), hWnd, &scd, nullptr, nullptr, &sc1);
-    HR factory4->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
-    HR sc1.As(&m_SC);
-
-    m_RTs = MakeUnique<RenderTargetHeap>(g, m_NumBuffs);
-    for (int i = 0; i < m_NumBuffs; ++i)
+    void Swapchain::Present()
     {
-        ComPtr<ID3D12Resource> bb;
-        HR m_SC->GetBuffer(i, IID_PPV_ARGS(&bb));
-
-        auto rt = MakeShared<RenderTarget>(std::move(bb));
-        m_RTs->Add(g, rt);
-
-        m_BackBuffs.push_back(std::move(rt));
+        m_SC->Present(0, m_AllowTearing ? DXGI_FEATURE_PRESENT_ALLOW_TEARING : 0);
     }
-}
 
-void Swapchain::Present()
-{
-    m_SC->Present(0, m_AllowTearing ? DXGI_FEATURE_PRESENT_ALLOW_TEARING : 0);
-}
-
-void Swapchain::OnResize(Graphics& g, UINT w, UINT h)
-{
-    g.Flush();
-    m_BackBuffs.clear();
-    HR m_SC->ResizeBuffers(m_NumBuffs, w, h, s_Format, m_AllowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
-
-    m_RTs->Reset();
-    for (int i = 0; i < m_NumBuffs; ++i)
+    void Swapchain::OnResize(Graphics& g, UINT w, UINT h)
     {
-        ComPtr<ID3D12Resource> bb;
-        HR m_SC->GetBuffer(i, IID_PPV_ARGS(&bb));
+        g.Flush();
+        m_RTs->Reset();
+        m_BackBuffs.clear();
+        HR m_SC->ResizeBuffers(m_NumBuffs, w, h, s_Format, m_AllowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
 
-        auto rt = MakeShared<RenderTarget>(std::move(bb));
-        m_RTs->Add(g, rt);
+        m_RTs = MakeUnique<RenderTargetHeap>(g, m_NumBuffs);
+        for (int i = 0; i < m_NumBuffs; ++i)
+        {
+            ComPtr<ID3D12Resource> bb;
+            HR m_SC->GetBuffer(i, IID_PPV_ARGS(&bb));
 
-        m_BackBuffs.push_back(std::move(rt));
+            auto rt = MakeShared<RenderTarget>(std::move(bb));
+            m_RTs->Add(g, rt);
+
+            m_BackBuffs.push_back(std::move(rt));
+        }
     }
+
 }

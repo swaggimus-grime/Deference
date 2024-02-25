@@ -17,7 +17,7 @@ void operator <<(AssertChecker, HRWrapper hr)
 {
 	if (FAILED(hr.m_HR)) {
 		_com_error err(hr.m_HR);
-		throw DefException(err.ErrorMessage(), hr.m_Loc);
+ 		throw DefException(err.ErrorMessage(), hr.m_Loc);
 	}
 }
 

@@ -2,14 +2,17 @@
 //
 //#include "FrameGraph.h"
 //
-//class HybridGraph : public FrameGraph
+//namespace Def
 //{
-//public:
-//	HybridGraph(Graphics& g, Scene& scene);
+//	class HybridGraph : public FrameGraph
+//	{
+//	public:
+//		HybridGraph(Graphics& g);
 //
-//protected:
-//	virtual void RecordPasses(Graphics& g) override;
+//	protected:
+//		virtual void PrepLoadScene(Graphics& g) override;
 //
-//private:
-//	Unique<CPUShaderHeap> m_ModelHeap;
-//};
+//	private:
+//		Unique<CPUShaderHeap> m_ModelHeap;
+//	};
+//}

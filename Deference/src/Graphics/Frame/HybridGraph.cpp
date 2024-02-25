@@ -1,83 +1,32 @@
 //#include "HybridGraph.h"
-//#include "Entity/Model.h"
-//#include "GeometryPass.h"
-//#include "HybridOutPass.h"
-//#include "ToneMapPass.h"
+//#include "Scene/Model.h"
 //
-//HybridGraph::HybridGraph(Graphics& g, Scene& scene)
-//	:FrameGraph(scene)
+//namespace Def
 //{
-//	std::vector<Model::Mesh> meshes;
-//
-//	for (auto& model : GetModels())
-//		for (auto& mesh : model->GetMeshes())
-//			meshes.push_back(std::move(mesh));
-//
-//	m_ModelHeap = MakeUnique<CPUShaderHeap>(g, meshes.size() * 6);
-//
-//	for (auto& mesh : meshes)
+//	HybridGraph::HybridGraph(Graphics& g)
 //	{
-//		m_ModelHeap->Add(g, mesh.m_VB);
-//		m_ModelHeap->Add(g, mesh.m_IB);
-//		m_ModelHeap->Add(g, mesh.m_DiffuseMap);
-//		m_ModelHeap->Add(g, mesh.m_NormalMap);
-//		m_ModelHeap->Add(g, mesh.m_SpecularMap);
-//		m_ModelHeap->Add(g, mesh.m_EmissiveMap);
+//		AddPass<GeometryPass>(g, "Geometry");
 //	}
 //
-//	AddGlobalVectorResource("Models", { m_ModelHeap->CPUStart(), m_ModelHeap->NumDescriptors(), 6 });
-//	AddGlobalResource("Env", MakeShared<EnvironmentMap>(g, L"textures\\MonValley_G_DirtRoad_3k.hdr"));
-//	AddGlobalResource("TLAS", MakeShared<TLAS>(g,
-//		std::views::iota(0u, (UINT)scene.m_Models.size()) |
-//		std::views::transform([&](UINT i) {
-//			return scene.m_Models[i]->GetBLAS();
-//			}) |
-//		std::ranges::to<std::vector>()
-//				));
+//	void HybridGraph::PrepLoadScene(Graphics& g)
+//	{
+//		auto model = GetScene().GetModel();
+//		auto meshes = model.GetMeshes();
+//		auto textures = model.GetTextures();
+//		m_ModelHeap = MakeUnique<CPUShaderHeap>(g, textures.size());
+//		for (auto& tex : textures)
+//		{
+//			m_ModelHeap->Add(g, tex);
+//		}
 //
-//	Finish(g);
-//}
+//		AddGlobalVectorResource("ModelTextures", { m_ModelHeap->CPUStart(), m_ModelHeap->NumDescriptors(), 1 });
 //
-//void HybridGraph::RecordPasses(Graphics& g)
-//{
-//	AddPass<GeometryPass>(g, "Geometry")->Finish(g);
-//	{
-//		auto pass = AddPass<DiffuseGIPass>(g, "Diffuse and GI");
-//		pass->Link("Geometry", "Position");
-//		pass->Link("Geometry", "Normal");
-//		pass->Link("Geometry", "Albedo");
-//		pass->Link("Geometry", "Specular");
-//		pass->Link("Geometry", "Emissive");
-//		pass->Finish(g);
-//	}
-//	{
-//		auto pass = AddPass<AccumPass>(g, "GI accum");
-//		pass->Link("Diffuse and GI", "Target");
-//		pass->Finish(g);
-//	}
-//	{
-//		auto pass = AddPass<AOPass>(g, "AO");
-//		pass->Link("Geometry", "Position");
-//		pass->Link("Geometry", "Normal");
-//		pass->Finish(g);
-//	}
-//	{
-//		auto pass = AddPass<AccumPass>(g, "AO accum");
-//		pass->Link("AO", "Target");
-//		pass->Finish(g);
-//	}
-//	{
-//		auto pass = AddPass<HybridOutPass>(g, "Hybrid");
-//		pass->Link("Geometry", "Position");
-//		pass->Link("GI accum", "Target", "Diffuse");
-//		pass->Link("AO accum", "Target", "AO");
-//		pass->Finish(g);
-//	}
-//	{
-//		auto pass = AddPass<ToneMapPass>(g, "Tonemap");
-//		pass->Link("Hybrid", "Target", "HDR");
-//		pass->Finish(g);
+//		/*std::vector<ComPtr<ID3D12Resource>> blass = { model.GetBLAS() };
+//		AddGlobalResource("TLAS", MakeShared<TLAS>(g, std::move(blass)));
+//
+//		auto env = MakeShared<EnvironmentMap>(g, L"textures\\MonValley_G_DirtRoad_3k.hdr");
+//		env->Transition(g, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+//		AddGlobalResource("Env", env);*/
 //	}
 //
-//	FinishRecordingPasses();
 //}

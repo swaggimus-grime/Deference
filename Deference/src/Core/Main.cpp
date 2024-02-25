@@ -6,7 +6,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
     int nShowCmd)
 {
     try {
-        App app("Deference", 1280, 720);
+        Def::App app("Deference", 1280, 720);
         return app.Run();
     }
     catch (const std::exception& e) {

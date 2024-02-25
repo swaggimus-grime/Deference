@@ -3,88 +3,107 @@
 #include <imgui_impl_win32.h>
 #include <imgui_impl_dx12.h>
 
-namespace UI
+namespace Def
 {
-	namespace
+	namespace UI
 	{
-		Unique<GPUShaderHeap> m_UIHeap;
-		Unique<RenderTargetHeap> m_TargetHeap;
-		Shared<RenderTarget> m_Target;
-		HGPU m_TargetHandle;
-	}
+		namespace
+		{
+			Unique<GPUHeap> m_UIHeap;
+			Unique<RenderTargetHeap> m_TargetHeap;
+			Shared<RenderTarget> m_Target;
+			HGPU m_TargetHandle;
+			bool m_ViewportActive = false;
+		}
 
-	void Init()
-	{
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-		ImGui::StyleColorsDark();
-	}
+		void Init()
+		{
+			IMGUI_CHECKVERSION();
+			ImGui::CreateContext();
+			ImGuiIO& io = ImGui::GetIO();
+			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+			io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+			io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+			ImGui::StyleColorsDark();
+		}
 
-	void InitGraphics(Graphics& g)
-	{
-		m_UIHeap = MakeUnique<GPUShaderHeap>(g, 2);
-		m_TargetHeap = MakeUnique<RenderTargetHeap>(g, 1);
-		
-		ImGui_ImplDX12_Init(&g.Device(), Graphics::s_NumInFlightFrames, Swapchain::s_Format, **m_UIHeap,
-			m_UIHeap->CPUStart(), m_UIHeap->GPUStart());
+		void InitGraphics(Graphics& g)
+		{
+			m_UIHeap = MakeUnique<GPUHeap>(g, 2);
+			m_TargetHeap = MakeUnique<RenderTargetHeap>(g, 1);
 
-		m_Target = MakeShared<RenderTarget>(g);
-		m_TargetHeap->Add(g, m_Target);
-		m_UIHeap->IncrementHandle();
-		m_TargetHandle = m_UIHeap->AddTarget(g, m_Target);
+			ImGui_ImplDX12_Init(&g.Device(), Graphics::s_NumInFlightFrames, Swapchain::s_Format, **m_UIHeap,
+				m_UIHeap->CPUStart(), m_UIHeap->GPUStart());
 
-		m_Target->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	}
+			m_Target = MakeShared<RenderTarget>(g);
+			m_TargetHeap->Add(g, m_Target);
+			m_UIHeap->Skip(1);
+			m_UIHeap->Add(g, m_Target);
+			m_TargetHandle = m_UIHeap->GetHGPU(m_Target);
 
-	void Shutdown()
-	{
-		ImGui::DestroyContext();
-	}
+			m_Target->Transition(g, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		}
 
-	void OnResize(Graphics& g, UINT width, UINT height)
-	{
-		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = ImVec2(width, height);
-		m_Target->Resize(g, width, height);
-		m_Target->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	}
+		void Shutdown()
+		{
+			ImGui::DestroyContext();
+		}
 
-	void BeginFrame(Graphics& g)
-	{
-		ImGui_ImplWin32_NewFrame();
-		ImGui_ImplDX12_NewFrame();
-		ImGui::NewFrame();
-		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-		ID3D12DescriptorHeap* heaps[] = { **m_UIHeap };
-		g.CL().SetDescriptorHeaps(1, heaps);
-	}
+		void OnResize(Graphics& g, UINT width, UINT height)
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			io.DisplaySize = ImVec2(width, height);
+			m_Target->Resize(g, width, height);
+			m_Target->Transition(g, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		}
 
-	void EndFrame(Graphics& g)
-	{
-		ImGui::EndFrame();
-		ImGui::Render();
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), &g.CL());
-		ImGui::UpdatePlatformWindows();
-		ImGui::RenderPlatformWindowsDefault();
-	}
+		void BeginFrame(Graphics& g)
+		{
+			ImGui_ImplWin32_NewFrame();
+			ImGui_ImplDX12_NewFrame();
+			ImGui::NewFrame();
+			ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+			ID3D12DescriptorHeap* heaps[] = { **m_UIHeap };
+			g.CL().SetDescriptorHeaps(1, heaps);
+		}
 
-	void DrawTarget(Graphics& g, Shared<Target> target)
-	{
-		m_Target->Transition(g, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST);
-		target->Transition(g, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
+		void EndFrame(Graphics& g)
+		{
+			ImGui::EndFrame();
+			ImGui::Render();
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), &g.CL());
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+		}
 
-		g.CL().CopyResource(**m_Target, **target);
+		void DrawTarget(Graphics& g, Shared<Target> target)
+		{
+			Commander<D3D12_RESOURCE_BARRIER>::Init()
+				.Add(m_Target->Transition(D3D12_RESOURCE_STATE_COPY_DEST))
+				.Add(target->Transition(D3D12_RESOURCE_STATE_COPY_SOURCE))
+				.Transition(g);
 
-		m_Target->Transition(g, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		target->Transition(g, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			g.CL().CopyResource(**m_Target, **target);
 
-		auto pos = ImGui::GetWindowPos();
-		ImGui::GetWindowDrawList()->AddImage(
-			(ImTextureID)m_TargetHandle.ptr, pos, {pos.x + g.Width(), pos.y + g.Height()},
-			ImVec2(0, 0), ImVec2(1, 1));
+			Commander<D3D12_RESOURCE_BARRIER>::Init()
+				.Add(m_Target->Transition(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE))
+				.Add(target->Transition(D3D12_RESOURCE_STATE_RENDER_TARGET))
+				.Transition(g);
+
+			auto pos = ImGui::GetWindowPos();
+			ImGui::GetWindowDrawList()->AddImage(
+				(ImTextureID)m_TargetHandle.ptr, pos, { pos.x + g.Width(), pos.y + g.Height() },
+				ImVec2(0, 0), ImVec2(1, 1));
+		}
+
+		void SetViewportActive(bool active)
+		{
+			m_ViewportActive = active;
+		}
+
+		bool IsViewportActive()
+		{
+			return m_ViewportActive;
+		}
 	}
 }
