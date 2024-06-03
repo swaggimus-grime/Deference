@@ -1,12 +1,27 @@
 #ifndef __SHADOW_HLSLI__
 #define __SHADOW_HLSLI__
 
-
-
 struct ShadowRayPayload
 {
     float hitDist;
 };
+
+[shader("anyhit")]
+void ShadowAnyHit(inout ShadowRayPayload rayData, BuiltInTriangleIntersectionAttributes attribs)
+{
+    rayData.hitDist = RayTCurrent();
+}
+
+[shader("closesthit")]
+void ShadowClosestHit(inout ShadowRayPayload rayData, BuiltInTriangleIntersectionAttributes attribs)
+{
+    rayData.hitDist = RayTCurrent();
+}
+
+[shader("miss")]
+void ShadowMiss(inout ShadowRayPayload rayData)
+{
+}
 
 float shadowRayVisibility(float3 origin, float3 direction, float minT, float maxT)
 {
@@ -23,7 +38,7 @@ float shadowRayVisibility(float3 origin, float3 direction, float minT, float max
                   RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 0, 1, 0, ray, rayPayload);
     
 	// Check if anyone was closer than our maxT distance (in which case we're occluded)
-    return rayPayload.hitDist; //(rayPayload.hitDist > maxT) ? 1.0f : 0.0f;
+    return rayPayload.hitDist;
 }
 
 #endif

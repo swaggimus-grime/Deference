@@ -3,6 +3,7 @@
 #include "UI/UI.h"
 #include <imgui.h>
 #include "Graphics/Frame/PathTraceGraph.h"
+#include "Graphics/Frame/RasterGraph.h"
 #include <filesystem>
 #include "Event/ModelEvent.h"
 #include "Event/WindowEvent.h"
@@ -19,7 +20,7 @@ namespace Def
 
 		m_Scene = MakeShared<Scene>();
 		m_Scene->m_Camera = MakeShared<Camera>(*m_Gfx);
-		m_Scene->m_Model = MakeShared<Model>(*m_Gfx, "res\\models\\DamagedHelmet2.glb");
+		m_Scene->m_Model = MakeShared<Model>(*m_Gfx, "res\\models\\modern_dining_room.glb");
 		m_Graph->Compile(*m_Gfx);
 
 		EventManager::Bind<ModelLoadEvent>(EVENT_BIND(App::OnModelLoad));
@@ -38,10 +39,12 @@ namespace Def
 
 	void App::OnResize(WindowResizeEvent& e)
 	{
-		m_Gfx->OnResize(m_Width, m_Height);
-		m_Scene->m_Camera->OnResize(m_Width, m_Height);
-		m_Graph->OnResize(*m_Gfx, m_Width, m_Height);
-		UI::OnResize(*m_Gfx, m_Width, m_Height);
+		const UINT w = e.Width();
+		const UINT h = e.Height();
+		m_Gfx->OnResize(w, h);
+		m_Scene->m_Camera->OnResize(w, h);
+		m_Graph->OnResize(*m_Gfx, w, h);
+		UI::OnResize(*m_Gfx, w, h);
 	}
 
 	App::~App()

@@ -33,8 +33,6 @@ namespace Def
 
 		Shared<Scene> m_Scene;
 
-		UINT m_Width;
-		UINT m_Height;
 		XMFLOAT3 m_CamSpeed;
 		float m_Diag;
 	};

@@ -3,8 +3,8 @@
 
 namespace Def
 {
-    RenderTarget::RenderTarget(Graphics& g, DXGI_FORMAT fmt)
-        :RTV(this)
+    RenderTarget::RenderTarget(Graphics& g, DXGI_FORMAT fmt, XMFLOAT4 clearColor)
+        :RTV(this), m_ClearColor(std::move(clearColor))
     {
         m_State = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
@@ -16,8 +16,7 @@ namespace Def
 
         D3D12_CLEAR_VALUE clearValue = {};
         clearValue.Format = fmt;
-        XMFLOAT4 col = { 0.f, 0.f, 0.f, 1.f };
-        std::memcpy(clearValue.Color, &col, sizeof(XMFLOAT4));
+        std::memcpy(clearValue.Color, &m_ClearColor, sizeof(XMFLOAT4));
 
         HR g.Device().CreateCommittedResource(
             &heap,
@@ -43,8 +42,7 @@ namespace Def
 
     void RenderTarget::Clear(Graphics& g) const
     {
-        FLOAT col[] = { 0.f, 0.f, 0.f, 1.f };
-        g.CL().ClearRenderTargetView(RTVHCPU(), col, 0, nullptr);
+        g.CL().ClearRenderTargetView(RTVHCPU(), reinterpret_cast<const FLOAT*>(&m_ClearColor), 0, nullptr);
     }
 
     void RenderTarget::Bind(Graphics& g)

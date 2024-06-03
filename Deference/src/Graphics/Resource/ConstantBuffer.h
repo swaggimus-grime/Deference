@@ -80,9 +80,11 @@ namespace Def
 
         inline BufferElement operator[](const std::string& constantName)
         {
-            auto offset = m_Constants[constantName];
-            CONSTANT_TYPE type = offset.first;
-            return BufferElement(m_Data + offset.second);
+            if (auto it = m_Constants.find(constantName); it != m_Constants.end()) {
+                return BufferElement(m_Data + it->second.second);
+            }
+            else
+                throw DefException("Cannot find constant name: " + constantName);
         }
 
         virtual const D3D12_CONSTANT_BUFFER_VIEW_DESC& CBVDesc() const override;

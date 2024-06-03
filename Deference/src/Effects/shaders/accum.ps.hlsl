@@ -1,7 +1,7 @@
 #include "Vertex.hlsli"
 
-Texture2D<float4> gCurFrame : register(t0);
-Texture2D<float4> gLastFrame : register(t1);
+Texture2D<float4> gLastFrame : register(t0);
+Texture2D<float4> gCurFrame : register(t1);
 
 struct Accum
 {
@@ -17,5 +17,5 @@ float4 main(ScreenVertexOut v) : SV_Target0
 	float4 prevColor = gLastFrame[pixelPos]; // Pixel color last frame
 
     // Do a weighted sum, weighing last frame's color based on total count
-	return (accumConstants.gAccumCount * prevColor + curColor) / (accumConstants.gAccumCount + 1);
+    return (accumConstants.gAccumCount * prevColor + curColor) / (accumConstants.gAccumCount + 1);
 }

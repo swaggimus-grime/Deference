@@ -6,7 +6,7 @@
 //{
 //	RasterGraph::RasterGraph(Graphics& g)
 //	{
-//		AddPass<DiffusePass>(g, "Diffuse");
+//		//AddPass<DiffusePass>(g, "Diffuse");
 //		/*{
 //			auto pass = AddPass<ToneMapPass>(g, "Tonemap");
 //			pass->Link("Diffuse", "Target", "HDR");

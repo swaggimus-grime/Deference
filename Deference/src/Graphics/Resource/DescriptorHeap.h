@@ -121,14 +121,6 @@ namespace Def
 			:DescriptorHeap(g, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, numDescs)
 		{}
 
-		void Clear(Graphics& g)
-		{
-			const UINT numDescs = NumDescriptors();
-			const FLOAT col[] = { 0.f, 0.f, 0.f, 0.f };
-			for (UINT i = 0; i < numDescs; i++)
-				g.CL().ClearRenderTargetView(CPUStart() + GetIncrementSize() * i, col, 0, nullptr);
-		}
-
 		void BindWithDepth(Graphics& g, DepthStencil* d)
 		{
 			auto hcpu = CPUStart();
@@ -142,13 +134,6 @@ namespace Def
 		DepthStencilHeap(Graphics& g, UINT numDescs)
 			:DescriptorHeap(g, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, numDescs)
 		{}
-
-		void Clear(Graphics& g)
-		{
-			const UINT numDescs = NumDescriptors();
-			for (UINT i = 0; i < numDescs; i++)
-				g.CL().ClearDepthStencilView(CPUStart() + GetIncrementSize() * i, D3D12_CLEAR_FLAG_DEPTH, 1.f, 0, 0, nullptr);
-		}
 	};
 
 	template<class V>

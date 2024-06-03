@@ -14,22 +14,6 @@ RWTexture2D<float4> output : register(u0);
 #include "Shading.hlsli"
 #include "Trigonometry.hlsli"
 
-[shader("anyhit")]
-void ShadowAnyHit(inout ShadowRayPayload rayData, BuiltInTriangleIntersectionAttributes attribs)
-{
-    rayData.hitDist = RayTCurrent();
-}
-
-[shader("closesthit")]
-void ShadowClosestHit(inout ShadowRayPayload rayData, BuiltInTriangleIntersectionAttributes attribs)
-{
-}
-
-[shader("miss")]
-void ShadowMiss(inout ShadowRayPayload rayData)
-{
-}
-
 [shader("miss")]
 void IndirectMiss(inout IndirectPayload rayData)
 {
@@ -45,7 +29,7 @@ void IndirectAny(inout IndirectPayload rayData,
                  BuiltInTriangleIntersectionAttributes attribs)
 {
     //if (alphaTestFails(attribs))
-      //  IgnoreHit();
+        //IgnoreHit();
 }
 
 [shader("closesthit")]
@@ -59,8 +43,11 @@ void IndirectClosest(inout IndirectPayload rayData,
     rayData.color = shadeData.emissive * pointLight.emissive;
 
     float3 v = normalize(ggx.camPos - shadeData.wPos);
-    rayData.color += ggxDirect(rayData.rndSeed, shadeData.wPos, shadeData.normal, 
-        v, shadeData.diffuse, shadeData.specular, shadeData.roughness);
+    if (pointLight.on)
+    {
+        rayData.color += ggxDirect(rayData.rndSeed, shadeData.wPos, shadeData.normal,
+            v, shadeData.diffuse, shadeData.specular, shadeData.roughness);
+    }
 
     if (rayData.recDepth < ggx.maxRec)
     {
@@ -92,8 +79,8 @@ void DiffuseAndHardShadow()
     float3 V = normalize(ggx.camPos - worldPos.xyz);
 
 	// Make sure our normal is pointed the right direction
-    if (dot(worldNorm.xyz, V) <= 0.0f)
-        worldNorm.xyz = -worldNorm.xyz;
+    //if (dot(worldNorm.xyz, V) <= 0.0f)
+    //    worldNorm.xyz = -worldNorm.xyz;
     float NdotV = dot(worldNorm.xyz, V);
 
 	//// Grab our geometric normal.  Also make sure this points the right direction.

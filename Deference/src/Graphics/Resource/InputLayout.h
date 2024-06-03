@@ -10,27 +10,43 @@ namespace Def
 	enum class VERTEX_ATTRIBUTES
 	{
 		POS = 0,
-		TEX = 0x1,
-		NORM = 0x2,
-		TAN = 0x4
+		TEX_0 = 0x1,
+		TEX_1 = 0x2,
+		TEX_2 = 0x4,
+		NORM = 0x8,
+		TAN = 0xA
 	};
 
 	template<VERTEX_ATTRIBUTES> struct Map;
 
 	template<> struct Map<VERTEX_ATTRIBUTES::POS> {
 		static constexpr auto name = "POSITION";
+		static constexpr auto index = 0;
 	};
 
-	template<> struct Map<VERTEX_ATTRIBUTES::TEX> {
+	template<> struct Map<VERTEX_ATTRIBUTES::TEX_0> {
 		static constexpr auto name = "TEXCOORD";
+		static constexpr auto index = 0;
+	};
+
+	template<> struct Map<VERTEX_ATTRIBUTES::TEX_1> {
+		static constexpr auto name = "TEXCOORD";
+		static constexpr auto index = 1;
+	};
+
+	template<> struct Map<VERTEX_ATTRIBUTES::TEX_2> {
+		static constexpr auto name = "TEXCOORD";
+		static constexpr auto index = 2;
 	};
 
 	template<> struct Map<VERTEX_ATTRIBUTES::NORM> {
 		static constexpr auto name = "NORMAL";
+		static constexpr auto index = 0;
 	};
 
 	template<> struct Map<VERTEX_ATTRIBUTES::TAN> {
 		static constexpr auto name = "TANGENT";
+		static constexpr auto index = 0;
 	};
 
 	//template<> struct Map<VERTEX_ATTRIBUTES::BITAN> {
@@ -63,6 +79,7 @@ namespace Def
 			D3D12_INPUT_ELEMENT_DESC element{};
 			element.Format = fmt;
 			element.SemanticName = Map<att>::name;
+			element.SemanticIndex = Map<att>::index;
 			element.InputSlot = m_Elements.size();
 			element.InputSlotClass = D3D12_INPUT_CLASSIFICATION::D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
 			m_Elements.push_back(std::move(element));

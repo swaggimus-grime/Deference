@@ -1,5 +1,4 @@
 #include "VertexBuffer.h"
-#include "VertexBuffer.h"
 
 namespace Def
 {
@@ -18,8 +17,7 @@ namespace Def
             .BufferLocation = m_Res->GetGPUVirtualAddress(),
             .SizeInBytes = stream.Size(),
             .StrideInBytes = stream.Stride()
-        };
-    }
+        };    }
 
     void VertexBuffer::Bind(Graphics& g)
     {

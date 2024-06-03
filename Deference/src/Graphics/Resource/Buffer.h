@@ -4,14 +4,14 @@
 
 namespace Def
 {
-	class RawBuffer : public Resource, public SRV
+	class GenericBuffer : public Resource, public SRV
 	{
 	public:
-		RawBuffer(Graphics& g, D3D12_HEAP_TYPE type, SIZE_T numBytes,
+		GenericBuffer(Graphics& g, D3D12_HEAP_TYPE type, SIZE_T numBytes,
 			D3D12_RESOURCE_STATES state,
 			D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 		
-		RawBuffer(Graphics& g, void* initData, SIZE_T numBytes);
+		GenericBuffer(Graphics& g, void* initData, SIZE_T numBytes);
 
 		void* Map();
 		void* Map(D3D12_RANGE range);
@@ -28,7 +28,7 @@ namespace Def
 		SIZE_T m_Size;
 	};
 
-	class StructuredBuffer : public RawBuffer
+	class StructuredBuffer : public GenericBuffer
 	{
 	public:
 		StructuredBuffer(Graphics& g, D3D12_HEAP_TYPE type, SIZE_T numElements, SIZE_T stride, D3D12_RESOURCE_STATES state,
@@ -42,10 +42,10 @@ namespace Def
 		SIZE_T m_Stride;
 	};
 
-	class ByteBuffer : public StructuredBuffer
+	class RawBuffer : public StructuredBuffer
 	{
 	public:
-		ByteBuffer(Graphics& g, D3D12_HEAP_TYPE type, SIZE_T numElements, SIZE_T stride, D3D12_RESOURCE_STATES state);
+		RawBuffer(Graphics& g, D3D12_HEAP_TYPE type, SIZE_T numElements, SIZE_T stride, D3D12_RESOURCE_STATES state);
 		virtual const D3D12_SHADER_RESOURCE_VIEW_DESC& SRVDesc() const override;
 
 	};

@@ -11,9 +11,12 @@
 //
 //	protected:
 //		virtual void PrepLoadScene(Graphics& g) override;
+//		struct Globals
+//		{
+//			Shared<CubeMap> m_CubeMap;
+//		};
 //
 //	private:
-//		Unique<CPUShaderHeap> m_ModelHeap;
 //		Shared<CubeMap> m_EnvMap;
 //	};
 //}

@@ -9,9 +9,6 @@
 //	{
 //		AddOutTarget(g, "Target");
 //
-//		QueryGlobalVectorResource("ModelTextures");
-//		QueryGlobalResource("EnvMap");
-//
 //		{
 //			ConstantBufferLayout layout;
 //			layout.Add<CONSTANT_TYPE::XMMATRIX>("world");
@@ -57,9 +54,9 @@
 //		__super::Run(g);
 //
 //		auto& scene = m_Parent->GetScene();
-//		auto& model = scene.GetModel();
+//		auto& model = *m_Parent->GetScene().m_Model;
 //
-//		const auto& cam = scene.GetCamera();
+//		const auto& cam = *m_Parent->GetScene().m_Camera;
 //		(*m_Transform)["vp"] = XMMatrixTranspose(cam.View() * cam.Proj());
 //		(*m_Camera)["pos"] = cam.Pos();
 //

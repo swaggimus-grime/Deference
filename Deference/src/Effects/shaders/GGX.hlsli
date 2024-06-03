@@ -9,9 +9,9 @@
 struct ggxConstants
 {
     float3 camPos;
+    float minT;
     uint maxRec;
     uint frameCount;
-    float minT;
     uint on;
 };
 ConstantBuffer<ggxConstants> ggx : register(b1);
@@ -146,12 +146,11 @@ float3 ggxDirect(inout uint rndSeed, float3 hit, float3 N, float3 V,
 	// Shoot our shadow ray to our randomly selected light
     float shadowMult = shadowRayVisibility(hit, l.dirToL, ggx.minT, l.distToLight);
 
-    //return shadowMult * float3(1, 1, 1); //pointLight.intensity * dif;
 	// Compute half vectors and additional dot products for GGX
     float3 H = normalize(V + l.dirToL);
-    float NdotH = saturate(dot(N, H));
-    float LdotH = saturate(dot(l.dirToL, H));
-    float NdotV = saturate(dot(N, V));
+    float NdotH = dot(N, H);
+    float LdotH = dot(l.dirToL, H);
+    float NdotV = dot(N, V);
 
 	// Evaluate terms for our GGX BRDF model
     float D = ggxNormalDistribution(NdotH, rough);
@@ -163,7 +162,8 @@ float3 ggxDirect(inout uint rndSeed, float3 hit, float3 N, float3 V,
     float3 ggxTerm = D * G * F / (4 * NdotV /* * NdotL */);
 
 	// Compute our final color (combining diffuse lobe plus specular GGX lobe)
-    return shadowMult * pointLight.intensity * pointLight.color * ( /* NdotL * */ggxTerm + NdotL * dif / M_PI);
+    return pointLight.intensity * pointLight.color * ( /* NdotL * */ggxTerm + NdotL * dif / M_PI);
+
 }
 
 float3 ggxIndirect(inout uint rndSeed, float3 hit, float3 N, float3 V, float3 dif, float3 spec, float rough, uint rayDepth)
@@ -173,7 +173,7 @@ float3 ggxIndirect(inout uint rndSeed, float3 hit, float3 N, float3 V, float3 di
     float chooseDiffuse = (nextRand(rndSeed) < probDiffuse);
 
 	// We'll need NdotV for both diffuse and specular...
-    float NdotV = saturate(dot(N, V));
+    float NdotV = dot(N, V);
 
 	// If we randomly selected to sample our diffuse lobe...
     if (chooseDiffuse)
@@ -199,9 +199,9 @@ float3 ggxIndirect(inout uint rndSeed, float3 hit, float3 N, float3 V, float3 di
         float3 bounceColor = shootIndirectRay(hit, L, ggx.minT, rndSeed, rayDepth);
 
 		// Compute some dot products needed for shading
-        float NdotL = saturate(dot(N, L));
-        float NdotH = saturate(dot(N, H));
-        float LdotH = saturate(dot(L, H));
+        float NdotL = dot(N, L);
+        float NdotH = dot(N, H);
+        float LdotH = dot(L, H);
 
 		// Evaluate our BRDF using a microfacet BRDF model
         float D = ggxNormalDistribution(NdotH, rough); // The GGX normal distribution

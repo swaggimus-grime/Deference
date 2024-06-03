@@ -19,6 +19,8 @@ namespace Def
         switch (Severity)
         {
         case D3D12_MESSAGE_SEVERITY_ERROR:
+        case D3D12_MESSAGE_SEVERITY_CORRUPTION:
+        case D3D12_MESSAGE_SEVERITY_WARNING:
             std::string text(pDescription);
             OutputDebugStringA((text + "\n").c_str());
             break;
@@ -28,7 +30,6 @@ namespace Def
     Graphics::Graphics(HWND hWnd, UINT width, UINT height)
         :m_Width(width), m_Height(height), m_Resized(false)
     {
-#if 1
         {
             ComPtr<ID3D12Debug> debug;
             ComPtr<ID3D12Debug1> debug1;
@@ -38,7 +39,6 @@ namespace Def
             debug1->EnableDebugLayer();
             debug1->SetEnableSynchronizedCommandQueueValidation(true);
         }
-#endif
         ComPtr<ID3D12DeviceRemovedExtendedDataSettings> pDredSettings;
         HR D3D12GetDebugInterface(IID_PPV_ARGS(&pDredSettings));
 

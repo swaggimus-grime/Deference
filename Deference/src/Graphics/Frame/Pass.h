@@ -70,8 +70,8 @@ namespace Def
 			m_Resources.push_back({ std::move(r), null });
 		}
 
-		inline virtual void AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt = Swapchain::s_Format) {
-			m_OutTargets.emplace_back(std::move(target), MakeShared<RenderTarget>(g, fmt));
+		inline virtual void AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt = Swapchain::s_Format, XMFLOAT4 clearColor = {0.f, 0.f, 0.f, 1.f}) {
+			m_OutTargets.emplace_back(std::move(target), MakeShared<RenderTarget>(g, fmt, clearColor));
 		}
 
 		inline void AddInTarget(std::string&& target) {

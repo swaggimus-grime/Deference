@@ -14,6 +14,8 @@ namespace Def
 		void Update();
 		void OnResize(UINT w, UINT h);
 
+		inline bool HashChanged() const { return m_HashChanged; }
+
 		inline void SetMoveSpeed(float speed) { m_MoveSpeed = speed; }
 
 		inline XMFLOAT3 Pos() const { return m_Pos; }
@@ -37,6 +39,8 @@ namespace Def
 		void ShowUI();
 
 	private:
+		bool m_HashChanged;
+
 		XMMATRIX m_View;
 		XMMATRIX m_ViewInv;
 		XMMATRIX m_Proj;

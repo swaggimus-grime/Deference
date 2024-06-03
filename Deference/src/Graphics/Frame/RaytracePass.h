@@ -13,7 +13,7 @@ namespace Def
 
 	protected:
 		RaytracePass(const std::string& name, FrameGraph* parent);
-		virtual void AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt = Swapchain::s_Format) override;
+		virtual void AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt = Swapchain::s_Format, XMFLOAT4 clearColor = {0.f, 0.f, 0.f, 1.f}) override;
 		void CopyUAVsToRTs(Graphics& g);
 
 	protected:
@@ -22,7 +22,9 @@ namespace Def
 			UINT istride;
 			HGPU v;
 			HGPU i;
-			HGPU uv;
+			HGPU uv_0;
+			HGPU uv_1;
+			HGPU uv_2;
 			HGPU n;
 			HGPU t;
 		};

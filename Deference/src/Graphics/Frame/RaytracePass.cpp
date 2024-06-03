@@ -8,7 +8,7 @@ namespace Def
 	{
 	}
 
-	void RaytracePass::AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt)
+	void RaytracePass::AddOutTarget(Graphics& g, const std::string& target, DXGI_FORMAT fmt, XMFLOAT4 clearColor)
 	{
 		__super::AddOutTarget(g, target, fmt);
 		auto out = MakeShared<UnorderedAccess>(g, fmt);

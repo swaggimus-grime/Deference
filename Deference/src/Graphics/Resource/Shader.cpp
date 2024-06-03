@@ -6,7 +6,7 @@ namespace Def
 {
     Shader::Shader(const std::wstring& path, const std::wstring& type)
     {
-        DXC::Compile(path, type, m_ByteCode);
+        m_ByteCode = DXC::Compile(path);
         m_BCStruct = {};
         m_BCStruct.BytecodeLength = m_ByteCode->GetBufferSize();
         m_BCStruct.pShaderBytecode = m_ByteCode->GetBufferPointer();

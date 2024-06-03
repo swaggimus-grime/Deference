@@ -27,7 +27,7 @@ namespace Def
 		0,
 	};
 
-	const D3D12_RESOURCE_DESC& RawBuffer::Desc(SIZE_T bytes, D3D12_RESOURCE_FLAGS flags)
+	const D3D12_RESOURCE_DESC& GenericBuffer::Desc(SIZE_T bytes, D3D12_RESOURCE_FLAGS flags)
 	{
 		CD3DX12_RESOURCE_DESC desc{};
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -44,7 +44,7 @@ namespace Def
 		return std::move(desc);
 	}
 
-	RawBuffer::RawBuffer(Graphics& g, D3D12_HEAP_TYPE type, SIZE_T numBytes,
+	GenericBuffer::GenericBuffer(Graphics& g, D3D12_HEAP_TYPE type, SIZE_T numBytes,
 		D3D12_RESOURCE_STATES state,
 		D3D12_RESOURCE_FLAGS flags)
 		:SRV(this), m_Size(numBytes)
@@ -56,8 +56,8 @@ namespace Def
 		HR g.Device().CreateCommittedResource(&props, D3D12_HEAP_FLAG_NONE, &desc, state, nullptr, IID_PPV_ARGS(&m_Res));
 	}
 
-	RawBuffer::RawBuffer(Graphics& g, void* initData, SIZE_T numBytes)
-		:RawBuffer(g, D3D12_HEAP_TYPE_DEFAULT, numBytes, D3D12_RESOURCE_STATE_COMMON)
+	GenericBuffer::GenericBuffer(Graphics& g, void* initData, SIZE_T numBytes)
+		:GenericBuffer(g, D3D12_HEAP_TYPE_DEFAULT, numBytes, D3D12_RESOURCE_STATE_COMMON)
 	{
 		auto props = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 		auto desc = Desc(numBytes, D3D12_RESOURCE_FLAG_NONE);
@@ -77,7 +77,7 @@ namespace Def
 		g.Flush();
 	}
 
-	const D3D12_SHADER_RESOURCE_VIEW_DESC& RawBuffer::SRVDesc() const
+	const D3D12_SHADER_RESOURCE_VIEW_DESC& GenericBuffer::SRVDesc() const
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
 		srv_desc.Format = DXGI_FORMAT_UNKNOWN;
@@ -90,7 +90,7 @@ namespace Def
 	}
 
 	StructuredBuffer::StructuredBuffer(Graphics& g, D3D12_HEAP_TYPE type, SIZE_T numElements, SIZE_T stride, D3D12_RESOURCE_STATES state, D3D12_RESOURCE_FLAGS flags)
-		:RawBuffer(g, type, numElements * stride, state, flags), m_NumElements(numElements), m_Stride(stride)
+		:GenericBuffer(g, type, numElements * stride, state, flags), m_NumElements(numElements), m_Stride(stride)
 	{
 	}
 
@@ -107,7 +107,7 @@ namespace Def
 		return std::move(srv_desc);
 	}
 
-	void* RawBuffer::Map()
+	void* GenericBuffer::Map()
 	{
 		void* mapping = nullptr;
 		D3D12_RANGE range;
@@ -117,35 +117,35 @@ namespace Def
 		return mapping;
 	}
 
-	void* RawBuffer::Map(D3D12_RANGE range)
+	void* GenericBuffer::Map(D3D12_RANGE range)
 	{
 		void* mapping = nullptr;
 		HR m_Res->Map(0, &range, &mapping);
 		return mapping;
 	}
 
-	void RawBuffer::Unmap()
+	void GenericBuffer::Unmap()
 	{
 		m_Res->Unmap(0, nullptr);
 	}
 
-	void RawBuffer::Unmap(D3D12_RANGE written)
+	void GenericBuffer::Unmap(D3D12_RANGE written)
 	{
 		m_Res->Unmap(0, &written);
 	}
 
-	ByteBuffer::ByteBuffer(Graphics& g, D3D12_HEAP_TYPE type, SIZE_T numElements, SIZE_T stride, D3D12_RESOURCE_STATES state)
+	RawBuffer::RawBuffer(Graphics& g, D3D12_HEAP_TYPE type, SIZE_T numElements, SIZE_T stride, D3D12_RESOURCE_STATES state)
 		:StructuredBuffer(g, type, numElements, stride, state)
 	{
 	}
 
-	const D3D12_SHADER_RESOURCE_VIEW_DESC& ByteBuffer::SRVDesc() const
+	const D3D12_SHADER_RESOURCE_VIEW_DESC& RawBuffer::SRVDesc() const
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 		desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		desc.Format = DXGI_FORMAT_R32_TYPELESS; //DXGI_FORMAT_ConvertToTypeless(m_Format);
-		desc.Buffer.NumElements = m_NumElements / 2;
+		desc.Buffer.NumElements = m_NumElements;
 		desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 		desc.Buffer.StructureByteStride = 0;
 		desc.Buffer.FirstElement = 0;

@@ -284,9 +284,9 @@ namespace Def
 			m_Height = HIWORD(lParam);
 			EventManager::Execute<WindowResizeEvent>(m_Width, m_Height);
 			break;
-		/*case WM_ACTIVATE:
+		case WM_ACTIVATE:
 			SetForegroundWindow(m_Handle);
-			break;*/
+			break;
 		case WM_KEYDOWN:
 			m_Input.OnKeyPressed(static_cast<UINT>(wParam));
 			break;

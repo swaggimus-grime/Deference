@@ -11,14 +11,20 @@ namespace Def
 {
 	struct Material
 	{
+		struct TextureIndexer {
+			INT ID;
+			INT TexCoord;
+		};
+
 		XMFLOAT4 BaseColor;
 		float Roughness;
 		float Metallic;
-		INT BaseID	   ;
-		INT RMID	   ;
-		INT NormID	   ;
-		INT OccID	   ;
-		INT EmissiveID ;
+		TextureIndexer BaseTex	   ;
+		TextureIndexer RMTex;
+		TextureIndexer NormTex   ;
+		TextureIndexer OccTex;
+		TextureIndexer EmissiveTex;
+		XMFLOAT3 EmissiveColor;
 	};
 
 	struct SceneNode
@@ -119,6 +125,7 @@ namespace Def
 		void ParseMaterials(Graphics& g);
 		void ParseTextures(Graphics& g, const std::string& baseDir);
 		void ParseSamplers();
+		void CreateGeometry(Graphics& g, std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>& descs, XMMATRIX parentTransform, Shared<SceneNode> node);
 
 		template<typename IDX>
 		void CalculateTangents(Graphics& g, tinygltf::Primitive& primitive, SubMesh& sm, GltfAttribute& attrib);
@@ -132,7 +139,7 @@ namespace Def
 		std::vector<Material> m_Materials;
 		std::vector<Shared<Texture2D>> m_Textures;
 		std::vector<Shared<Sampler>> m_Samplers;
-		std::vector<RawBuffer> m_GPUBuffers;
+		std::vector<GenericBuffer> m_GPUBuffers;
 		InputLayout m_Layout;
 		UINT m_NumSubMeshes;
 	};
@@ -214,7 +221,7 @@ namespace Def
 			DirectX::XMStoreFloat4(&tangent[i], xmTangent);
 		}
 
-		RawBuffer buffer(g, tangent.data(), verticesCount * sizeof(DirectX::XMFLOAT4));
+		GenericBuffer buffer(g, tangent.data(), verticesCount * sizeof(DirectX::XMFLOAT4));
 		attrib.BufferID = m_GPUBuffers.size();
 		attrib.Location = buffer.GetGPUAddress();
 		m_GPUBuffers.push_back(std::move(buffer));

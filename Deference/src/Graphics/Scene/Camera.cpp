@@ -9,7 +9,7 @@ namespace Def
 	constexpr float pi = std::numbers::pi_v<float>;
 
 	Camera::Camera(Graphics& g, const XMFLOAT3& pos)
-		:m_Pos(pos), m_LookSpeed(0.006f), m_MoveSpeed(0.1f),
+		:m_HashChanged(false), m_Pos(pos), m_LookSpeed(0.006f), m_MoveSpeed(0.1f),
 		m_Pitch(0.f), m_Yaw(0.f)
 	{
 		Update();
@@ -23,6 +23,7 @@ namespace Def
 
 	void Camera::Update()
 	{
+		m_HashChanged = false;
 
 		const auto look = XMVector3Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),
 			XMMatrixRotationRollPitchYaw(m_Pitch, m_Yaw, 0.0f)
@@ -62,6 +63,8 @@ namespace Def
 
 	void Camera::Rotate(float dx, float dy)
 	{
+		m_HashChanged = true;
+
 		static constexpr float cmf = 2 * pi;
 		const float mod = fmod(m_Yaw + dx * m_LookSpeed, cmf);
 		if (mod > pi)
@@ -76,6 +79,8 @@ namespace Def
 
 	void Camera::Move(const XMFLOAT3& delta)
 	{
+		m_HashChanged = true;
+
 		XMFLOAT3 newDelta;
 		XMStoreFloat3(&newDelta, XMVector3Transform(
 			XMLoadFloat3(&delta),
@@ -89,7 +94,11 @@ namespace Def
 	void Camera::ShowUI()
 	{
 		if (ImGui::Begin("Camera"))
-			ImGui::SliderFloat("Move Speed", &m_MoveSpeed, 0.1f, 1.f, "%.1f");
+			ImGui::SliderFloat("Move Speed", &m_MoveSpeed, 0.1f, 10.f, "%.1f");
+			m_HashChanged |= ImGui::SliderFloat("Focal Length", &m_FocalLength, 0.1f, 100.f, "%.1f");
+			m_HashChanged |= ImGui::SliderFloat("Focal Distance", &m_FocalDistance, 1.f, 10000.f, "%.9f");
+			m_HashChanged |= ImGui::SliderFloat("Frame Height", &m_FrameHeight, 0.1f, 100.f, "%.1f");
+			m_HashChanged |= ImGui::SliderFloat("Aspect Ratio", &m_AspectRatio, 0.1f, 3.f, "%.1f");
 		ImGui::End();
 	}
 

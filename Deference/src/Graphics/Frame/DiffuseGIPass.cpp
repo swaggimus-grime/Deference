@@ -34,15 +34,14 @@ namespace Def
 		{
 			ConstantBufferLayout layout;
 			layout.Add<CONSTANT_TYPE::XMFLOAT3>("camPos");
+			layout.Add<CONSTANT_TYPE::FLOAT>("minT");
 			layout.Add<CONSTANT_TYPE::UINT>("maxRec");
 			layout.Add<CONSTANT_TYPE::UINT>("frameCount");
-			layout.Add<CONSTANT_TYPE::FLOAT>("minT");
 			layout.Add<CONSTANT_TYPE::UINT>("on");
 			m_Constants = MakeShared<ConstantBuffer>(g, std::move(layout));
 			(*m_Constants)["maxRec"] = 1;
 			(*m_Constants)["minT"] = 0.001f;
 			(*m_Constants)["on"] = 1u;
-
 			AddResource(m_Constants);
 		}
 	}
@@ -50,8 +49,7 @@ namespace Def
 	void DiffuseGIPass::OnSceneLoad(Graphics& g)
 	{
 		RaytracingPipeline::Desc desc = {};
-		ComPtr<IDxcBlob> pLib;
-		DXC::Compile(shaderFile, pLib);
+		ComPtr<IDxcBlob> pLib = DXC::Compile(shaderFile);
 		CD3DX12_STATE_OBJECT_DESC so(D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE);
 		{
 			auto lib = so.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
@@ -87,7 +85,7 @@ namespace Def
 			params[3].InitAsDescriptorTable(1, &ranges[3]);	//UAV Output
 			params[4].InitAsDescriptorTable(1, &ranges[4]); //Textures
 			params[5].InitAsDescriptorTable(1, &ranges[5]);	//Sampler
-			params[6].InitAsShaderResourceView(5, 1); //Materials
+			params[6].InitAsShaderResourceView(7, 1); //Materials
 			params[7].InitAsConstantBufferView(0); //light
 			params[8].InitAsConstantBufferView(1); //constants
 
@@ -99,7 +97,7 @@ namespace Def
 		//Indirect hit group
 		{
 			CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
-			ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 1);
+			ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 7, 0, 1);
 
 			CD3DX12_ROOT_PARAMETER1 params[2];
 			params[0].InitAsConstants(2, 0, 1);
@@ -157,8 +155,8 @@ namespace Def
 		}
 		{
 			auto table = MakeUnique<ShaderBindTable>(g, m_Pipeline.get(), 2, 0);
-			table->Add(indirectMiss);
 			table->Add(shadowMiss);
+			table->Add(indirectMiss);
 			desc.m_MissTable = std::move(table);
 		}
 		{
@@ -169,7 +167,9 @@ namespace Def
 				HitEntry entry{};
 				entry.v = m_GPUHeap->GetHGPU(geo.Vertices); //geo.Vertices->GetGPUAddress();
 				entry.i = m_GPUHeap->GetHGPU(geo.Indices);  //geo.Indices->GetGPUAddress();
-				entry.uv = m_GPUHeap->GetHGPU(geo.UVs);      //geo.UVs->GetGPUAddress();
+				entry.uv_0 = m_GPUHeap->GetHGPU(geo.UV_0);      //geo.UVs->GetGPUAddress();
+				entry.uv_1 = m_GPUHeap->GetHGPU(geo.UV_1);      //geo.UVs->GetGPUAddress();
+				entry.uv_2 = m_GPUHeap->GetHGPU(geo.UV_2);      //geo.UVs->GetGPUAddress();
 				entry.n = m_GPUHeap->GetHGPU(geo.Normals);  //geo.Normals->GetGPUAddress();
 				entry.t = m_GPUHeap->GetHGPU(geo.Tangents); //geo.Tangents->GetGPUAddress();
 				entry.m = geo.MaterialID;
@@ -192,13 +192,13 @@ namespace Def
 		{
 			ImGui::BeginGroup();
 			ImGui::Text("Direct Light");
-			ImGui::Checkbox("On", (*m_Light)["on"]);
+			ImGui::Checkbox("Light on", (*m_Light)["on"]);
 			ImGui::Text("Position");
 			auto dim = scene.m_Model->GetBBox().Dim();
 			XMFLOAT3& pos = (*m_Light)["pos"];
-			ImGui::SliderFloat("X", &pos.x, -dim.x, dim.x);
-			ImGui::SliderFloat("Y", &pos.y, -dim.y, dim.y);
-			ImGui::SliderFloat("Z", &pos.z, -dim.z, dim.z);
+			ImGui::SliderFloat("Pos X", &pos.x, -dim.x, dim.x);
+			ImGui::SliderFloat("Pos Y", &pos.y, -dim.y, dim.y);
+			ImGui::SliderFloat("Pos Z", &pos.z, -dim.z, dim.z);
 			ImGui::SliderFloat3("Color", (*m_Light)["color"], 0.f, 1.f);
 			ImGui::SliderFloat("Intensity", (*m_Light)["intensity"], 0.f, 10.f);
 			ImGui::SliderFloat("Emissive", (*m_Light)["emissive"], 0.f, 10.f);
@@ -206,7 +206,11 @@ namespace Def
 
 			ImGui::BeginGroup();
 			ImGui::Text("Indirect Light");
-			ImGui::Checkbox("On", (*m_Constants)["on"]);
+			if (ImGui::Checkbox("Recursion on", (*m_Constants)["on"])) {
+				UINT& status = (*m_Constants)["on"];
+				status;
+			}
+				
 			ImGui::SliderInt("Max Recursion", ((*m_Constants)["maxRec"]), 1, 30);
 			ImGui::SliderFloat("minT", (*m_Constants)["minT"], 0.001f, 1.f);
 			ImGui::EndGroup();
@@ -271,7 +275,9 @@ namespace Def
 		{
 			AddResource(geo.Vertices);
 			AddResource(geo.Indices);
-			AddResource(geo.UVs);
+			AddResource(geo.UV_0);
+			AddResource(geo.UV_1);
+			AddResource(geo.UV_2);
 			AddResource(geo.Normals);
 			AddResource(geo.Tangents);
 		}

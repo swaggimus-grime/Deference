@@ -66,7 +66,7 @@ void PrimaryClosestHit(inout SimplePayload dummy, BuiltInTriangleIntersectionAtt
     gWsPos[idx] = float4(shadeData.wPos, 1);
     gWsNorm[idx] = float4(shadeData.normal, length(shadeData.wPos - cam.wPos.xyz));
     gMatDif[idx] = float4(shadeData.diffuse, shadeData.opacity);
-    gMatSpec[idx] = float4(shadeData.specular, shadeData.roughness);
+    gMatSpec[idx] = float4(shadeData.roughness, shadeData.roughness, shadeData.roughness, 1);
     gMatEmissive[idx] = float4(shadeData.emissive, 1.f);
 }
 
@@ -108,10 +108,10 @@ void GeometryRayGen()
 
 	// Trace our ray
     TraceRay(scene, // A Falcor built-in containing the raytracing acceleration structure
-		RAY_FLAG_CULL_BACK_FACING_TRIANGLES, // Ray flags.  (Here, we will skip hits with back-facing triangles)
+		RAY_FLAG_NONE, // Ray flags.  (Here, we will skip hits with back-facing triangles)
 		0xFF, // Instance inclusion mask.  0xFF => no instances discarded from this mask
 		0, // Hit group to index (i.e., when intersecting, call hit shader #0)
-		1, // Number of hit groups ('hitProgramCount' is built-in from Falcor with the right number) 
+		1, // Number of hit groups 
 		0, // Miss program index (i.e., when missing, call miss shader #0)
 		ray, // Data structure describing the ray to trace
 		rayData); // Our user-defined ray payload structure to store intermediate results

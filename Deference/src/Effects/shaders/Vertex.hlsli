@@ -24,7 +24,7 @@ struct VertexOut
 struct ScreenVertexOut
 {
     float4 pos : SV_Position;
-    float2 tex : TEXCOORD;
+    float2 tex : TEXCOORD0;
 };
 
 #endif

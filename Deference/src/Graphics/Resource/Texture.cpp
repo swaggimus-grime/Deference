@@ -98,7 +98,7 @@ namespace Def
 
         UINT64 numBytes = 0;
         g.Device().GetCopyableFootprints(&rd, 0, 1, 0, nullptr, nullptr, nullptr, &numBytes);
-        RawBuffer uptex(g, D3D12_HEAP_TYPE_UPLOAD, numBytes, D3D12_RESOURCE_STATE_GENERIC_READ);
+        GenericBuffer uptex(g, D3D12_HEAP_TYPE_UPLOAD, numBytes, D3D12_RESOURCE_STATE_GENERIC_READ);
 
         D3D12_SUBRESOURCE_DATA textureData = {};
         textureData.pData = image.GetPixels(); // pointer to our image data

@@ -11,8 +11,8 @@ namespace Def
 	RaytracedGeometryPass::RaytracedGeometryPass(Graphics& g, const std::string& name, FrameGraph* parent)
 		:RaytracePass(std::move(name), parent)
 	{
-		AddOutTarget(g, "Position", DXGI_FORMAT_R8G8B8A8_UNORM);
-		AddOutTarget(g, "Normal",   DXGI_FORMAT_R8G8B8A8_UNORM);
+		AddOutTarget(g, "Position", DXGI_FORMAT_R32G32B32A32_FLOAT);
+		AddOutTarget(g, "Normal",	DXGI_FORMAT_R32G32B32A32_FLOAT);
 		AddOutTarget(g, "Albedo",   DXGI_FORMAT_R8G8B8A8_UNORM);
 		AddOutTarget(g, "Specular", DXGI_FORMAT_R8G8B8A8_UNORM);
 		AddOutTarget(g, "Emissive", DXGI_FORMAT_R8G8B8A8_UNORM);
@@ -99,7 +99,9 @@ namespace Def
 		{
 			AddResource(geo.Vertices);
 			AddResource(geo.Indices);
-			AddResource(geo.UVs);
+			AddResource(geo.UV_0);
+			AddResource(geo.UV_1);
+			AddResource(geo.UV_2);
 			AddResource(geo.Normals);
 			AddResource(geo.Tangents);
 		}
@@ -120,8 +122,7 @@ namespace Def
 
 		LPCWSTR exports[] = { anyEP, closestEP };
 
-		ComPtr<IDxcBlob> pLib;
-		DXC::Compile(shaderFile, pLib);
+		ComPtr<IDxcBlob> pLib = DXC::Compile(shaderFile);
 		CD3DX12_STATE_OBJECT_DESC so(D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE);
 		{
 			auto lib = so.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
@@ -145,7 +146,7 @@ namespace Def
 			params[0].InitAsDescriptorTable(1, &ranges[0]);
 			params[1].InitAsDescriptorTable(1, &ranges[1]);
 			params[2].InitAsDescriptorTable(1, &ranges[2]);
-			params[3].InitAsShaderResourceView(5, 1);
+			params[3].InitAsShaderResourceView(7, 1);
 			params[4].InitAsConstantBufferView(0);
 
 			auto pSig = MakeUnique<RootSig>(g, _countof(params), params);
@@ -173,12 +174,12 @@ namespace Def
 		//Hit Group
 		{
 			CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
-			ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0, 1); 
+			ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 7, 0, 1); 
 
 			CD3DX12_ROOT_PARAMETER1 params[2];
 			params[0].InitAsConstants(2, 0, 1);
 			params[1].InitAsDescriptorTable(1, &ranges[0]);
-			auto pSig = MakeUnique<RootSig>(g, 2, params, true);
+			auto pSig = MakeUnique<RootSig>(g, _countof(params), params, true);
 			auto sig = so.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
 			sig->SetRootSignature(**pSig);
 
@@ -241,7 +242,9 @@ namespace Def
 				HitEntry entry{};
 				entry.v = m_GPUHeap->GetHGPU(geo.Vertices); //geo.Vertices->GetGPUAddress();
 				entry.i = m_GPUHeap->GetHGPU(geo.Indices);  //geo.Indices->GetGPUAddress();
-				entry.uv= m_GPUHeap->GetHGPU(geo.UVs);      //geo.UVs->GetGPUAddress();
+				entry.uv_0 = m_GPUHeap->GetHGPU(geo.UV_0);      //geo.UVs->GetGPUAddress();
+				entry.uv_1 = m_GPUHeap->GetHGPU(geo.UV_1);      //geo.UVs->GetGPUAddress();
+				entry.uv_2 = m_GPUHeap->GetHGPU(geo.UV_2);      //geo.UVs->GetGPUAddress();
 				entry.n = m_GPUHeap->GetHGPU(geo.Normals);  //geo.Normals->GetGPUAddress();
 				entry.t = m_GPUHeap->GetHGPU(geo.Tangents); //geo.Tangents->GetGPUAddress();
 				entry.m = geo.MaterialID;

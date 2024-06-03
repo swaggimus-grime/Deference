@@ -6,9 +6,11 @@
 
 StructuredBuffer<float3> vertices : register(t0, space1);
 ByteAddressBuffer indices : register(t1, space1);
-StructuredBuffer<float2> uvs : register(t2, space1);
-StructuredBuffer<float3> normals : register(t3, space1);
-StructuredBuffer<float4> tangents : register(t4, space1);
+StructuredBuffer<float2> uvs_0 : register(t2, space1);
+StructuredBuffer<float2> uvs_1 : register(t3, space1);
+StructuredBuffer<float2> uvs_2 : register(t4, space1);
+StructuredBuffer<float3> normals : register(t5, space1);
+StructuredBuffer<float4> tangents : register(t6, space1);
 
 struct MeshData
 {
@@ -17,18 +19,26 @@ struct MeshData
 };
 ConstantBuffer<MeshData> mesh : register(b0, space1);
 
+struct TextureIndexer
+{
+    int ID;
+    int TexCoord;
+};
+
 struct Material
 {
     float4 BaseColor;
     float Roughness;
     float Metallic;
-    int BaseTex;
-    int RMTex;
-    int NormTex;
-    int OccTex;
-    int EmTex;
+    TextureIndexer BaseTex;
+    TextureIndexer RMTex;
+    TextureIndexer NormTex;
+    TextureIndexer OccTex;
+    TextureIndexer EmTex;
+    float3 EmissiveColor;
 };
-StructuredBuffer<Material> mats : register(t5, space1);
+
+StructuredBuffer<Material> mats : register(t7, space1);
 Texture2D<float4> textures[MAX_TEXTURES] : register(t0, space2);
 SamplerState smp : register(s0);
 
@@ -38,9 +48,10 @@ struct ShadingData
     float3 normal;
     float3 diffuse;
     float opacity;
-    float3 specular;
     float roughness;
+    float metallic;
     float3 emissive;
+    float3 specular;
 };
 
 float2 BarycentricLerp2(in float2 v0, in float2 v1, in float2 v2, in BuiltInTriangleIntersectionAttributes attribs)
@@ -53,20 +64,33 @@ float3 BarycentricLerp3(in float3 v0, in float3 v1, in float3 v2, in BuiltInTria
     return v0 + attribs.barycentrics.x * (v1 - v0) + attribs.barycentrics.y * (v2 - v0);
 }
 
+float2 getTCs(float2 uv0, float2 uv1, float2 uv2, int tc)
+{        
+    if (tc == 1)
+        return uv1;
+    else if (tc == 2)
+        return uv2;
+    
+    return uv0;
+}
+
 ShadingData getShadingData(uint primIdx, BuiltInTriangleIntersectionAttributes attrib)
 {
     uint address = primIdx * 3;
     uint3 idx;
     if(mesh.Istride == 2)
     {
-        uint16_t3 i3 = indices.Load < uint16_t3 > (address * 2);
+        uint16_t3 i3 = indices.Load<uint16_t3>(address * 2);
         idx.x = i3.x;
         idx.y = i3.y;
         idx.z = i3.z;
     }
     else
     {
-        idx = indices.Load(address * 4);
+        uint3 i3 = indices.Load<uint3>(address * 4);
+        idx.x = i3.x;
+        idx.y = i3.y;
+        idx.z = i3.z;
     }
     
     float3 v = BarycentricLerp3(
@@ -76,11 +100,23 @@ ShadingData getShadingData(uint primIdx, BuiltInTriangleIntersectionAttributes a
         attrib
     );
     
-    float2 uv = BarycentricLerp2(
-        uvs[idx.x],
-        uvs[idx.y],
-        uvs[idx.z],
-        attrib);
+    Material mat = mats[mesh.MaterialID];
+    float2 uv0 = BarycentricLerp2(
+                uvs_0[idx.x],
+                uvs_0[idx.y],
+                uvs_0[idx.z],
+                attrib);
+    float2 uv1 = BarycentricLerp2(
+                uvs_1[idx.x],
+                uvs_1[idx.y],
+                uvs_1[idx.z],
+                attrib);
+    float2 uv2 = BarycentricLerp2(
+                uvs_2[idx.x],
+                uvs_2[idx.y],
+                uvs_2[idx.z],
+                attrib);
+    
     
     float3 n = BarycentricLerp3(
         normals[idx.x],
@@ -98,16 +134,14 @@ ShadingData getShadingData(uint primIdx, BuiltInTriangleIntersectionAttributes a
     
     ShadingData data;
     data.wPos = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();// mul(v, ObjectToWorld3x4());
-   
-    Material mat = mats[mesh.MaterialID];
     
     {
         n = normalize(n);
         data.normal = n;
         
-        if(mat.NormTex != -1)
+        if(mat.NormTex.ID != -1)
         {
-            float3 norm = textures[mat.NormTex].SampleLevel(smp, uv, 0).rgb;
+            float3 norm = textures[mat.NormTex.ID].SampleLevel(smp, getTCs(uv0, uv1, uv2, mat.NormTex.TexCoord), 0).rgb;
             if (any(norm))
             {
                 norm = norm * 2 - 1;
@@ -119,26 +153,36 @@ ShadingData getShadingData(uint primIdx, BuiltInTriangleIntersectionAttributes a
         }
     }
     {
-        if (mat.BaseTex != -1)
+        if (mat.BaseTex.ID != -1)
         {
-            float4 diffuse = textures[mat.BaseTex].SampleLevel(smp, uv, 0);
+            float4 diffuse = textures[mat.BaseTex.ID].SampleLevel(smp, getTCs(uv0, uv1, uv2, mat.BaseTex.TexCoord), 0);
             data.diffuse = diffuse.rgb;
             data.opacity = diffuse.a;
         }
-    }
-    {
-        if(mat.RMTex != -1)
+        else
         {
-            float4 specular = textures[mat.RMTex].SampleLevel(smp, uv, 0);
-            data.specular = specular.rgb;
-            data.roughness = specular.a * specular.a;
+            data.diffuse = mat.BaseColor.rgb;
+            data.opacity = mat.BaseColor.a;
         }
     }
     {
-        if(mat.EmTex != -1)
+        if (mat.RMTex.ID != -1)
         {
-            float4 emissive = textures[mat.EmTex].SampleLevel(smp, uv, 0);
+            float4 rm = textures[mat.RMTex.ID].SampleLevel(smp, getTCs(uv0, uv1, uv2, mat.RMTex.TexCoord), 0);
+            data.roughness = rm.r; //* rm.r;
+            data.metallic = rm.g;
+            data.specular = rm.rgb;
+        }
+    }
+    {
+        if (mat.EmTex.ID != -1)
+        {
+            float4 emissive = textures[mat.EmTex.ID].SampleLevel(smp, getTCs(uv0, uv1, uv2, mat.EmTex.TexCoord), 0);
             data.emissive = emissive.rgb;
+        }
+        else
+        {
+            data.emissive = mat.EmissiveColor;
         }
     }
 

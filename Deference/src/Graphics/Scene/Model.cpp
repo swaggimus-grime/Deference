@@ -24,12 +24,15 @@ namespace Def
         case TINYGLTF_TYPE_VEC2:
             mult = 2;
             break;
+        default:
+            break;
         }
 
         SIZE_T bytes = 0;
         switch (compType)
         {
         case TINYGLTF_COMPONENT_TYPE_BYTE:
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
             bytes = 1;
             break;
         case TINYGLTF_COMPONENT_TYPE_FLOAT:
@@ -40,6 +43,8 @@ namespace Def
         case TINYGLTF_COMPONENT_TYPE_SHORT:
         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
             bytes = 2;
+            break;
+        default:
             break;
         }
 
@@ -82,23 +87,8 @@ namespace Def
         ParseSamplers();
 
         std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geometries;
-        for (auto& mesh : m_Meshes)
-            for (auto& sm : mesh.second.m_SubMeshes)
-            {
-                auto pos = sm["POSITION"];
-                auto idx = sm.GetIndexAttrib();
-                D3D12_RAYTRACING_GEOMETRY_DESC desc{};
-                desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-                desc.Triangles.VertexBuffer.StartAddress = pos.Location;
-                desc.Triangles.VertexBuffer.StrideInBytes = pos.Stride;
-                desc.Triangles.VertexCount = pos.Count;
-                desc.Triangles.VertexFormat = pos.Format;
-                desc.Triangles.IndexBuffer = idx.Location;
-                desc.Triangles.IndexCount = idx.Count;
-                desc.Triangles.IndexFormat = idx.Format;
-                desc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-                geometries.push_back(std::move(desc));
-            }
+        CreateGeometry(g, geometries, XMMatrixIdentity(), m_RootNode);
+           
         m_BLAS = TLAS::BLAS(g, std::move(geometries));
     }
 
@@ -109,29 +99,31 @@ namespace Def
         Shared<SceneNode> sceneNode = MakeShared<SceneNode>();
         sceneNode->Id = currentNode.mesh;
 
-        if (!currentNode.matrix.empty())
-        {
-            XMFLOAT4X4 m;
-            for (size_t i = 0; i < 4; i++) for (size_t j = 0; j < 4; j++)
-            {
-                m(i, j) = static_cast<float>(currentNode.matrix[4 * i + j]);
-            }
-            sceneNode->Transform = XMLoadFloat4x4(&m);
-        }
-
-        /*XMMATRIX M, T, R, S;
+        XMMATRIX M, T, R, S;
         M = T = R = S = DirectX::XMMatrixIdentity();
 
         std::vector<double> t = currentNode.translation;
         std::vector<double> r = currentNode.rotation;
         std::vector<double> s = currentNode.scale;
 
+        // Compute the composed transform: Scale, then Rotate, than Translate
         if (!t.empty()) { T = XMMatrixTranslation(static_cast<float>(t[0]), static_cast<float>(t[1]), static_cast<float>(t[2])); }
-        if (!r.empty()) { R = XMMatrixRotationQuaternion(XMLoadFloat4(&XMFLOAT4(static_cast<float>(r[0]), static_cast<float>(r[1]), static_cast<float>(r[2]), static_cast<float>(r[3])))); }
+        if (!r.empty()) { 
+            auto v = XMFLOAT4(static_cast<float>(r[0]), static_cast<float>(r[1]), static_cast<float>(r[2]), static_cast<float>(r[3]));
+            R = XMMatrixRotationQuaternion(XMLoadFloat4(&v)); 
+        }
         if (!s.empty()) { S = XMMatrixScaling(static_cast<float>(s[0]), static_cast<float>(s[1]), static_cast<float>(s[2])); }
-        M = XMMatrixMultiply(S, XMMatrixMultiply(R, T));*/
+        M = XMMatrixMultiply(S, XMMatrixMultiply(R, T));
 
         // Check if the transform is already specified with one matrix
+        if (!currentNode.matrix.empty())
+        {
+            XMFLOAT4X4 m;
+            for (size_t i = 0; i < 4; i++) for (size_t j = 0; j < 4; j++) { m(i, j) = static_cast<float>(currentNode.matrix[4 * i + j]); }
+            M = XMLoadFloat4x4(&m);
+        }
+
+        sceneNode->Transform = std::move(M);
 
         for (int childId : currentNode.children)
         {
@@ -147,7 +139,7 @@ namespace Def
 
         for (const auto& buff : m_Model.buffers)
         {
-            RawBuffer buffer(g, D3D12_HEAP_TYPE_UPLOAD, buff.data.size(), D3D12_RESOURCE_STATE_COMMON);
+            GenericBuffer buffer(g, D3D12_HEAP_TYPE_UPLOAD, buff.data.size(), D3D12_RESOURCE_STATE_COMMON);
             std::memcpy(buffer.Map(), buff.data.data(), buffer.Size());
             buffer.Unmap();
             m_GPUBuffers.push_back(std::move(buffer));
@@ -170,24 +162,21 @@ namespace Def
                     tinygltf::Accessor accessor = m_Model.accessors[primitive.attributes["POSITION"]];
                     tinygltf::BufferView bv = m_Model.bufferViews[accessor.bufferView];
                     attr.BufferID = bv.buffer;
-                    attr.Location = m_GPUBuffers[bv.buffer].GetGPUAddress() + bv.byteOffset;
+                    attr.Location = m_GPUBuffers[bv.buffer].GetGPUAddress() + bv.byteOffset + accessor.byteOffset;
                     attr.ByteOffset = bv.byteOffset + accessor.byteOffset; // Accessors defines an additional offset
-                    attr.Stride = std::max(bv.byteStride, GltfStride(accessor.type, accessor.componentType));
+                    attr.Stride = accessor.ByteStride(bv);
                     attr.Count = accessor.count;
                     posFmt = DXGI_FORMAT_R32G32B32_FLOAT;
                     attr.Format = posFmt;
-                    attr.ByteLength = attr.Stride * attr.Count;
+                    attr.ByteLength = bv.byteLength;
                     sm.m_NumVertices = attr.Count;
                     sm.m_PosStart = attr.Location;
 
-                    DirectX::XMFLOAT3* vp = (DirectX::XMFLOAT3*)(m_Model.buffers[0].data.data() + bv.byteOffset);
-                    for (int i = 0; i < attr.Count; i++, vp++)
-                    {
-                        //// Compute the radius of the scene
-                        if (abs(vp->x) > m_BBox.max.x) m_BBox.max.x = abs(vp->x);
-                        if (abs(vp->y) > m_BBox.max.y) m_BBox.max.y = abs(vp->y);
-                        if (abs(vp->z) > m_BBox.max.z) m_BBox.max.z = abs(vp->z);
-                    }
+                    const std::vector<float> mins(accessor.minValues.begin(), accessor.minValues.end());
+                    const std::vector<float> maxes(accessor.maxValues.begin(), accessor.maxValues.end());
+                    const XMFLOAT3 min = { mins[0], mins[1], mins[2] };
+                    const XMFLOAT3 max = { maxes[0], maxes[1], maxes[2] };
+                    m_BBox = m_BBox.Union(BBox(min, max));
 
                     sm.AddVertexAttrib("POSITION", attr);
                 }
@@ -198,28 +187,29 @@ namespace Def
                     tinygltf::Accessor accessor = m_Model.accessors[primitive.attributes["NORMAL"]];
                     tinygltf::BufferView bv = m_Model.bufferViews[accessor.bufferView];
                     attr.BufferID = bv.buffer;
-                    attr.Location = m_GPUBuffers[bv.buffer].GetGPUAddress() + bv.byteOffset;
+                    attr.Location = m_GPUBuffers[bv.buffer].GetGPUAddress() + bv.byteOffset + accessor.byteOffset;
                     attr.ByteOffset = bv.byteOffset + accessor.byteOffset; // Accessors defines an additional offset
-                    attr.Stride = std::max(bv.byteStride, GltfStride(accessor.type, accessor.componentType));
+                    attr.Stride = accessor.ByteStride(bv);
                     attr.Count = accessor.count;
                     normFmt = DXGI_FORMAT_R32G32B32_FLOAT;
                     attr.Format = normFmt;
-                    attr.ByteLength = attr.Count * attr.Stride;
+                    attr.ByteLength = bv.byteLength;
 
                     sm.AddVertexAttrib("NORMAL", attr);
                 }
 
-                if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
-                {
+                UINT tcSemIdx = 0;
+                std::string tcSem = std::format("TEXCOORD_{}", tcSemIdx);
+                for (;primitive.attributes.find(tcSem) != primitive.attributes.end();) {
                     GltfAttribute attr{};
-                    tinygltf::Accessor accessor = m_Model.accessors[primitive.attributes["TEXCOORD_0"]];
+                    tinygltf::Accessor accessor = m_Model.accessors[primitive.attributes[tcSem]];
                     tinygltf::BufferView bv = m_Model.bufferViews[accessor.bufferView];
                     attr.BufferID = bv.buffer;
-                    attr.Location = m_GPUBuffers[bv.buffer].GetGPUAddress() + bv.byteOffset;
+                    attr.Location = m_GPUBuffers[bv.buffer].GetGPUAddress() + bv.byteOffset + accessor.byteOffset;
                     attr.ByteOffset = bv.byteOffset + accessor.byteOffset;
-                    attr.Stride = std::max(bv.byteStride, GltfStride(accessor.type, accessor.componentType));
+                    attr.Stride = accessor.ByteStride(bv);
                     attr.Count = accessor.count;
-                    attr.ByteLength = attr.Stride * attr.Count;
+                    attr.ByteLength = bv.byteLength;
 
                     if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
                         texFmt = DXGI_FORMAT_R32G32_FLOAT;
@@ -228,7 +218,8 @@ namespace Def
                     else if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
                         texFmt = DXGI_FORMAT_R16G16_FLOAT;
                     attr.Format = texFmt;
-                    sm.AddVertexAttrib("TEXCOORD_0", attr);
+                    sm.AddVertexAttrib(tcSem, attr);
+                    tcSem = std::format("TEXCOORD_{}", ++tcSemIdx);
                 }
 
                 if (primitive.indices != -1)
@@ -237,51 +228,24 @@ namespace Def
                     tinygltf::Accessor accessor = m_Model.accessors[primitive.indices];
                     tinygltf::BufferView bv = m_Model.bufferViews[accessor.bufferView];
                     attr.BufferID = bv.buffer;
-                    attr.Location = m_GPUBuffers[bv.buffer].GetGPUAddress() + bv.byteOffset;
+                    attr.Location = m_GPUBuffers[bv.buffer].GetGPUAddress() + bv.byteOffset + accessor.byteOffset;
                     sm.m_IndexStart = attr.Location;
                     attr.ByteOffset = bv.byteOffset + accessor.byteOffset;
-                    attr.Stride = std::max(bv.byteStride, GltfStride(accessor.type, accessor.componentType));
+                    attr.Stride = accessor.ByteStride(bv);
                     attr.Count = accessor.count;
-                    attr.ByteLength = attr.Stride * attr.Count;
+                    attr.ByteLength = bv.byteLength;
 
                     if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT)
                     {
                         attr.Format = DXGI_FORMAT_R32_UINT;
-                        /*uint32_t* indexes = (uint32_t*)(m_Model.buffers[0].data.data() + bv.byteOffset);
-
-                        size_t indexesCount = m_Model.accessors[primitive.indices].count;
-                        for (int i = 0; i < indexesCount; i += 3)
-                        {
-                            int tmp = indexes[i];
-                            indexes[i] = indexes[i + 2];
-                            indexes[i + 2] = tmp;
-                        }*/
                     }
                     else if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
                     {
                         attr.Format = DXGI_FORMAT_R16_UINT;
-                        uint16_t* indexes = (uint16_t*)(m_Model.buffers[0].data.data() + bv.byteOffset);
-
-                        /*size_t indexesCount = m_Model.accessors[primitive.indices].count;
-                        for (int i = 0; i < indexesCount; i += 3)
-                        {
-                            int tmp = indexes[i];
-                            indexes[i] = indexes[i + 2];
-                            indexes[i + 2] = tmp;
-                        }*/
                     }
                     else if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
                     {
                         attr.Format = DXGI_FORMAT_R8_UINT;
-                        /*uint8_t* indexes = (uint8_t*)(m_Model.buffers[0].data.data() + bv.byteOffset);
-
-                        size_t indexesCount = m_Model.accessors[primitive.indices].count;
-                        for (int i = 0; i < indexesCount; i += 3)
-                        {
-                            int tmp = indexes[i];
-                            indexes[i] = indexes[i + 2];
-                            indexes[i + 2] = tmp;
-                        }*/
                     }
 
                     sm.SetIndexAttrib(attr);
@@ -293,11 +257,11 @@ namespace Def
                     tinygltf::Accessor accessor = m_Model.accessors[primitive.attributes["TANGENT"]];
                     tinygltf::BufferView bv = m_Model.bufferViews[accessor.bufferView];
                     attr.BufferID = bv.buffer;
-                    attr.Location = m_GPUBuffers[bv.buffer].GetGPUAddress() + bv.byteOffset;
+                    attr.Location = m_GPUBuffers[bv.buffer].GetGPUAddress() + bv.byteOffset + accessor.byteOffset;
                     attr.ByteOffset = bv.byteOffset + accessor.byteOffset; // Accessors defines an additional offset
-                    attr.Stride = std::max(bv.byteStride, GltfStride(accessor.type, accessor.componentType));
+                    attr.Stride = accessor.ByteStride(bv);
                     attr.Count = accessor.count;
-                    attr.ByteLength = attr.Stride * attr.Count;
+                    attr.ByteLength = bv.byteLength;
                     if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
                         tanFmt = DXGI_FORMAT_R32G32B32A32_FLOAT;
                     else if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
@@ -341,6 +305,9 @@ namespace Def
                 case TINYGLTF_MODE_TRIANGLES:
                     sm.m_Topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
                     break;
+                case TINYGLTF_MODE_TRIANGLE_STRIP:
+                    sm.m_Topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+                    break;
                 }
 
                 sm.m_Material = primitive.material;
@@ -353,13 +320,17 @@ namespace Def
         }
 
         m_Layout.AddElement<VERTEX_ATTRIBUTES::POS>(posFmt);
-        m_Layout.AddElement<VERTEX_ATTRIBUTES::TEX>(texFmt);
+        m_Layout.AddElement<VERTEX_ATTRIBUTES::TEX_0>(texFmt);
         m_Layout.AddElement<VERTEX_ATTRIBUTES::NORM>(normFmt);
         m_Layout.AddElement<VERTEX_ATTRIBUTES::TAN>(tanFmt);
     }
 
     void Model::ParseMaterials(Graphics& g)
     {
+        auto getIndexer = [&](const tinygltf::TextureInfo& info) {
+            return Material::TextureIndexer{ info.index, info.texCoord };
+        };
+
         for (const tinygltf::Material& material : m_Model.materials)
         {
             Material mat{};
@@ -370,13 +341,19 @@ namespace Def
                 static_cast<float>(material.pbrMetallicRoughness.baseColorFactor[2]),
                 static_cast<float>(material.pbrMetallicRoughness.baseColorFactor[3])
             };
+            mat.EmissiveColor =
+            {
+                static_cast<float>(material.emissiveFactor[0]),
+                static_cast<float>(material.emissiveFactor[1]),
+                static_cast<float>(material.emissiveFactor[2])
+            };
             mat.Roughness = static_cast<float>(material.pbrMetallicRoughness.roughnessFactor);
             mat.Metallic = static_cast<float>(material.pbrMetallicRoughness.metallicFactor);
-            mat.BaseID     = material.pbrMetallicRoughness.baseColorTexture.index;
-            mat.RMID       = material.pbrMetallicRoughness.metallicRoughnessTexture.index;
-            mat.NormID     = material.normalTexture.index;
-            mat.OccID      = material.occlusionTexture.index;
-            mat.EmissiveID = material.emissiveTexture.texCoord;
+            mat.BaseTex     = getIndexer(material.pbrMetallicRoughness.baseColorTexture);
+            mat.RMTex       = getIndexer(material.pbrMetallicRoughness.metallicRoughnessTexture);
+            mat.NormTex = Material::TextureIndexer{ material.normalTexture.index, material.normalTexture.texCoord };
+            mat.OccTex = Material::TextureIndexer{ material.occlusionTexture.index, material.occlusionTexture.texCoord };
+            mat.EmissiveTex = getIndexer(material.emissiveTexture);
 
             m_Materials.push_back(std::move(mat));
         }
@@ -439,6 +416,42 @@ namespace Def
                 m_Samplers.push_back(std::move(s));
             }
         }
+    }
+
+    void Model::CreateGeometry(Graphics& g, std::vector<D3D12_RAYTRACING_GEOMETRY_DESC>& descs, XMMATRIX parentTransform, Shared<SceneNode> node)
+    {
+        XMMATRIX world = XMMatrixMultiply(node->Transform, parentTransform);
+        XMFLOAT3X4 mat;
+        XMStoreFloat3x4(&mat, world);
+        GenericBuffer buffer(g, D3D12_HEAP_TYPE_UPLOAD, ALIGN(sizeof(XMFLOAT3X4), D3D12_RAYTRACING_TRANSFORM3X4_BYTE_ALIGNMENT), D3D12_RESOURCE_STATE_COMMON);
+        std::memcpy(buffer.Map(), &mat, buffer.Size());
+        buffer.Unmap();
+        if (node->Id != -1)
+        {
+            auto& mesh = m_Meshes[node->Id];
+            for (auto& sm : mesh.m_SubMeshes)
+            {
+                auto pos = sm["POSITION"];
+                auto idx = sm.GetIndexAttrib();
+                D3D12_RAYTRACING_GEOMETRY_DESC desc{};
+                desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+                desc.Triangles.VertexBuffer.StartAddress = pos.Location;
+                desc.Triangles.VertexBuffer.StrideInBytes = pos.Stride;
+                desc.Triangles.VertexCount = pos.Count;
+                desc.Triangles.VertexFormat = pos.Format;
+                desc.Triangles.IndexBuffer = idx.Location;
+                desc.Triangles.IndexCount = idx.Count;
+                desc.Triangles.IndexFormat = idx.Format;
+                desc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+                desc.Triangles.Transform3x4 = buffer.GetGPUAddress();
+                descs.push_back(std::move(desc));
+            }
+        }
+
+        m_GPUBuffers.push_back(std::move(buffer));
+
+        for (auto& child : node->Children)
+            CreateGeometry(g, descs, world, child);
     }
     
 }
