@@ -2,4 +2,4 @@
 out/
 build/
 bin/
-/CMakeFiles
+CMakeFiles/
