@@ -56,3 +56,9 @@ if (CMAKE_VERSION VERSION_GREATER 3.12)
   get_target_property(wk_dir Deference VS_DEBUGGER_WORKING_DIRECTORY)
   message("Working directory: ${wk_dir}")
 endif()
+
+add_custom_command(TARGET Deference PRE_BUILD
+    COMMAND CompileShaders
+    WORKING_DIRECTORY ${DXTK12_DIR}/Src/Shaders
+    COMMENT "Compiling DXTK12 shaders..."
+)

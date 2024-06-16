@@ -1,0 +1,11 @@
+Model Information:
+* title:	Room (Maru)
+* source:	https://sketchfab.com/3d-models/room-maru-b6b278fe02594da4b869e1c38d58c3fe
+* author:	RitaMirgo (https://sketchfab.com/ritata026)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Room (Maru)" (https://sketchfab.com/3d-models/room-maru-b6b278fe02594da4b869e1c38d58c3fe) by RitaMirgo (https://sketchfab.com/ritata026) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
