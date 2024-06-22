@@ -1,5 +1,5 @@
 # Deference
-Quick showcase of D3D12 and DXR. Implements a hybrid-rendering pipeline which integrates rasterization and raytracing.
+Showcase of D3D12 and DXR.
 
 ## Prereqs
 - DirectX 12 runtime support
