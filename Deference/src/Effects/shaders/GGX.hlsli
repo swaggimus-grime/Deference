@@ -144,13 +144,13 @@ float3 ggxDirect(inout uint rndSeed, float3 hit, float3 N, float3 V,
     float NdotL = saturate(dot(N, l.dirToL));
 
 	// Shoot our shadow ray to our randomly selected light
-    float shadowMult = shadowRayVisibility(hit, l.dirToL, ggx.minT, l.distToLight);
+    bool shadowMult = shadowRayVisibility(hit, l.dirToL, ggx.minT, l.distToLight) != 0.f;
 
 	// Compute half vectors and additional dot products for GGX
     float3 H = normalize(V + l.dirToL);
-    float NdotH = dot(N, H);
-    float LdotH = dot(l.dirToL, H);
-    float NdotV = dot(N, V);
+    float NdotH = saturate(dot(N, H));
+    float LdotH = saturate(dot(l.dirToL, H));
+    float NdotV = saturate(dot(N, V));
 
 	// Evaluate terms for our GGX BRDF model
     float D = ggxNormalDistribution(NdotH, rough);
@@ -162,8 +162,7 @@ float3 ggxDirect(inout uint rndSeed, float3 hit, float3 N, float3 V,
     float3 ggxTerm = D * G * F / (4 * NdotV /* * NdotL */);
 
 	// Compute our final color (combining diffuse lobe plus specular GGX lobe)
-    return pointLight.intensity * pointLight.color * ( /* NdotL * */ggxTerm + NdotL * dif / M_PI);
-
+    return shadowMult * pointLight.intensity * pointLight.color * ( /* NdotL * */ggxTerm + NdotL * dif / M_PI);
 }
 
 float3 ggxIndirect(inout uint rndSeed, float3 hit, float3 N, float3 V, float3 dif, float3 spec, float rough, uint rayDepth)
