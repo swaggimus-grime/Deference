@@ -38,10 +38,12 @@ namespace Def
 			layout.Add<CONSTANT_TYPE::UINT>("maxRec");
 			layout.Add<CONSTANT_TYPE::UINT>("frameCount");
 			layout.Add<CONSTANT_TYPE::UINT>("on");
+			layout.Add<CONSTANT_TYPE::UINT>("openScene");
 			m_Constants = MakeShared<ConstantBuffer>(g, std::move(layout));
 			(*m_Constants)["maxRec"] = 1;
 			(*m_Constants)["minT"] = 0.001f;
 			(*m_Constants)["on"] = 1u;
+			(*m_Constants)["openScene"] = 1u;
 			AddResource(m_Constants);
 		}
 	}
@@ -129,7 +131,7 @@ namespace Def
 		}
 		{
 			auto config = so.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-			config->Config(sizeof(float) * 3 + sizeof(UINT) * 2, sizeof(float) * 2);
+			config->Config(sizeof(float) * 3 + sizeof(UINT) * 4, sizeof(float) * 2);
 
 			auto ass = so.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
 			ass->AddExport(indirectClosest);
@@ -206,11 +208,8 @@ namespace Def
 
 			ImGui::BeginGroup();
 			ImGui::Text("Indirect Light");
-			if (ImGui::Checkbox("Recursion on", (*m_Constants)["on"])) {
-				UINT& status = (*m_Constants)["on"];
-				status;
-			}
-				
+			ImGui::Checkbox("Recursion on", (*m_Constants)["on"]);
+			ImGui::Checkbox("Open Scene?", (*m_Constants)["openScene"]);
 			ImGui::SliderInt("Max Recursion", ((*m_Constants)["maxRec"]), 1, 30);
 			ImGui::SliderFloat("minT", (*m_Constants)["minT"], 0.001f, 1.f);
 			ImGui::EndGroup();

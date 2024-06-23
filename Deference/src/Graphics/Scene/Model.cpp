@@ -354,6 +354,9 @@ namespace Def
             mat.NormTex = Material::TextureIndexer{ material.normalTexture.index, material.normalTexture.texCoord };
             mat.OccTex = Material::TextureIndexer{ material.occlusionTexture.index, material.occlusionTexture.texCoord };
             mat.EmissiveTex = getIndexer(material.emissiveTexture);
+            mat.IsDoubleSided = material.doubleSided;
+            if (auto it = material.extensions.find("KHR_materials"); it != material.extensions.end())
+                mat.RefractiveIndex = it->second.GetNumberAsDouble();
 
             m_Materials.push_back(std::move(mat));
         }

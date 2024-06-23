@@ -36,6 +36,8 @@ struct Material
     TextureIndexer OccTex;
     TextureIndexer EmTex;
     float3 EmissiveColor;
+    float IoR;
+    bool doubleSidedMaterial;
 };
 
 StructuredBuffer<Material> mats : register(t7, space1);
@@ -52,6 +54,8 @@ struct ShadingData
     float metallic;
     float3 emissive;
     float3 specular;
+    float IoR;
+    bool doubleSidedMaterial;
 };
 
 float2 BarycentricLerp2(in float2 v0, in float2 v1, in float2 v2, in BuiltInTriangleIntersectionAttributes attribs)
@@ -151,6 +155,11 @@ ShadingData getShadingData(uint primIdx, BuiltInTriangleIntersectionAttributes a
                 data.normal = normalize(mul(norm, texSpace));
             }
         }
+        
+        data.IoR = mat.IoR;
+        data.doubleSidedMaterial = mat.doubleSidedMaterial;
+        if(data.doubleSidedMaterial)
+            data.normal = -data.normal;
     }
     {
         if (mat.BaseTex.ID != -1)

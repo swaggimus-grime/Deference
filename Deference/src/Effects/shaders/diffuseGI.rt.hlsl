@@ -15,7 +15,7 @@ RWTexture2D<float4> output : register(u0);
 #include "Trigonometry.hlsli"
 
 [shader("miss")]
-void IndirectMiss(inout IndirectPayload rayData)
+void IndirectMiss(inout IndirectRayPayload rayData)
 {
     float2 dims;
     env.GetDimensions(dims.x, dims.y);
@@ -25,7 +25,7 @@ void IndirectMiss(inout IndirectPayload rayData)
 
 // Identical to any hit shaders for most other rays we've defined
 [shader("anyhit")]
-void IndirectAny(inout IndirectPayload rayData,
+void IndirectAny(inout IndirectRayPayload rayData,
                  BuiltInTriangleIntersectionAttributes attribs)
 {
     //if (alphaTestFails(attribs))
@@ -33,7 +33,7 @@ void IndirectAny(inout IndirectPayload rayData,
 }
 
 [shader("closesthit")]
-void IndirectClosest(inout IndirectPayload rayData,
+void IndirectClosest(inout IndirectRayPayload rayData,
                      BuiltInTriangleIntersectionAttributes attribs)
 {
     // Run a helper functions to extract Falcor scene data for shading
@@ -45,14 +45,14 @@ void IndirectClosest(inout IndirectPayload rayData,
     float3 v = normalize(ggx.camPos - shadeData.wPos);
     if (pointLight.on)
     {
-        rayData.color += ggxDirect(rayData.rndSeed, shadeData.wPos, shadeData.normal,
+        rayData.color += ggxDirect(rayData.rndSeed, rayData.hState, shadeData.wPos, shadeData.normal,
             v, shadeData.diffuse, shadeData.specular, shadeData.roughness);
     }
 
     if (rayData.recDepth < ggx.maxRec)
     {
-        rayData.color += ggxIndirect(rayData.rndSeed, shadeData.wPos, shadeData.normal, v,
-			shadeData.diffuse, shadeData.specular, shadeData.roughness, rayData.recDepth);
+        rayData.color += ggxIndirect(rayData.rndSeed, rayData.hState, shadeData.wPos, shadeData.normal, shadeData.normal, v,
+			shadeData.diffuse, shadeData.specular, shadeData.roughness, rayData.recDepth, ggx.openScene);
     }
     
 }
@@ -79,9 +79,8 @@ void DiffuseAndHardShadow()
     float3 V = normalize(ggx.camPos - worldPos.xyz);
 
 	// Make sure our normal is pointed the right direction
-    //if (dot(worldNorm.xyz, V) <= 0.0f)
-    //    worldNorm.xyz = -worldNorm.xyz;
-    float NdotV = dot(worldNorm.xyz, V);
+    if (dot(worldNorm.xyz, V) <= 0.0f)
+        worldNorm.xyz = -worldNorm.xyz;
 
 	//// Grab our geometric normal.  Also make sure this points the right direction.
 	////     This is badly hacked into our G-buffer for now.  We need this because 
@@ -97,6 +96,8 @@ void DiffuseAndHardShadow()
     float3 shadeColor = isGeometryValid ? float3(0, 0, 0) : difMatlColor.rgb;
 
 	// Initialize our random number generator
+    HaltonState hState;
+    haltonInit(hState, launchIndex.x, launchIndex.y, 1, 1, ggx.frameCount, 1);
     uint randSeed = initRand(launchIndex.x + launchIndex.y * launchDim.x, ggx.frameCount, 16);
 
 	// Do shading, if we have geoemtry here (otherwise, output the background color)
@@ -107,12 +108,12 @@ void DiffuseAndHardShadow()
 
 		// (Optionally) do explicit direct lighting to a random light in the scene
         if(pointLight.on)
-            shadeColor += ggxDirect(randSeed, worldPos.xyz, worldNorm.xyz, V,
+            shadeColor += ggxDirect(randSeed, hState, worldPos.xyz, worldNorm.xyz, V,
 				               difMatlColor.rgb, specMatlColor.rgb, roughness);
 
 		// (Optionally) do indirect lighting for global illumination
         if (ggx.on && ggx.maxRec > 0)
-            shadeColor += ggxIndirect(randSeed, worldPos.xyz, worldNorm.xyz, V, difMatlColor.rgb, specMatlColor.rgb, roughness, 0);
+            shadeColor += ggxIndirect(randSeed, hState, worldPos.xyz, worldNorm.xyz, worldNorm.xyz, V, difMatlColor.rgb, specMatlColor.rgb, roughness, 0, ggx.openScene);
     }
 	
 	// Since we didn't do a good job above catching NaN's, div by 0, infs, etc.,

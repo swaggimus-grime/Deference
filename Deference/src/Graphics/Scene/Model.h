@@ -25,6 +25,8 @@ namespace Def
 		TextureIndexer OccTex;
 		TextureIndexer EmissiveTex;
 		XMFLOAT3 EmissiveColor;
+		UINT IsDoubleSided;
+		float RefractiveIndex;
 	};
 
 	struct SceneNode

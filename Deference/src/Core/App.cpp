@@ -20,7 +20,7 @@ namespace Def
 
 		m_Scene = MakeShared<Scene>();
 		m_Scene->m_Camera = MakeShared<Camera>(*m_Gfx);
-		m_Scene->m_Model = MakeShared<Model>(*m_Gfx, "res\\models\\modern_dining_room.glb");
+		m_Scene->m_Model = MakeShared<Model>(*m_Gfx, "res\\models\\neon_bedroom.glb");
 		m_Graph->Compile(*m_Gfx);
 
 		EventManager::Bind<ModelLoadEvent>(EVENT_BIND(App::OnModelLoad));
