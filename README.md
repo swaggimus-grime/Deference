@@ -1,5 +1,5 @@
 # Deference
-Quick showcase of D3D12 and DXR. Implements a hybrid-rendering pipeline which integrates rasterization and raytracing.
+Showcase of D3D12 and DXR.
 
 ## Prereqs
 - DirectX 12 runtime support
@@ -23,6 +23,9 @@ Normal map support
 
 Ambient occlusion
 ![ao](https://github.com/swaggimus-grime/Deference/blob/657c017c2ac29cd386dcd2c3f7f336db578b5cb7/screenshots/ao.png)
+
+Global Illumination
+![GGX](https://github.com/swaggimus-grime/Deference/blob/a46cf14c609d66c89accdb19907497f9b8d49e5e/screenshots/hangar.png)
 
 Albedo channel
 ![albedo](https://github.com/swaggimus-grime/Deference/blob/657c017c2ac29cd386dcd2c3f7f336db578b5cb7/screenshots/albedo.png)
