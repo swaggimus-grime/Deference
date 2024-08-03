@@ -1,5 +1,10 @@
 # Deference
-Showcase of D3D12 and DXR.
+Showcase of D3D12 and DXR. For personal educational purposes ONLY.
+
+# Resources Used (Thank you!)
+![Chris Wyman's DXR Tutorial]([https://cwyman.org/](https://cwyman.org/code/dxrTutors/dxr_tutors.md.html)
+![Zijing Peng's repo for DXR Hybrid Rendering](https://github.com/ZijingPeng/DXR-Hybrid-Rendering)
+![Learn OpenGL's PBR articles](https://learnopengl.com/PBR/Theory)
 
 ## Prereqs
 - DirectX 12 runtime support
