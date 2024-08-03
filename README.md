@@ -30,5 +30,5 @@ Global Illumination
 Albedo channel
 ![albedo](https://github.com/swaggimus-grime/Deference/blob/657c017c2ac29cd386dcd2c3f7f336db578b5cb7/screenshots/albedo.png)
 
-Floating UI
-![UI](https://github.com/swaggimus-grime/Deference/blob/657c017c2ac29cd386dcd2c3f7f336db578b5cb7/screenshots/ui.png)
+Reflecions
+![albedo](https://github.com/swaggimus-grime/Deference/blob/ffb3ed40f369692b973be8662ffb855614a90b1c/screenshots/mirror.png)
